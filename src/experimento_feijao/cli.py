@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from experimento_feijao.preparation import PreparationError, prepare
+
 LIBRARIES = (
     "keras",
     "numpy",
@@ -20,7 +22,6 @@ LIBRARIES = (
     "tensorflow-datasets",
 )
 FUTURE_OPERATIONS = {
-    "prepare": "prepare segmented data",
     "run": "run experimental pairs",
     "consolidate": "consolidate run artifacts",
     "analyze": "perform statistical analysis",
@@ -179,6 +180,19 @@ def _not_implemented(args: argparse.Namespace) -> int:
     return 2
 
 
+def _prepare(args: argparse.Namespace) -> int:
+    try:
+        configuration = json.loads(args.config.read_text(encoding="utf-8"))
+        if not isinstance(configuration, dict):
+            raise PreparationError("configuration must be an object")
+        manifest = prepare(configuration, args.dataset_manifest, args.output)
+    except (OSError, json.JSONDecodeError, PreparationError) as error:
+        print(f"Could not prepare segmented inputs: {error}", file=sys.stderr)
+        return 2
+    print(f"Prepared {len(manifest['artifacts'])} segmented inputs in {args.output}")
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="experimento-feijao",
@@ -192,6 +206,18 @@ def _parser() -> argparse.ArgumentParser:
     validate.add_argument("--config", required=True, type=Path)
     validate.add_argument("--manifest", type=Path, default=Path("manifest.json"))
     validate.set_defaults(handler=_validate)
+
+    prepare_parser = subparsers.add_parser(
+        "prepare", help="materialize deterministic segmented inputs"
+    )
+    prepare_parser.add_argument("--config", required=True, type=Path)
+    prepare_parser.add_argument(
+        "--dataset-manifest",
+        type=Path,
+        help="use an auditable local beans:0.1.0 manifest instead of TFDS",
+    )
+    prepare_parser.add_argument("--output", required=True, type=Path)
+    prepare_parser.set_defaults(handler=_prepare)
 
     for operation, help_text in FUTURE_OPERATIONS.items():
         future = subparsers.add_parser(operation, help=f"future: {help_text}")

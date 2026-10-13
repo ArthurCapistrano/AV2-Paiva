@@ -137,7 +137,7 @@ def test_validate_writes_normalized_configuration_and_environment_manifest(
 
 
 def test_future_operation_is_explicitly_unavailable() -> None:
-    result = run_cli("prepare")
+    result = run_cli("run")
 
     assert result.returncode == 2
     assert "not implemented yet" in result.stderr
