@@ -44,5 +44,17 @@ uv run experimento-feijao validate \
   --manifest artifacts/protocol-manifest.json
 ```
 
-As demais operacoes aparecem na ajuda como etapas futuras e permanecem na mesma
-CLI.
+Depois de materializar as entradas segmentadas, execute um par cuja seed esteja
+na lista congelada:
+
+```bash
+uv run experimento-feijao run \
+  --config protocol.json \
+  --segmented-inputs artifacts/segmented \
+  --seed 1001 \
+  --output artifacts/pair-1001
+```
+
+Cada braço produz checkpoint, histórico, duração restrita ao `model.fit`,
+predições, métricas e manifesto. `consolidate`, `analyze` e `grad-cam` aparecem na
+ajuda como etapas futuras e permanecem na mesma CLI.

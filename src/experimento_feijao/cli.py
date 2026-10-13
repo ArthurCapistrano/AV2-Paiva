@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from experimento_feijao.experiment import ExperimentError, run_pair
 from experimento_feijao.preparation import PreparationError, prepare
 
 LIBRARIES = (
@@ -22,7 +23,6 @@ LIBRARIES = (
     "tensorflow-datasets",
 )
 FUTURE_OPERATIONS = {
-    "run": "run experimental pairs",
     "consolidate": "consolidate run artifacts",
     "analyze": "perform statistical analysis",
     "grad-cam": "generate Grad-CAM visualizations",
@@ -193,6 +193,20 @@ def _prepare(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run(args: argparse.Namespace) -> int:
+    try:
+        run_pair(args.config, args.segmented_inputs, args.seed, args.output)
+    except ExperimentError as error:
+        print(
+            f"Pair failed at stage '{error.stage}' for arm '{error.arm}' "
+            f"and seed {error.seed}: {error}",
+            file=sys.stderr,
+        )
+        return 2
+    print(f"Experimental pair {args.seed} written to {args.output}")
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="experimento-feijao",
@@ -218,6 +232,15 @@ def _parser() -> argparse.ArgumentParser:
     )
     prepare_parser.add_argument("--output", required=True, type=Path)
     prepare_parser.set_defaults(handler=_prepare)
+
+    run_parser = subparsers.add_parser(
+        "run", help="run one complete paired experiment"
+    )
+    run_parser.add_argument("--config", required=True, type=Path)
+    run_parser.add_argument("--segmented-inputs", required=True, type=Path)
+    run_parser.add_argument("--seed", required=True, type=int)
+    run_parser.add_argument("--output", required=True, type=Path)
+    run_parser.set_defaults(handler=_run)
 
     for operation, help_text in FUTURE_OPERATIONS.items():
         future = subparsers.add_parser(operation, help=f"future: {help_text}")
