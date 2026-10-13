@@ -51,7 +51,9 @@ def _hsv_triplet(value: object) -> NDArray[np.uint8]:
     return np.array(value, dtype=np.uint8)
 
 
-def _load_manifest(path: Path) -> dict[str, list[ImageRecord]]:
+def _load_manifest(
+    path: Path, requested_splits: tuple[str, ...]
+) -> dict[str, list[ImageRecord]]:
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
@@ -70,7 +72,7 @@ def _load_manifest(path: Path) -> dict[str, list[ImageRecord]]:
 
     result: dict[str, list[ImageRecord]] = {}
     identities: set[str] = set()
-    for split in SPLITS:
+    for split in requested_splits:
         raw_records = source_splits[split]
         if not isinstance(raw_records, list):
             raise PreparationError(f"dataset split {split} must be a list")
@@ -106,13 +108,13 @@ def _load_manifest(path: Path) -> dict[str, list[ImageRecord]]:
     return result
 
 
-def _load_tfds() -> dict[str, list[ImageRecord]]:
+def _load_tfds(requested_splits: tuple[str, ...]) -> dict[str, list[ImageRecord]]:
     import tensorflow_datasets as tfds  # type: ignore[import-untyped]
 
     try:
         datasets, info = tfds.load(
             DATASET_VERSION,
-            split=list(SPLITS),
+            split=list(requested_splits),
             as_supervised=True,
             with_info=True,
         )
@@ -125,7 +127,7 @@ def _load_tfds() -> dict[str, list[ImageRecord]]:
         raise PreparationError("TFDS classes do not match beans:0.1.0")
 
     result: dict[str, list[ImageRecord]] = {}
-    for split, dataset in zip(SPLITS, datasets, strict=True):
+    for split, dataset in zip(requested_splits, datasets, strict=True):
         records: list[ImageRecord] = []
         for index, (image, label) in enumerate(tfds.as_numpy(dataset)):
             class_name = class_names[int(label)]
@@ -151,8 +153,45 @@ def _sample_training(records: list[ImageRecord], seed: int) -> dict[str, list[st
     return sample
 
 
+def _symptoms_preserved(
+    silhouette: NDArray[np.uint8], expected_regions: object
+) -> bool:
+    if not isinstance(expected_regions, list):
+        raise PreparationError("expected symptom regions must be a list")
+    image_height, image_width = silhouette.shape
+    for region in expected_regions:
+        if not (
+            isinstance(region, list)
+            and len(region) == 4
+            and all(
+                isinstance(value, int) and not isinstance(value, bool)
+                for value in region
+            )
+        ):
+            raise PreparationError(
+                "expected symptom regions must be [x, y, width, height]"
+            )
+        x, y, width, height = region
+        if (
+            x < 0
+            or y < 0
+            or width <= 0
+            or height <= 0
+            or x + width > image_width
+            or y + height > image_height
+        ):
+            raise PreparationError(
+                "expected symptom region is outside its training image"
+            )
+        if not bool(np.all(silhouette[y : y + height, x : x + width] == 255)):
+            return False
+    return True
+
+
 def _segment(
-    image: NDArray[np.uint8], segmentation: dict[str, Any]
+    image: NDArray[np.uint8],
+    segmentation: dict[str, Any],
+    expected_symptom_regions: object,
 ) -> tuple[NDArray[np.uint8] | None, dict[str, object]]:
     hsv_config = _mapping(segmentation.get("hsv"), "segmentation.hsv")
     morphology = _mapping(segmentation.get("morphology"), "segmentation.morphology")
@@ -212,14 +251,17 @@ def _segment(
         or np.any(silhouette[:, -1])
     )
     background_removed = bool(np.count_nonzero(silhouette == 0) > 0)
+    symptoms_preserved = _symptoms_preserved(silhouette, expected_symptom_regions)
     rubric: dict[str, object] = {
         "continuity": True,
         "borders_preserved": not touches_border,
-        "symptoms_preserved": True,
+        "symptoms_preserved": symptoms_preserved,
         "background_removed": background_removed,
         "failure": None,
     }
-    if touches_border:
+    if not symptoms_preserved:
+        rubric["failure"] = "expected symptom region was removed"
+    elif touches_border:
         rubric["failure"] = "leaf silhouette touches an image border"
     elif not background_removed:
         rubric["failure"] = "no background was removed"
@@ -235,8 +277,9 @@ def prepare(
     segmentation = _mapping(
         configuration.get("segmentation"), "segmentation configuration"
     )
-    if segmentation.get("state") != "frozen":
-        raise PreparationError("segmentation must be frozen before materialization")
+    state = segmentation.get("state")
+    if state not in ("adjustment", "frozen"):
+        raise PreparationError("segmentation state must be adjustment or frozen")
     adjustment_seed = segmentation.get("adjustment_seed")
     max_failures = segmentation.get("max_failures")
     if not isinstance(adjustment_seed, int) or isinstance(adjustment_seed, bool):
@@ -254,21 +297,39 @@ def prepare(
             f"output already exists; artifacts are immutable: {output}"
         )
 
+    requested_splits = ("train",) if state == "adjustment" else SPLITS
     records = (
-        _load_tfds() if dataset_manifest is None else _load_manifest(dataset_manifest)
+        _load_tfds(requested_splits)
+        if dataset_manifest is None
+        else _load_manifest(dataset_manifest, requested_splits)
     )
     sample = _sample_training(records["train"], adjustment_seed)
     sample_ids = {identity for identities in sample.values() for identity in identities}
+    expected_regions = _mapping(
+        segmentation.get("expected_symptom_regions"),
+        "segmentation.expected_symptom_regions",
+    )
     output.mkdir(parents=True)
     rubric_entries: list[dict[str, object]] = []
     sampled_outputs: dict[str, NDArray[np.uint8] | None] = {}
     for record in sorted(records["train"], key=lambda item: item.identity):
         if record.identity not in sample_ids:
             continue
-        segmented, rubric = _segment(record.image, segmentation)
+        if record.identity not in expected_regions:
+            raise PreparationError(
+                f"expected symptom regions are required for {record.identity}"
+            )
+        segmented, rubric = _segment(
+            record.image, segmentation, expected_regions[record.identity]
+        )
         sampled_outputs[record.identity] = segmented
         rubric_entries.append(
-            {"identity": record.identity, "class": record.label, **rubric}
+            {
+                "identity": record.identity,
+                "class": record.label,
+                "expected_symptom_regions": expected_regions[record.identity],
+                **rubric,
+            }
         )
 
     failed_entries = [entry for entry in rubric_entries if entry["failure"]]
@@ -291,17 +352,23 @@ def prepare(
     (output / "rubric.json").write_text(
         json.dumps(rubric_report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
-    if not rubric_report["confirmed"]:
+    if not rubric_report["confirmed"] and state == "frozen":
         raise PreparationError(
             "segmentation rubric failed; protocol confirmation is blocked"
         )
 
     artifacts: list[dict[str, str]] = []
-    for split in SPLITS:
-        for record in sorted(records[split], key=lambda item: item.identity):
+    materialized_splits = requested_splits
+    for split in materialized_splits:
+        split_records = sorted(records[split], key=lambda item: item.identity)
+        if state == "adjustment":
+            split_records = [
+                record for record in split_records if record.identity in sample_ids
+            ]
+        for record in split_records:
             segmented = sampled_outputs.get(record.identity)
             if record.identity not in sampled_outputs:
-                segmented, _ = _segment(record.image, segmentation)
+                segmented, _ = _segment(record.image, segmentation, [])
             if segmented is None:
                 raise PreparationError(
                     f"frozen segmentation failed for {split} image {record.identity}"
@@ -332,7 +399,7 @@ def prepare(
             class_name: sum(record.label == class_name for record in records[split])
             for class_name in BEANS_CLASSES
         }
-        for split in SPLITS
+        for split in requested_splits
     }
     manifest = {
         "dataset": {
@@ -341,7 +408,7 @@ def prepare(
             "counts": counts,
         },
         "segmentation": {
-            "state": "frozen",
+            "state": state,
             "hsv": segmentation["hsv"],
             "morphology": segmentation["morphology"],
             "largest_component": True,
@@ -357,16 +424,21 @@ def prepare(
             "rubric": {
                 "path": "rubric.json",
                 "failure_count": len(failed_entries),
-                "confirmed": True,
+                "confirmed": rubric_report["confirmed"],
             },
-        },
-        "shared_inputs": {
-            "solucao_principal": "images",
-            "solucao_contrafactual": "images",
         },
         "artifacts": artifacts,
     }
+    if state == "frozen":
+        manifest["shared_inputs"] = {
+            "solucao_principal": "images",
+            "solucao_contrafactual": "images",
+        }
     (output / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    if not rubric_report["confirmed"]:
+        raise PreparationError(
+            "segmentation rubric failed; protocol confirmation is blocked"
+        )
     return manifest

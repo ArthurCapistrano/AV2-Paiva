@@ -34,6 +34,11 @@ def write_protocol(tmp_path: Path) -> Path:
             },
             "adjustment_seed": 1729,
             "max_failures": 6,
+            "expected_symptom_regions": {
+                f"train-{class_name}-{index:02d}": [[8, 7, 5, 5]]
+                for class_name in CLASSES
+                for index in range(12)
+            },
             "pilot_evidence": "reports/segmentation-pilot.md",
         },
         "training": {"epochs": 1, "pilot_evidence": "reports/epochs-pilot.md"},
@@ -46,7 +51,11 @@ def write_protocol(tmp_path: Path) -> Path:
     return path
 
 
-def write_dataset(tmp_path: Path, blank_training_class: str | None = None) -> Path:
+def write_dataset(
+    tmp_path: Path,
+    blank_training_class: str | None = None,
+    detached_symptom_class: str | None = None,
+) -> Path:
     records: dict[str, list[dict[str, str]]] = {
         "train": [],
         "validation": [],
@@ -59,7 +68,8 @@ def write_dataset(tmp_path: Path, blank_training_class: str | None = None) -> Pa
             for index in range(amount):
                 image = np.full((20, 20, 3), 255, dtype=np.uint8)
                 if split != "train" or class_name != blank_training_class:
-                    image[2:18, 3:17] = (30, 180, 30)
+                    leaf_end = 7 if class_name == detached_symptom_class else 17
+                    image[2:18, 3:leaf_end] = (30, 180, 30)
                     image[7:12, 8:13] = (150, 80, 30)
                 identity = f"{split}-{class_name}-{index:02d}"
                 image_path = image_dir / f"{identity}.png"
@@ -139,6 +149,36 @@ def test_prepare_materializes_repeatable_shared_segmented_inputs(
     assert rubric["failure_count"] == 0
 
 
+def test_prepare_adjustment_materializes_only_the_training_audit_sample(
+    tmp_path: Path,
+) -> None:
+    protocol = json.loads(write_protocol(tmp_path).read_text())
+    protocol["segmentation"]["state"] = "adjustment"
+    protocol_path = tmp_path / "adjustment-protocol.json"
+    protocol_path.write_text(json.dumps(protocol), encoding="utf-8")
+    dataset = write_dataset(tmp_path)
+    output = tmp_path / "adjustment"
+
+    result = run_cli(
+        "prepare",
+        "--config",
+        str(protocol_path),
+        "--dataset-manifest",
+        str(dataset),
+        "--output",
+        str(output),
+    )
+
+    assert result.returncode == 0, result.stderr
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["segmentation"]["state"] == "adjustment"
+    assert len(manifest["artifacts"]) == 30
+    assert {artifact["split"] for artifact in manifest["artifacts"]} == {"train"}
+    assert not (output / "images/validation").exists()
+    assert not (output / "images/test").exists()
+    assert "shared_inputs" not in manifest
+
+
 def test_prepare_blocks_before_other_splits_when_training_rubric_fails(
     tmp_path: Path,
 ) -> None:
@@ -166,6 +206,79 @@ def test_prepare_blocks_before_other_splits_when_training_rubric_fails(
     assert not (output / "images/validation").exists()
     assert not (output / "images/test").exists()
     assert not (output / "manifest.json").exists()
+
+
+def test_prepare_blocks_when_an_expected_internal_symptom_is_removed(
+    tmp_path: Path,
+) -> None:
+    protocol = json.loads(write_protocol(tmp_path).read_text())
+    protocol["segmentation"]["max_failures"] = 30
+    protocol_path = tmp_path / "protocol-with-failure-tolerance.json"
+    protocol_path.write_text(json.dumps(protocol), encoding="utf-8")
+    dataset = write_dataset(tmp_path, detached_symptom_class="bean_rust")
+    output = tmp_path / "artifacts"
+
+    result = run_cli(
+        "prepare",
+        "--config",
+        str(protocol_path),
+        "--dataset-manifest",
+        str(dataset),
+        "--output",
+        str(output),
+    )
+
+    assert result.returncode == 2
+    assert "rubric failed" in result.stderr
+    report = json.loads((output / "rubric.json").read_text())
+    removed = [entry for entry in report["entries"] if not entry["symptoms_preserved"]]
+    assert len(removed) == 10
+    assert {entry["class"] for entry in removed} == {"bean_rust"}
+    assert {entry["failure"] for entry in removed} == {
+        "expected symptom region was removed"
+    }
+    reported_regions = {
+        tuple(region)
+        for entry in removed
+        for region in entry["expected_symptom_regions"]
+    }
+    assert reported_regions == {
+        (8, 7, 5, 5)
+    }
+    assert report["confirmed"] is False
+    assert not (output / "images/validation").exists()
+    assert not (output / "images/test").exists()
+
+
+def test_adjustment_failure_keeps_only_the_training_audit_artifacts(
+    tmp_path: Path,
+) -> None:
+    protocol = json.loads(write_protocol(tmp_path).read_text())
+    protocol["segmentation"]["state"] = "adjustment"
+    protocol["segmentation"]["max_failures"] = 30
+    protocol_path = tmp_path / "adjustment-protocol.json"
+    protocol_path.write_text(json.dumps(protocol), encoding="utf-8")
+    dataset = write_dataset(tmp_path, detached_symptom_class="bean_rust")
+    output = tmp_path / "adjustment"
+
+    result = run_cli(
+        "prepare",
+        "--config",
+        str(protocol_path),
+        "--dataset-manifest",
+        str(dataset),
+        "--output",
+        str(output),
+    )
+
+    assert result.returncode == 2
+    assert "rubric failed" in result.stderr
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["segmentation"]["state"] == "adjustment"
+    assert manifest["segmentation"]["rubric"]["confirmed"] is False
+    assert len(list((output / "images/train").glob("*/*.png"))) == 30
+    assert not (output / "images/validation").exists()
+    assert not (output / "images/test").exists()
 
 
 def test_prepare_reports_invalid_hsv_limits_without_a_traceback(tmp_path: Path) -> None:
