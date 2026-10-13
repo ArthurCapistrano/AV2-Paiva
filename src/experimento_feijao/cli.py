@@ -3,12 +3,13 @@ from __future__ import annotations
 import argparse
 import importlib.metadata
 import json
+import math
 import platform
 import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeGuard
 
 from experimento_feijao.experiment import ExperimentError, run_pair
 from experimento_feijao.preparation import PreparationError, prepare
@@ -45,7 +46,121 @@ def _valid_hsv_triplet(value: object) -> bool:
     )
 
 
-def _validation_errors(configuration: object) -> list[str]:
+def _positive_integer(value: object) -> TypeGuard[int]:
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _finite_number(value: object) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
+def _stabilization_epoch(window_minima: object) -> int | None:
+    if not (
+        isinstance(window_minima, list)
+        and len(window_minima) >= 3
+        and all(_finite_number(value) and value > 0 for value in window_minima)
+    ):
+        return None
+    stable_comparisons = 0
+    for index, current in enumerate(window_minima[1:], start=1):
+        previous = window_minima[index - 1]
+        relative_improvement = (previous - current) / previous
+        stable_comparisons = (
+            stable_comparisons + 1 if relative_improvement <= 0.01 else 0
+        )
+        if stable_comparisons == 2:
+            return (index + 1) * 5
+    return None
+
+
+def _epoch_pilot_errors(training: dict[str, Any], configuration_dir: Path) -> list[str]:
+    reference = training.get("pilot_evidence")
+    if not _non_empty_string(reference):
+        return ["training pilot evidence is required before fixing epochs"]
+
+    evidence_path = configuration_dir / str(reference)
+    try:
+        evidence = _mapping(json.loads(evidence_path.read_text(encoding="utf-8")))
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"Could not read training pilot evidence: {error}"]
+
+    errors: list[str] = []
+    if evidence.get("status") != "executed":
+        errors.append("training pilot evidence must have status executed")
+    if evidence.get("dataset_splits") != ["train", "validation"]:
+        errors.append("training pilot evidence must use only train and validation")
+    if evidence.get("test_data_accessed") is not False:
+        errors.append("training pilot must not access test data")
+    if evidence.get("selected_epochs") != training.get("epochs"):
+        errors.append("selected epoch budget must match training pilot evidence")
+
+    pilot_seeds = evidence.get("pilot_seeds")
+    if not (
+        isinstance(pilot_seeds, list)
+        and bool(pilot_seeds)
+        and all(
+            isinstance(seed, int) and not isinstance(seed, bool)
+            for seed in pilot_seeds
+        )
+        and len(set(pilot_seeds)) == len(pilot_seeds)
+    ):
+        errors.append("training pilot evidence must preserve unique pilot seeds")
+    if not _mapping(evidence.get("training_configuration")):
+        errors.append("training pilot evidence must preserve its configuration")
+
+    rule = _mapping(evidence.get("stabilization_rule"))
+    if not (
+        rule.get("declared_before_pilot") is True
+        and rule.get("metric") == "validation_loss"
+        and rule.get("window_epochs") == 5
+        and rule.get("maximum_relative_improvement") == 0.01
+        and rule.get("required_stable_windows") == 2
+    ):
+        errors.append(
+            "training pilot evidence must preserve the predeclared stabilization rule"
+        )
+
+    curves = _mapping(evidence.get("curve_summary"))
+    selected_epochs = evidence.get("selected_epochs")
+    stabilization_epochs: list[int] = []
+    for arm in ("solucao_principal", "solucao_contrafactual"):
+        curve = _mapping(curves.get(arm))
+        losses = _mapping(curve.get("validation_loss"))
+        stabilized_at = curve.get("stabilized_at_epoch")
+        epochs_observed = curve.get("epochs_observed")
+        window_minima = curve.get("window_minimum_validation_loss")
+        derived_stabilization = _stabilization_epoch(window_minima)
+        if not (
+            _positive_integer(selected_epochs)
+            and _positive_integer(stabilized_at)
+            and stabilized_at <= selected_epochs
+            and _positive_integer(epochs_observed)
+            and epochs_observed >= selected_epochs
+            and isinstance(window_minima, list)
+            and epochs_observed == len(window_minima) * 5
+            and derived_stabilization == stabilized_at
+            and all(
+                _finite_number(losses.get(name))
+                for name in ("initial", "minimum", "final")
+            )
+        ):
+            errors.append(
+                f"training pilot evidence must summarize a stabilized curve for {arm}"
+            )
+        else:
+            stabilization_epochs.append(stabilized_at)
+    if stabilization_epochs and selected_epochs != max(stabilization_epochs):
+        errors.append(
+            "selected epoch budget must be the later stabilization of both arms"
+        )
+    return errors
+
+
+def _validation_errors(configuration: object, configuration_dir: Path) -> list[str]:
     root = _mapping(configuration)
     errors: list[str] = []
 
@@ -73,10 +188,9 @@ def _validation_errors(configuration: object) -> list[str]:
 
     training = _mapping(root.get("training"))
     epochs = training.get("epochs")
-    if not isinstance(epochs, int) or isinstance(epochs, bool) or epochs <= 0:
+    if not _positive_integer(epochs):
         errors.append("number of epochs must be a positive integer")
-    if not _non_empty_string(training.get("pilot_evidence")):
-        errors.append("training pilot evidence is required before fixing epochs")
+    errors.extend(_epoch_pilot_errors(training, configuration_dir))
 
     seeds = root.get("seeds")
     if not (
@@ -151,7 +265,7 @@ def _validate(args: argparse.Namespace) -> int:
         print(f"Could not read configuration: {error}", file=sys.stderr)
         return 2
 
-    errors = _validation_errors(configuration)
+    errors = _validation_errors(configuration, args.config.parent)
     if errors:
         print("Protocol is invalid:", file=sys.stderr)
     for validation_error in errors:
