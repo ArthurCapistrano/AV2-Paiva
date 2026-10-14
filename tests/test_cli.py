@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
+
+import pytest
+
+import experimento_feijao.cli as cli
+import experimento_feijao.experiment as experiment_module
 
 
 def run_cli(*arguments: str) -> subprocess.CompletedProcess[str]:
@@ -84,7 +90,50 @@ def test_analyze_prints_the_minimum_paired_summary(tmp_path: Path) -> None:
     assert set(summary["paired_t_test"]) == {"statistic", "p_value"}
 
 
-def test_campaign_rejects_a_seed_list_outside_the_protocol(tmp_path: Path) -> None:
+def test_experiment_executes_all_fixed_seeds(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    configuration = tmp_path / "protocol.json"
+    configuration.write_text(
+        json.dumps(
+            {
+                "dataset": {"version": "beans:0.1.0"},
+                "seeds": list(range(1001, 1031)),
+            }
+        ),
+        encoding="utf-8",
+    )
+    executed_seeds: list[int] = []
+
+    def fake_run_pair(
+        config: Path, segmented: Path, seed: int, output: Path
+    ) -> None:
+        executed_seeds.append(seed)
+
+    monkeypatch.setattr(experiment_module, "run_pair", fake_run_pair)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "experimento-feijao",
+            "experiment",
+            "--config",
+            str(configuration),
+            "--segmented-inputs",
+            str(tmp_path / "segmented"),
+            "--output",
+            str(tmp_path / "results"),
+        ],
+    )
+
+    with pytest.raises(SystemExit) as exit_info:
+        cli.main()
+
+    assert exit_info.value.code == 0
+    assert executed_seeds == list(range(1001, 1031))
+
+
+def test_experiment_rejects_a_seed_list_outside_the_protocol(tmp_path: Path) -> None:
     configuration = tmp_path / "protocol.json"
     configuration.write_text(
         json.dumps({"dataset": {"version": "beans:0.1.0"}, "seeds": [1, 2, 3]}),
@@ -105,7 +154,7 @@ def test_campaign_rejects_a_seed_list_outside_the_protocol(tmp_path: Path) -> No
     assert "30 fixed seeds" in result.stderr
 
 
-def test_campaign_reports_missing_seeds_without_a_traceback(tmp_path: Path) -> None:
+def test_experiment_reports_missing_seeds_without_a_traceback(tmp_path: Path) -> None:
     configuration = tmp_path / "protocol.json"
     configuration.write_text(
         json.dumps({"dataset": {"version": "beans:0.1.0"}}),

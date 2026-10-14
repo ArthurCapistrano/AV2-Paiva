@@ -51,7 +51,7 @@ def _experiment(args: argparse.Namespace) -> int:
         args: Parâmetros da operação `experiment`.
 
     Returns:
-        Código zero em caso de sucesso ou dois quando a campanha falha.
+        Código zero em caso de sucesso ou dois quando o experimento falha.
     """
     from experimento_feijao.experiment import run_pair
     from experimento_feijao.preparation import SEEDS
@@ -77,7 +77,7 @@ def _experiment(args: argparse.Namespace) -> int:
 
 
 def _analyze(args: argparse.Namespace) -> int:
-    """Analisa os resultados pareados da campanha pela CLI.
+    """Analisa os resultados pareados do experimento pela CLI.
 
     Args:
         args: Parâmetros da operação `analyze`.
