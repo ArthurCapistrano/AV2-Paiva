@@ -41,6 +41,15 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
             raise AnalysisError(f"could not read result: {path}") from error
         if not isinstance(result, dict):
             raise AnalysisError(f"invalid result: {path}")
+        if not isinstance(result.get("seed"), int):
+            raise AnalysisError(f"result seed is missing: {path}")
+        for arm in ARMS:
+            metrics = result.get(arm)
+            if not isinstance(metrics, dict) or any(
+                not isinstance(metrics.get(metric), (int, float))
+                for metric in METRICS
+            ):
+                raise AnalysisError(f"result metrics are incomplete: {path}")
         results.append(result)
     results = sorted(results, key=lambda result: result["seed"])
     if [result.get("seed") for result in results] != list(SEEDS):

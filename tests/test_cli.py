@@ -114,3 +114,20 @@ def test_campaign_reports_missing_seeds_without_a_traceback(tmp_path: Path) -> N
     assert result.returncode == 2
     assert "30 fixed seeds" in result.stderr
     assert "Traceback" not in result.stderr
+
+
+def test_analyze_reports_incomplete_results_without_a_traceback(tmp_path: Path) -> None:
+    results = tmp_path / "results"
+    for seed in range(1001, 1031):
+        pair = results / f"pair-{seed}"
+        pair.mkdir(parents=True)
+        pair.joinpath("result.json").write_text(
+            json.dumps({"seed": seed}),
+            encoding="utf-8",
+        )
+
+    result = run_cli("analyze", "--results", str(results))
+
+    assert result.returncode == 2
+    assert "result metrics are incomplete" in result.stderr
+    assert "Traceback" not in result.stderr

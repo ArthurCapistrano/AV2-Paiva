@@ -45,7 +45,18 @@ def _derive_seed(pair_seed: int, component: str) -> int:
 def _read_configuration(
     path: Path, pair_seed: int
 ) -> dict[str, Any]:
-    """Lê a configuração e devolve os parâmetros de treinamento."""
+    """Lê a configuração e devolve os parâmetros de treinamento.
+
+    Args:
+        path: Arquivo JSON da configuração fixa.
+        pair_seed: Seed do par que será executado.
+
+    Returns:
+        Configuração de treinamento validada para o par.
+
+    Raises:
+        ExperimentError: Se faltarem dados essenciais ou a seed não for válida.
+    """
     try:
         configuration = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
@@ -117,7 +128,20 @@ def _epoch_training_data(
     horizontal_flip: bool,
     brightness_delta: float,
 ) -> tuple[NDArray[np.float32], NDArray[np.int64]]:
-    """Cria a mesma ordem e os mesmos aumentos para os dois braços."""
+    """Cria a mesma ordem e os mesmos aumentos para os dois braços.
+
+    Args:
+        records: Entradas de treino e seus rótulos.
+        images: Imagens RGB correspondentes aos registros.
+        epoch: Índice da época atual.
+        data_seed: Seed da ordem dos dados.
+        augmentation_seed: Seed dos aumentos por imagem.
+        horizontal_flip: Indica se o espelhamento pode ser aplicado.
+        brightness_delta: Amplitude da variação de brilho.
+
+    Returns:
+        Imagens aumentadas e seus rótulos na ordem do treinamento.
+    """
     order = list(range(len(records)))
     random.Random(f"{data_seed}:{epoch}").shuffle(order)
     augmented: list[NDArray[np.float32]] = []
@@ -138,7 +162,16 @@ def _epoch_training_data(
 def _build_model(
     arm: Arm, seeds: dict[str, int], training: dict[str, Any]
 ) -> keras.Model:
-    """Constrói os dois braços com a mesma topologia e cabeça."""
+    """Constrói os dois braços com a mesma topologia e cabeça.
+
+    Args:
+        arm: Solução principal ou solução contrafactual.
+        seeds: Seeds dos componentes compartilhados do par.
+        training: Hiperparâmetros fixos do treinamento.
+
+    Returns:
+        Modelo MobileNetV2 treinável e compilado.
+    """
     if arm == "solucao_contrafactual":
         keras.utils.set_random_seed(seeds["base"])
     base = keras.applications.MobileNetV2(

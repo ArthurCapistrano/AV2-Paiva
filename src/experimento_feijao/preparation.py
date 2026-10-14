@@ -49,6 +49,17 @@ def _hsv_triplet(value: object) -> NDArray[np.uint8]:
 
 
 def _read_image(path: Path) -> NDArray[np.uint8]:
+    """Lê uma imagem do disco e converte seus canais para RGB.
+
+    Args:
+        path: Caminho da imagem original.
+
+    Returns:
+        Imagem RGB em uma matriz NumPy.
+
+    Raises:
+        PreparationError: Se a imagem não puder ser lida.
+    """
     image_bgr = cv2.imread(str(path), cv2.IMREAD_COLOR)
     if image_bgr is None:
         raise PreparationError(f"could not read image: {path}")
@@ -56,7 +67,17 @@ def _read_image(path: Path) -> NDArray[np.uint8]:
 
 
 def _load_manifest(path: Path) -> dict[str, list[ImageRecord]]:
-    """Carrega as imagens de um manifesto local do dataset."""
+    """Carrega as imagens de um manifesto local do dataset.
+
+    Args:
+        path: Manifesto da fixture local usada no ambiente controlado.
+
+    Returns:
+        Registros agrupados pelos três splits oficiais.
+
+    Raises:
+        PreparationError: Se o manifesto ou uma imagem forem incompatíveis.
+    """
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
@@ -93,7 +114,14 @@ def _load_manifest(path: Path) -> dict[str, list[ImageRecord]]:
 
 
 def _load_tfds() -> dict[str, list[ImageRecord]]:
-    """Carrega os três splits oficiais diretamente do TFDS."""
+    """Carrega os três splits oficiais diretamente do TFDS.
+
+    Returns:
+        Registros do dataset agrupados por divisão.
+
+    Raises:
+        PreparationError: Se o dataset não puder ser carregado.
+    """
     import tensorflow_datasets as tfds  # type: ignore[import-untyped]
 
     try:
