@@ -68,7 +68,11 @@ def test_analyze_prints_the_minimum_paired_summary(tmp_path: Path) -> None:
     assert abs(macro_f1_std) < 1e-12
     assert all(
         abs(difference - 0.2) < 1e-12
-        for difference in summary["macro_f1_differences"]
+        for difference in summary["differences"]["macro_f1"]
+    )
+    assert all(
+        abs(difference - 0.2) < 1e-12
+        for difference in summary["differences"]["accuracy"]
     )
     assert set(summary["paired_t_test"]) == {"statistic", "p_value"}
 

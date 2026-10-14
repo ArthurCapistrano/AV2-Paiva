@@ -90,16 +90,23 @@ def analyze(results_root: Path) -> dict[str, Any]:
         }
         for metric in METRICS
     }
+    differences = {
+        metric: [
+            float(value)
+            for value in _values(results, ARMS[0], metric)
+            - _values(results, ARMS[1], metric)
+        ]
+        for metric in METRICS
+    }
     principal_f1 = _values(results, ARMS[0], "macro_f1")
     counterfactual_f1 = _values(results, ARMS[1], "macro_f1")
-    differences = principal_f1 - counterfactual_f1
     test = ttest_rel(principal_f1, counterfactual_f1)
 
     return {
         "pair_count": len(results),
         "seeds": [int(result["seed"]) for result in results],
         "metrics": metrics,
-        "macro_f1_differences": [float(value) for value in differences],
+        "differences": differences,
         "paired_t_test": {
             "statistic": float(test.statistic),
             "p_value": float(test.pvalue),

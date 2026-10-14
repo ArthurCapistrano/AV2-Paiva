@@ -95,10 +95,16 @@ def _analyze(args: argparse.Namespace) -> int:
     for arm, values in summary["metrics"]["accuracy"].items():
         print(f"  {arm}: média={values['mean']:.4f}, desvio-padrão={values['std']:.4f}")
     print("Diferenças pareadas de F1 macro")
-    differences = summary["macro_f1_differences"]
+    differences = summary["differences"]["macro_f1"]
     print(
         f"  média={sum(differences) / len(differences):.4f}, "
         f"quantidade={len(differences)}"
+    )
+    accuracy_differences = summary["differences"]["accuracy"]
+    print("Diferenças pareadas de acurácia")
+    print(
+        f"  média={sum(accuracy_differences) / len(accuracy_differences):.4f}, "
+        f"quantidade={len(accuracy_differences)}"
     )
     test = summary["paired_t_test"]
     print(
