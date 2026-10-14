@@ -119,8 +119,10 @@ O resumo tambem e salvo em `artifacts/summary.json`.
 
 ## Dataset local
 
-Por padrao, a preparacao carrega o dataset pelo TFDS. Para uma fixture local em
-um ambiente controlado, o comando Python tambem aceita um manifesto local:
+Por padrao, a preparacao carrega os arquivos oficiais pelo espelho do Beans no
+Hugging Face e verifica seus checksums. O TFDS permanece como fallback. Para uma
+fixture local em um ambiente controlado, o comando Python tambem aceita um
+manifesto local:
 
 ```bash
 uv run experimento-feijao prepare \

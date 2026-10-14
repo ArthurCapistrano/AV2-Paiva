@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
+import urllib.error
+import urllib.request
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -14,6 +19,14 @@ SPLITS = ("train", "validation", "test")
 BEANS_CLASSES = ("angular_leaf_spot", "bean_rust", "healthy")
 SEEDS = tuple(range(1001, 1031))
 BACKGROUND = (127, 127, 127)
+MIRROR_BASE_URL = (
+    "https://huggingface.co/datasets/AI-Lab-Makerere/beans/resolve/main/data"
+)
+MIRROR_ARCHIVES = {
+    "train": "284fe8456ce20687f4367ae7ad94a64577e7f9fde2c2c6b1c74340ab5dc82715",
+    "validation": "90b7aa1c26d91d9afff07a30bbc67a5ea34f1f1397f068d8675be09d7d0c602d",
+    "test": "ca67b15d960d1e2fd9d23fd8498ce86818ead90755c630a43baf19ec4af09312",
+}
 
 
 class PreparationError(ValueError):
@@ -113,7 +126,87 @@ def _load_manifest(path: Path) -> dict[str, list[ImageRecord]]:
     return records
 
 
-def _load_tfds() -> dict[str, list[ImageRecord]]:
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _download_mirror_archive(split: str) -> Path:
+    cache_root = Path(
+        os.environ.get("TFDS_DATA_DIR", str(Path.home() / "tensorflow_datasets"))
+    )
+    destination = cache_root / "beans" / "0.1.0" / "huggingface" / f"{split}.zip"
+    expected_sha256 = MIRROR_ARCHIVES[split]
+    if destination.exists() and _sha256(destination) == expected_sha256:
+        return destination
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    partial = destination.with_suffix(".zip.partial")
+    url = f"{MIRROR_BASE_URL}/{split}.zip?download=true"
+    try:
+        with urllib.request.urlopen(url, timeout=60) as response, partial.open(
+            "wb"
+        ) as target:
+            while chunk := response.read(1024 * 1024):
+                target.write(chunk)
+    except (OSError, urllib.error.URLError) as error:
+        partial.unlink(missing_ok=True)
+        raise PreparationError(f"could not download Beans {split} archive") from error
+
+    if _sha256(partial) != expected_sha256:
+        partial.unlink(missing_ok=True)
+        raise PreparationError(f"Beans {split} archive checksum mismatch")
+    partial.replace(destination)
+    return destination
+
+
+def _read_archive_records(path: Path, split: str) -> list[ImageRecord]:
+    records: list[ImageRecord] = []
+    try:
+        archive = zipfile.ZipFile(path)
+    except (OSError, zipfile.BadZipFile) as error:
+        raise PreparationError(f"could not read Beans {split} archive") from error
+
+    with archive:
+        image_members = [
+            member
+            for member in archive.infolist()
+            if not member.is_dir() and member.filename.lower().endswith(".jpg")
+        ]
+        for index, member in enumerate(image_members):
+            label = Path(member.filename).parent.name
+            if label not in BEANS_CLASSES:
+                raise PreparationError(f"invalid Beans class in {split} archive")
+            encoded = np.frombuffer(archive.read(member), dtype=np.uint8)
+            image_bgr = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
+            if image_bgr is None:
+                raise PreparationError(
+                    f"could not decode Beans image: {member.filename}"
+                )
+            records.append(
+                ImageRecord(
+                    f"{split}-{index:04d}",
+                    label,
+                    cast(NDArray[np.uint8], cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)),
+                )
+            )
+    if not records:
+        raise PreparationError(f"Beans {split} archive has no images")
+    return records
+
+
+def _load_huggingface() -> dict[str, list[ImageRecord]]:
+    """Carrega os arquivos oficiais do Beans pelo espelho do Hugging Face."""
+    return {
+        split: _read_archive_records(_download_mirror_archive(split), split)
+        for split in SPLITS
+    }
+
+
+def _load_tfds_source() -> dict[str, list[ImageRecord]]:
     """Carrega os três splits oficiais diretamente do TFDS.
 
     Returns:
@@ -149,6 +242,19 @@ def _load_tfds() -> dict[str, list[ImageRecord]]:
             for index, (image, label) in enumerate(tfds.as_numpy(dataset))
         ]
     return records
+
+
+def _load_remote_dataset() -> dict[str, list[ImageRecord]]:
+    try:
+        return _load_huggingface()
+    except (OSError, PreparationError, urllib.error.URLError) as mirror_error:
+        try:
+            return _load_tfds_source()
+        except PreparationError as tfds_error:
+            raise PreparationError(
+                f"could not load {DATASET_VERSION} from the official sources: "
+                f"mirror={mirror_error}; tfds={tfds_error}"
+            ) from tfds_error
 
 
 def _segment(
@@ -245,7 +351,11 @@ def prepare(
     if output.exists():
         raise PreparationError(f"output already exists: {output}")
 
-    records = _load_manifest(dataset_manifest) if dataset_manifest else _load_tfds()
+    records = (
+        _load_manifest(dataset_manifest)
+        if dataset_manifest
+        else _load_remote_dataset()
+    )
     output.mkdir(parents=True)
     count = 0
     for split in SPLITS:
