@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
+import urllib.request
 from pathlib import Path
 from zipfile import ZipFile
 
 import cv2
 import numpy as np
+import pytest
 
 import experimento_feijao.preparation as preparation
 
@@ -122,3 +125,79 @@ def test_read_archive_records_decodes_the_official_dataset_shape(
     assert records[0].identity == "train-0000"
     assert records[0].label == "healthy"
     assert records[0].image.shape == (20, 20, 3)
+
+
+def test_load_beans_mirror_reads_all_splits(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    archives: dict[str, Path] = {}
+    for split in ("train", "validation", "test"):
+        archive_path = tmp_path / f"{split}.zip"
+        with ZipFile(archive_path, "w") as archive:
+            archive.writestr(
+                f"{split}/healthy/example.jpg",
+                _encoded_image().tobytes(),
+            )
+        archives[split] = archive_path
+
+    monkeypatch.setattr(
+        preparation,
+        "_download_mirror_archive",
+        lambda split: archives[split],
+    )
+
+    records = preparation._load_beans_mirror()
+
+    assert set(records) == {"train", "validation", "test"}
+    assert all(len(split_records) == 1 for split_records in records.values())
+
+
+def test_download_mirror_archive_verifies_and_reuses_cache(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    payload = b"validated archive"
+    expected_sha256 = hashlib.sha256(payload).hexdigest()
+    monkeypatch.setitem(preparation.MIRROR_ARCHIVES, "train", expected_sha256)
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+
+    class FakeResponse:
+        def __init__(self, content: bytes) -> None:
+            self.payload = content
+            self.read_once = False
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            pass
+
+        def read(self, _size: int) -> bytes:
+            if self.read_once:
+                return b""
+            self.read_once = True
+            return self.payload
+
+    monkeypatch.setattr(
+        urllib.request,
+        "urlopen",
+        lambda _url, timeout: FakeResponse(payload),
+    )
+
+    archive = preparation._download_mirror_archive("train")
+    assert archive.read_bytes() == payload
+
+    def fail_if_downloaded(*args: object, **kwargs: object) -> None:
+        raise AssertionError("cached archive should be reused")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fail_if_downloaded)
+    assert preparation._download_mirror_archive("train") == archive
+
+
+def _encoded_image() -> np.ndarray:
+    image = np.full((20, 20, 3), 255, dtype=np.uint8)
+    image[2:18, 3:17] = (30, 180, 30)
+    encoded_ok, encoded = cv2.imencode(
+        ".jpg", cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    )
+    assert encoded_ok
+    return encoded

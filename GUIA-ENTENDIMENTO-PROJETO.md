@@ -376,7 +376,7 @@ não ajuda a responder à pergunta do trabalho:
 - execução pública de apenas um par;
 - Grad-CAM;
 - inventário de GPU, CUDA e sistema operacional;
-- manifests de auditoria e checksums;
+- manifests de auditoria adicionais;
 - persistência de históricos, probabilidades e checkpoints;
 - piloto automático de épocas;
 - retries e execução concorrente;

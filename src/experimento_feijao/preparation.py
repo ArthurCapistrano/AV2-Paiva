@@ -20,7 +20,8 @@ BEANS_CLASSES = ("angular_leaf_spot", "bean_rust", "healthy")
 SEEDS = tuple(range(1001, 1031))
 BACKGROUND = (127, 127, 127)
 MIRROR_BASE_URL = (
-    "https://huggingface.co/datasets/AI-Lab-Makerere/beans/resolve/main/data"
+    "https://huggingface.co/datasets/AI-Lab-Makerere/beans/resolve/"
+    "27aa014ce09b193e1a6f58112d4a66e0eddb69c5/data"
 )
 MIRROR_ARCHIVES = {
     "train": "284fe8456ce20687f4367ae7ad94a64577e7f9fde2c2c6b1c74340ab5dc82715",
