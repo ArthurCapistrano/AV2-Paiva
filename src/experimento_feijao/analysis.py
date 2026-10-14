@@ -7,6 +7,8 @@ from typing import Any
 import numpy as np
 from scipy.stats import ttest_rel  # type: ignore[import-untyped]
 
+from experimento_feijao.preparation import SEEDS
+
 ARMS = ("solucao_principal", "solucao_contrafactual")
 METRICS = ("macro_f1", "accuracy")
 
@@ -30,7 +32,10 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
         if not isinstance(result, dict):
             raise AnalysisError(f"invalid result: {path}")
         results.append(result)
-    return sorted(results, key=lambda result: result["seed"])
+    results = sorted(results, key=lambda result: result["seed"])
+    if [result.get("seed") for result in results] != list(SEEDS):
+        raise AnalysisError("results must contain the 30 fixed seeds exactly once")
+    return results
 
 
 def _values(results: list[dict[str, Any]], arm: str, metric: str) -> np.ndarray:

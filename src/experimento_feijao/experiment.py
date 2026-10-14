@@ -14,7 +14,12 @@ import tensorflow as tf  # type: ignore[import-untyped]
 from numpy.typing import NDArray
 from sklearn.metrics import accuracy_score, f1_score  # type: ignore[import-untyped]
 
-from experimento_feijao.preparation import BEANS_CLASSES, DATASET_VERSION, SPLITS
+from experimento_feijao.preparation import (
+    BEANS_CLASSES,
+    DATASET_VERSION,
+    SEEDS,
+    SPLITS,
+)
 
 Arm = Literal["solucao_principal", "solucao_contrafactual"]
 ARMS: tuple[Arm, Arm] = ("solucao_principal", "solucao_contrafactual")
@@ -39,7 +44,7 @@ def _derive_seed(pair_seed: int, component: str) -> int:
 
 def _read_configuration(
     path: Path, pair_seed: int
-) -> tuple[dict[str, Any], dict[str, Any]]:
+) -> dict[str, Any]:
     """Lê a configuração e devolve os parâmetros de treinamento."""
     try:
         configuration = json.loads(path.read_text(encoding="utf-8"))
@@ -55,9 +60,9 @@ def _read_configuration(
         raise ExperimentError(f"dataset version must be {DATASET_VERSION}")
     if not isinstance(training, dict):
         raise ExperimentError("training configuration is required")
-    if not isinstance(seeds, list) or pair_seed not in seeds:
-        raise ExperimentError("seed must be present in the configuration")
-    return configuration, training
+    if seeds != list(SEEDS) or pair_seed not in SEEDS:
+        raise ExperimentError("configuration must contain the 30 fixed seeds")
+    return training
 
 
 def _load_segmented_inputs(root: Path) -> dict[str, list[SegmentedRecord]]:
@@ -166,7 +171,6 @@ def _metrics(labels: list[int], predictions: list[int]) -> dict[str, float]:
 
 def _run_arm(
     arm: Arm,
-    pair_seed: int,
     seeds: dict[str, int],
     training: dict[str, Any],
     records: dict[str, list[SegmentedRecord]],
@@ -227,13 +231,13 @@ def run_pair(
     if output.exists():
         raise ExperimentError(f"output already exists: {output}")
 
-    configuration, training = _read_configuration(configuration_path, pair_seed)
+    training = _read_configuration(configuration_path, pair_seed)
     records = _load_segmented_inputs(segmented_root)
     seeds = {component: _derive_seed(pair_seed, component) for component in COMPONENTS}
     tf.config.experimental.enable_op_determinism()
 
     results = {
-        arm: _run_arm(arm, pair_seed, seeds, training, records) for arm in ARMS
+        arm: _run_arm(arm, seeds, training, records) for arm in ARMS
     }
     output.mkdir(parents=True)
     (output / "result.json").write_text(

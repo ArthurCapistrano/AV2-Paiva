@@ -43,9 +43,43 @@ def test_analyze_prints_the_minimum_paired_summary(tmp_path: Path) -> None:
             encoding="utf-8",
         )
 
-    result = run_cli("analyze", "--results", str(results))
+    summary_path = tmp_path / "summary.json"
+    result = run_cli(
+        "analyze",
+        "--results",
+        str(results),
+        "--output",
+        str(summary_path),
+    )
 
     assert result.returncode == 0, result.stderr
     assert "30 pares experimentais" in result.stdout
     assert "F1 macro" in result.stdout
+    assert "Acurácia" in result.stdout
+    assert "Diferenças pareadas" in result.stdout
     assert "valor-p" in result.stdout
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert summary["pair_count"] == 30
+    principal_mean = summary["metrics"]["macro_f1"]["solucao_principal"]["mean"]
+    assert abs(principal_mean - 0.8) < 1e-12
+
+
+def test_campaign_rejects_a_seed_list_outside_the_protocol(tmp_path: Path) -> None:
+    configuration = tmp_path / "protocol.json"
+    configuration.write_text(
+        json.dumps({"dataset": {"version": "beans:0.1.0"}, "seeds": [1, 2, 3]}),
+        encoding="utf-8",
+    )
+
+    result = run_cli(
+        "campaign",
+        "--config",
+        str(configuration),
+        "--segmented-inputs",
+        str(tmp_path / "segmented"),
+        "--output",
+        str(tmp_path / "results"),
+    )
+
+    assert result.returncode == 2
+    assert "30 fixed seeds" in result.stderr

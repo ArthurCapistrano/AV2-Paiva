@@ -12,6 +12,7 @@ from numpy.typing import NDArray
 DATASET_VERSION = "beans:0.1.0"
 SPLITS = ("train", "validation", "test")
 BEANS_CLASSES = ("angular_leaf_spot", "bean_rust", "healthy")
+SEEDS = tuple(range(1001, 1031))
 BACKGROUND = (127, 127, 127)
 
 

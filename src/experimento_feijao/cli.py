@@ -20,7 +20,7 @@ def _prepare(args: argparse.Namespace) -> int:
     from experimento_feijao.preparation import PreparationError, prepare
 
     try:
-        manifest = prepare(
+        prepared = prepare(
             _configuration(args.config),
             args.dataset_manifest,
             args.output,
@@ -29,7 +29,7 @@ def _prepare(args: argparse.Namespace) -> int:
         print(f"Could not prepare segmented inputs: {error}", file=sys.stderr)
         return 2
 
-    print(f"Prepared {manifest['count']} segmented inputs in {args.output}")
+    print(f"Prepared {prepared['count']} segmented inputs in {args.output}")
     return 0
 
 
@@ -50,14 +50,13 @@ def _run(args: argparse.Namespace) -> int:
 def _campaign(args: argparse.Namespace) -> int:
     """Executa um par experimental para cada seed configurada."""
     from experimento_feijao.experiment import ExperimentError, run_pair
+    from experimento_feijao.preparation import SEEDS
 
     try:
         configuration = _configuration(args.config)
         seeds = configuration["seeds"]
-        if not isinstance(seeds, list) or not all(
-            isinstance(seed, int) and not isinstance(seed, bool) for seed in seeds
-        ):
-            raise ValueError("seeds must be a list of integers")
+        if seeds != list(SEEDS):
+            raise ValueError("configuration must contain the 30 fixed seeds")
         for seed in seeds:
             run_pair(
                 args.config,
@@ -92,6 +91,15 @@ def _analyze(args: argparse.Namespace) -> int:
     print("F1 macro")
     for arm, values in summary["metrics"]["macro_f1"].items():
         print(f"  {arm}: média={values['mean']:.4f}, desvio-padrão={values['std']:.4f}")
+    print("Acurácia")
+    for arm, values in summary["metrics"]["accuracy"].items():
+        print(f"  {arm}: média={values['mean']:.4f}, desvio-padrão={values['std']:.4f}")
+    print("Diferenças pareadas de F1 macro")
+    differences = summary["macro_f1_differences"]
+    print(
+        f"  média={sum(differences) / len(differences):.4f}, "
+        f"quantidade={len(differences)}"
+    )
     test = summary["paired_t_test"]
     print(
         "Teste t pareado: "
