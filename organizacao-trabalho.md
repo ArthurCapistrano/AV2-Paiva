@@ -40,8 +40,8 @@ na solução principal.
 ## 3. Dataset
 
 Será usado o `beans:0.1.0`, disponível no
-[TensorFlow Datasets](https://www.tensorflow.org/datasets/catalog/beans), com
-1.295 imagens RGB 500 x 500 nos splits oficiais:
+[espelho oficial do Beans no Hugging Face](https://huggingface.co/datasets/AI-Lab-Makerere/beans),
+com 1.295 imagens RGB 500 x 500 nos splits oficiais:
 
 | Split | Imagens |
 | --- | ---: |
