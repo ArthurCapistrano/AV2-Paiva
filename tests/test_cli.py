@@ -18,9 +18,16 @@ def test_help_exposes_only_the_simple_experiment_operations() -> None:
     result = run_cli("--help")
 
     assert result.returncode == 0
-    for operation in ("prepare", "run", "campaign", "analyze"):
+    for operation in ("prepare", "experiment", "analyze"):
         assert operation in result.stdout
-    for removed_operation in ("validate", "pilot", "consolidate", "grad-cam"):
+    for removed_operation in (
+        "run",
+        "campaign",
+        "validate",
+        "pilot",
+        "consolidate",
+        "grad-cam",
+    ):
         assert removed_operation not in result.stdout
 
 
@@ -85,7 +92,7 @@ def test_campaign_rejects_a_seed_list_outside_the_protocol(tmp_path: Path) -> No
     )
 
     result = run_cli(
-        "campaign",
+        "experiment",
         "--config",
         str(configuration),
         "--segmented-inputs",
@@ -106,7 +113,7 @@ def test_campaign_reports_missing_seeds_without_a_traceback(tmp_path: Path) -> N
     )
 
     result = run_cli(
-        "campaign",
+        "experiment",
         "--config",
         str(configuration),
         "--segmented-inputs",

@@ -44,25 +44,11 @@ def _prepare(args: argparse.Namespace) -> int:
     return 0
 
 
-def _run(args: argparse.Namespace) -> int:
-    """Executa um par experimental para uma seed pela CLI."""
-    from experimento_feijao.experiment import run_pair
-
-    try:
-        run_pair(args.config, args.segmented_inputs, args.seed, args.output)
-    except (OSError, json.JSONDecodeError, ValueError) as error:
-        print(f"Could not run experimental pair: {error}", file=sys.stderr)
-        return 2
-
-    print(f"Experimental pair {args.seed} written to {args.output}")
-    return 0
-
-
-def _campaign(args: argparse.Namespace) -> int:
-    """Executa um par experimental para cada seed configurada pela CLI.
+def _experiment(args: argparse.Namespace) -> int:
+    """Executa os pares experimentais para todas as seeds configuradas.
 
     Args:
-        args: Parâmetros da operação `campaign`.
+        args: Parâmetros da operação `experiment`.
 
     Returns:
         Código zero em caso de sucesso ou dois quando a campanha falha.
@@ -83,10 +69,10 @@ def _campaign(args: argparse.Namespace) -> int:
                 args.output / f"pair-{seed}",
             )
     except (OSError, json.JSONDecodeError, ValueError) as error:
-        print(f"Could not run experimental campaign: {error}", file=sys.stderr)
+        print(f"Could not run experiment: {error}", file=sys.stderr)
         return 2
 
-    print(f"Experimental campaign with {len(seeds)} pairs written to {args.output}")
+    print(f"Experiment with {len(seeds)} pairs written to {args.output}")
     return 0
 
 
@@ -159,20 +145,13 @@ def _parser() -> argparse.ArgumentParser:
     prepare_parser.add_argument("--output", required=True, type=Path)
     prepare_parser.set_defaults(handler=_prepare)
 
-    run_parser = subparsers.add_parser("run", help="run one paired experiment")
-    run_parser.add_argument("--config", required=True, type=Path)
-    run_parser.add_argument("--segmented-inputs", required=True, type=Path)
-    run_parser.add_argument("--seed", required=True, type=int)
-    run_parser.add_argument("--output", required=True, type=Path)
-    run_parser.set_defaults(handler=_run)
-
-    campaign_parser = subparsers.add_parser(
-        "campaign", help="run all configured paired experiments"
+    experiment_parser = subparsers.add_parser(
+        "experiment", help="execute all configured paired experiments"
     )
-    campaign_parser.add_argument("--config", required=True, type=Path)
-    campaign_parser.add_argument("--segmented-inputs", required=True, type=Path)
-    campaign_parser.add_argument("--output", required=True, type=Path)
-    campaign_parser.set_defaults(handler=_campaign)
+    experiment_parser.add_argument("--config", required=True, type=Path)
+    experiment_parser.add_argument("--segmented-inputs", required=True, type=Path)
+    experiment_parser.add_argument("--output", required=True, type=Path)
+    experiment_parser.set_defaults(handler=_experiment)
 
     analyze_parser = subparsers.add_parser(
         "analyze", help="analyze the paired experiment results"
