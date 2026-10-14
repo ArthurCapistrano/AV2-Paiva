@@ -8,7 +8,18 @@ from typing import Any
 
 
 def _configuration(path: Path) -> dict[str, Any]:
-    """Lê a configuração simples do experimento."""
+    """Lê a configuração simples do experimento.
+
+    Args:
+        path: Arquivo JSON da configuração.
+
+    Returns:
+        Configuração carregada como um dicionário.
+
+    Raises:
+        OSError: Se o arquivo não puder ser lido.
+        ValueError: Se o conteúdo não for um objeto JSON.
+    """
     document = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(document, dict):
         raise ValueError("configuration must be an object")
@@ -16,8 +27,8 @@ def _configuration(path: Path) -> dict[str, Any]:
 
 
 def _prepare(args: argparse.Namespace) -> int:
-    """Prepara as entradas segmentadas do dataset."""
-    from experimento_feijao.preparation import PreparationError, prepare
+    """Prepara as entradas segmentadas do dataset pela CLI."""
+    from experimento_feijao.preparation import prepare
 
     try:
         prepared = prepare(
@@ -25,7 +36,7 @@ def _prepare(args: argparse.Namespace) -> int:
             args.dataset_manifest,
             args.output,
         )
-    except (OSError, json.JSONDecodeError, PreparationError, ValueError) as error:
+    except (OSError, json.JSONDecodeError, ValueError) as error:
         print(f"Could not prepare segmented inputs: {error}", file=sys.stderr)
         return 2
 
@@ -34,12 +45,12 @@ def _prepare(args: argparse.Namespace) -> int:
 
 
 def _run(args: argparse.Namespace) -> int:
-    """Executa um par experimental para uma seed."""
-    from experimento_feijao.experiment import ExperimentError, run_pair
+    """Executa um par experimental para uma seed pela CLI."""
+    from experimento_feijao.experiment import run_pair
 
     try:
         run_pair(args.config, args.segmented_inputs, args.seed, args.output)
-    except (ExperimentError, OSError, json.JSONDecodeError, ValueError) as error:
+    except (OSError, json.JSONDecodeError, ValueError) as error:
         print(f"Could not run experimental pair: {error}", file=sys.stderr)
         return 2
 
@@ -48,8 +59,8 @@ def _run(args: argparse.Namespace) -> int:
 
 
 def _campaign(args: argparse.Namespace) -> int:
-    """Executa um par experimental para cada seed configurada."""
-    from experimento_feijao.experiment import ExperimentError, run_pair
+    """Executa um par experimental para cada seed configurada pela CLI."""
+    from experimento_feijao.experiment import run_pair
     from experimento_feijao.preparation import SEEDS
 
     try:
@@ -64,7 +75,7 @@ def _campaign(args: argparse.Namespace) -> int:
                 seed,
                 args.output / f"pair-{seed}",
             )
-    except (ExperimentError, OSError, json.JSONDecodeError, ValueError) as error:
+    except (OSError, json.JSONDecodeError, ValueError) as error:
         print(f"Could not run experimental campaign: {error}", file=sys.stderr)
         return 2
 
@@ -73,8 +84,8 @@ def _campaign(args: argparse.Namespace) -> int:
 
 
 def _analyze(args: argparse.Namespace) -> int:
-    """Analisa os resultados pareados da campanha."""
-    from experimento_feijao.analysis import AnalysisError, analyze
+    """Analisa os resultados pareados da campanha pela CLI."""
+    from experimento_feijao.analysis import analyze
 
     try:
         summary = analyze(args.results)
@@ -83,7 +94,7 @@ def _analyze(args: argparse.Namespace) -> int:
                 json.dumps(summary, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
-    except (AnalysisError, OSError, json.JSONDecodeError, ValueError) as error:
+    except (OSError, json.JSONDecodeError, ValueError) as error:
         print(f"Could not analyze experimental results: {error}", file=sys.stderr)
         return 2
 
@@ -115,7 +126,11 @@ def _analyze(args: argparse.Namespace) -> int:
 
 
 def _parser() -> argparse.ArgumentParser:
-    """Cria a interface pública mínima da aplicação."""
+    """Cria a interface pública mínima da aplicação.
+
+    Returns:
+        Parser com as operações de preparação, execução e análise.
+    """
     parser = argparse.ArgumentParser(
         prog="experimento-feijao",
         description="Experimento simples de classificacao de folhas de feijao",
