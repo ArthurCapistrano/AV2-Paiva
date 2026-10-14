@@ -12,6 +12,9 @@ uv sync --frozen
 make help
 ```
 
+Para entender o projeto sem conhecimento previo, consulte o
+[Guia de entendimento do projeto](GUIA-ENTENDIMENTO-PROJETO.md).
+
 ## Fluxo principal
 
 O fluxo completo e executado com:
