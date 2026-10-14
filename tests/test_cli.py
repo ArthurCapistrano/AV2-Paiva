@@ -84,6 +84,7 @@ def test_help_exposes_the_single_cli_and_all_planned_operations() -> None:
     assert "validate" in result.stdout
     assert "prepare" in result.stdout
     assert "run" in result.stdout
+    assert "pilot" in result.stdout
     assert "consolidate" in result.stdout
     assert "analyze" in result.stdout
     assert "grad-cam" in result.stdout

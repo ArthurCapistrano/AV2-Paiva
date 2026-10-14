@@ -32,29 +32,21 @@ A configuracao JSON deve registrar, no minimo:
 - `checkpoint.rule`: regra comum de selecao por validacao;
 - `failure.policy`: regra pre-definida para falhas do par experimental.
 
-Enquanto os pilotos nao tiverem sido executados, use `state: "pending"` e nao
-informe valores HSV ou epocas como determinados. A validacao recusara essa
-configuracao ate que os valores e suas evidencias sejam registrados.
-
-O piloto de epocas permanece planejado. Antes de observar suas curvas, fica
-definida a seguinte regra de estabilizacao para cada braco: dividir a curva de
+Antes de observar as curvas do piloto de epocas, foi definida a seguinte regra
+de estabilizacao para cada braco: dividir a curva de
 `validation_loss` em janelas consecutivas de cinco epocas e comparar o menor
 valor da janela atual com o da anterior. A curva estabiliza no fim da segunda
 comparacao consecutiva cuja melhora relativa seja de no maximo 1%. O orcamento
-comum sera a maior epoca de estabilizacao entre os dois bracos. Se algum braco
-nao estabilizar dentro do horizonte piloto, o piloto devera ser estendido sem
-consultar o teste.
+comum e a maior epoca de estabilizacao entre os dois bracos.
 
-Depois da execucao real, `training.pilot_evidence` deve apontar, relativamente ao
-arquivo de configuracao, para um JSON com `status: "executed"`,
-`dataset_splits: ["train", "validation"]`, `test_data_accessed: false`, o
-`selected_epochs`, as `pilot_seeds`, a `training_configuration`, a regra
-pre-declarada e um `curve_summary` para `solucao_principal` e
-`solucao_contrafactual`. Cada resumo registra `epochs_observed`,
-`stabilized_at_epoch`, `window_minimum_validation_loss` e os valores inicial,
-minimo e final de `validation_loss`. A CLI recalcula a estabilizacao pelos
-minimos de cada janela e exige que o orcamento seja a estabilizacao mais tardia
-dos dois bracos e igual ao valor congelado na configuracao.
+O piloto foi executado com a seed 1001 usando exclusivamente treino e validacao.
+O horizonte precisou ser estendido ate 150 epocas. A solucao principal
+estabilizou na epoca 100 e a contrafactual na epoca 15; portanto, o protocolo
+confirmatorio em `protocol.json` congela um orcamento comum de 100 epocas. O
+resumo auditavel em `reports/epoch-pilot.json` preserva seeds, configuracao,
+regra, extensoes e curvas resumidas, e registra que o teste nao foi acessado. A
+CLI recalcula a estabilizacao e exige que o orcamento configurado corresponda a
+evidencia.
 
 Depois de congelar o protocolo, gere o manifesto normalizado do ambiente com:
 

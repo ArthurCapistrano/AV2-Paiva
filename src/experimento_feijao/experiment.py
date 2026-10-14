@@ -23,6 +23,7 @@ from sklearn.metrics import (  # type: ignore[import-untyped]
 from experimento_feijao.preparation import BEANS_CLASSES, DATASET_VERSION
 
 Arm = Literal["solucao_principal", "solucao_contrafactual"]
+RunMode = Literal["confirmatory", "epoch_pilot"]
 ARMS: tuple[Arm, Arm] = ("solucao_principal", "solucao_contrafactual")
 COMPONENTS = ("base", "head", "data", "augmentation", "dropout")
 
@@ -129,7 +130,7 @@ def _read_configuration(
 
 
 def _load_segmented_inputs(
-    root: Path, pair_seed: int
+    root: Path, pair_seed: int, mode: RunMode
 ) -> tuple[dict[str, list[SegmentedRecord]], str]:
     manifest_path = root / "manifest.json"
     try:
@@ -139,6 +140,7 @@ def _load_segmented_inputs(
         segmentation = _mapping(manifest.get("segmentation"), "segmentation")
         shared_inputs = _mapping(manifest.get("shared_inputs"), "shared_inputs")
         artifacts = manifest.get("artifacts")
+        scope = manifest.get("scope")
         if dataset.get("version") != DATASET_VERSION:
             raise ValueError(f"segmented dataset must be {DATASET_VERSION}")
         if dataset.get("class_names") != list(BEANS_CLASSES):
@@ -158,11 +160,22 @@ def _load_segmented_inputs(
             raise ValueError("segmented inputs are not shared by both arms")
         if not isinstance(artifacts, list):
             raise ValueError("segmented artifacts must be a list")
+        if mode == "epoch_pilot" and scope != {
+            "purpose": "epoch_pilot",
+            "loaded_splits": ["train", "validation"],
+            "test_data_accessed": False,
+        }:
+            raise ValueError(
+                "epoch pilot inputs must prove train/validation-only preparation"
+            )
 
+        required_splits = (
+            ("train", "validation")
+            if mode == "epoch_pilot"
+            else ("train", "validation", "test")
+        )
         records: dict[str, list[SegmentedRecord]] = {
-            "train": [],
-            "validation": [],
-            "test": [],
+            split: [] for split in required_splits
         }
         identities: set[str] = set()
         for raw_artifact in artifacts:
@@ -341,6 +354,7 @@ def _run_arm(
     segmented_root: Path,
     segmented_manifest_sha256: str,
     output: Path,
+    mode: RunMode,
 ) -> None:
     try:
         keras.backend.clear_session()
@@ -399,7 +413,8 @@ def _run_arm(
                 best_weights = model.get_weights()
         model.set_weights(best_weights)
         output.mkdir(parents=True)
-        model.save_weights(output / "checkpoint.weights.h5")
+        if mode == "confirmatory":
+            model.save_weights(output / "checkpoint.weights.h5")
         _write_json(output / "history.json", history)
         _write_json(
             output / "duration.json",
@@ -408,42 +423,49 @@ def _run_arm(
     except Exception as error:
         raise ExperimentError("training", arm, pair_seed, str(error)) from error
 
-    try:
-        test_images = _images(records["test"]).astype(np.float32)
-        probabilities = cast(
-            NDArray[np.float32], model.predict(test_images, verbose=0)
-        )
-        predicted_indexes = np.argmax(probabilities, axis=1).tolist()
-        labels = [record.label for record in records["test"]]
-        predictions = [
-            {
-                "identity": record.identity,
-                "label": record.class_name,
-                "predicted_class": BEANS_CLASSES[predicted_indexes[index]],
-                "probabilities": {
-                    class_name: float(probabilities[index, class_index])
-                    for class_index, class_name in enumerate(BEANS_CLASSES)
-                },
-            }
-            for index, record in enumerate(records["test"])
-        ]
-        _write_json(output / "predictions.json", predictions)
-        _write_json(output / "metrics.json", _metrics(labels, predicted_indexes))
-    except Exception as error:
-        raise ExperimentError("evaluation", arm, pair_seed, str(error)) from error
+    if mode == "confirmatory":
+        try:
+            test_images = _images(records["test"]).astype(np.float32)
+            probabilities = cast(
+                NDArray[np.float32], model.predict(test_images, verbose=0)
+            )
+            predicted_indexes = np.argmax(probabilities, axis=1).tolist()
+            labels = [record.label for record in records["test"]]
+            predictions = [
+                {
+                    "identity": record.identity,
+                    "label": record.class_name,
+                    "predicted_class": BEANS_CLASSES[predicted_indexes[index]],
+                    "probabilities": {
+                        class_name: float(probabilities[index, class_index])
+                        for class_index, class_name in enumerate(BEANS_CLASSES)
+                    },
+                }
+                for index, record in enumerate(records["test"])
+            ]
+            _write_json(output / "predictions.json", predictions)
+            _write_json(output / "metrics.json", _metrics(labels, predicted_indexes))
+        except Exception as error:
+            raise ExperimentError("evaluation", arm, pair_seed, str(error)) from error
 
     arm_seeds: dict[str, int | None] = dict(component_seeds)
     if arm == "solucao_principal":
         arm_seeds["base"] = None
     artifact_names = (
-        "checkpoint.weights.h5",
-        "history.json",
-        "duration.json",
-        "predictions.json",
-        "metrics.json",
+        (
+            "checkpoint.weights.h5",
+            "history.json",
+            "duration.json",
+            "predictions.json",
+            "metrics.json",
+        )
+        if mode == "confirmatory"
+        else ("history.json", "duration.json")
     )
     manifest = {
         "arm": arm,
+        "mode": mode,
+        "test_data_accessed": mode == "confirmatory",
         "pair_seed": pair_seed,
         "base_initialization": (
             "imagenet" if arm == "solucao_principal" else "random"
@@ -469,7 +491,7 @@ def _run_arm(
         "selected_checkpoint": {
             "epoch": best_epoch,
             "validation_loss": best_loss,
-            "path": "checkpoint.weights.h5",
+            "path": "checkpoint.weights.h5" if mode == "confirmatory" else None,
         },
         "configuration_sha256": _canonical_sha256(configuration),
         "segmented_inputs": {
@@ -492,6 +514,8 @@ def run_pair(
     segmented_root: Path,
     pair_seed: int,
     output: Path,
+    *,
+    mode: RunMode = "confirmatory",
 ) -> None:
     if output.exists():
         raise ExperimentError(
@@ -499,7 +523,7 @@ def run_pair(
         )
     configuration, training = _read_configuration(configuration_path, pair_seed)
     records, segmented_manifest_sha256 = _load_segmented_inputs(
-        segmented_root, pair_seed
+        segmented_root, pair_seed, mode
     )
     component_seeds = {
         component: _derive_seed(pair_seed, component) for component in COMPONENTS
@@ -522,14 +546,18 @@ def run_pair(
             segmented_root,
             segmented_manifest_sha256,
             output / arm,
+            mode,
         )
     try:
         _write_json(
             output / "manifest.json",
             {
                 "seed": pair_seed,
+                "mode": mode,
                 "execution_order": execution_order,
                 "deterministic_operations": True,
+                "loaded_splits": list(records),
+                "test_data_accessed": mode == "confirmatory",
                 "configuration_sha256": _canonical_sha256(configuration),
                 "segmented_manifest_sha256": segmented_manifest_sha256,
             },

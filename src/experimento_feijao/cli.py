@@ -299,7 +299,12 @@ def _prepare(args: argparse.Namespace) -> int:
         configuration = json.loads(args.config.read_text(encoding="utf-8"))
         if not isinstance(configuration, dict):
             raise PreparationError("configuration must be an object")
-        manifest = prepare(configuration, args.dataset_manifest, args.output)
+        manifest = prepare(
+            configuration,
+            args.dataset_manifest,
+            args.output,
+            epoch_pilot=args.epoch_pilot,
+        )
     except (OSError, json.JSONDecodeError, PreparationError) as error:
         print(f"Could not prepare segmented inputs: {error}", file=sys.stderr)
         return 2
@@ -318,6 +323,26 @@ def _run(args: argparse.Namespace) -> int:
         )
         return 2
     print(f"Experimental pair {args.seed} written to {args.output}")
+    return 0
+
+
+def _pilot(args: argparse.Namespace) -> int:
+    try:
+        run_pair(
+            args.config,
+            args.segmented_inputs,
+            args.seed,
+            args.output,
+            mode="epoch_pilot",
+        )
+    except ExperimentError as error:
+        print(
+            f"Pilot pair failed at stage '{error.stage}' for arm '{error.arm}' "
+            f"and seed {error.seed}: {error}",
+            file=sys.stderr,
+        )
+        return 2
+    print(f"Epoch pilot pair {args.seed} written to {args.output}")
     return 0
 
 
@@ -345,6 +370,11 @@ def _parser() -> argparse.ArgumentParser:
         help="use an auditable local beans:0.1.0 manifest instead of TFDS",
     )
     prepare_parser.add_argument("--output", required=True, type=Path)
+    prepare_parser.add_argument(
+        "--epoch-pilot",
+        action="store_true",
+        help="materialize only train and validation for the epoch pilot",
+    )
     prepare_parser.set_defaults(handler=_prepare)
 
     run_parser = subparsers.add_parser(
@@ -355,6 +385,15 @@ def _parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--seed", required=True, type=int)
     run_parser.add_argument("--output", required=True, type=Path)
     run_parser.set_defaults(handler=_run)
+
+    pilot_parser = subparsers.add_parser(
+        "pilot", help="train a pair using only train and validation"
+    )
+    pilot_parser.add_argument("--config", required=True, type=Path)
+    pilot_parser.add_argument("--segmented-inputs", required=True, type=Path)
+    pilot_parser.add_argument("--seed", required=True, type=int)
+    pilot_parser.add_argument("--output", required=True, type=Path)
+    pilot_parser.set_defaults(handler=_pilot)
 
     for operation, help_text in FUTURE_OPERATIONS.items():
         future = subparsers.add_parser(operation, help=f"future: {help_text}")
