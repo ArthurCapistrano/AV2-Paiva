@@ -60,6 +60,26 @@ def _read_configuration(
         raise ExperimentError(f"dataset version must be {DATASET_VERSION}")
     if not isinstance(training, dict):
         raise ExperimentError("training configuration is required")
+    required_training = (
+        "epochs",
+        "batch_size",
+        "learning_rate",
+        "l2",
+        "dropout",
+        "augmentation",
+    )
+    missing_training = [
+        name for name in required_training if name not in training
+    ]
+    if missing_training:
+        missing = ", ".join(missing_training)
+        raise ExperimentError(f"training fields are required: {missing}")
+    augmentation = training["augmentation"]
+    if not isinstance(augmentation, dict) or not {
+        "horizontal_flip",
+        "brightness_delta",
+    }.issubset(augmentation):
+        raise ExperimentError("training augmentation fields are required")
     if seeds != list(SEEDS) or pair_seed not in SEEDS:
         raise ExperimentError("configuration must contain the 30 fixed seeds")
     return training

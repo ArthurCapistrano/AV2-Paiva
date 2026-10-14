@@ -92,3 +92,25 @@ def test_campaign_rejects_a_seed_list_outside_the_protocol(tmp_path: Path) -> No
 
     assert result.returncode == 2
     assert "30 fixed seeds" in result.stderr
+
+
+def test_campaign_reports_missing_seeds_without_a_traceback(tmp_path: Path) -> None:
+    configuration = tmp_path / "protocol.json"
+    configuration.write_text(
+        json.dumps({"dataset": {"version": "beans:0.1.0"}}),
+        encoding="utf-8",
+    )
+
+    result = run_cli(
+        "campaign",
+        "--config",
+        str(configuration),
+        "--segmented-inputs",
+        str(tmp_path / "segmented"),
+        "--output",
+        str(tmp_path / "results"),
+    )
+
+    assert result.returncode == 2
+    assert "30 fixed seeds" in result.stderr
+    assert "Traceback" not in result.stderr

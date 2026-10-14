@@ -54,7 +54,7 @@ def _campaign(args: argparse.Namespace) -> int:
 
     try:
         configuration = _configuration(args.config)
-        seeds = configuration["seeds"]
+        seeds = configuration.get("seeds")
         if seeds != list(SEEDS):
             raise ValueError("configuration must contain the 30 fixed seeds")
         for seed in seeds:
