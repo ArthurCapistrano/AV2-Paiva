@@ -17,20 +17,20 @@ O projeto investiga uma pergunta simples:
 > classificação de doenças em folhas de feijão quando todo o restante do
 > treinamento é mantido igual?
 
-Para responder, o projeto compara dois braços:
+Para responder, o projeto compara dois ramos:
 
-| Braço | Inicialização da base | Papel |
+| Ramo | Inicialização da base | Papel |
 | --- | --- | --- |
 | Solução principal | Pesos ImageNet | Representa o uso de conhecimento transferido. |
 | Solução contrafactual | Pesos aleatórios | Mostra o que acontece sem esse conhecimento inicial. |
 
-Os dois braços usam a mesma arquitetura, as mesmas imagens, os mesmos
+Os dois ramos usam a mesma arquitetura, as mesmas imagens, os mesmos
 hiperparâmetros e as mesmas seeds. A única diferença deliberada é a
 inicialização da base da rede.
 
 ## 2. A ideia em uma frase
 
-O projeto prepara as imagens uma vez, treina os dois braços para cada uma das
+O projeto prepara as imagens uma vez, treina os dois ramos para cada uma das
 30 seeds e compara os resultados de F1 macro e acurácia.
 
 ## 3. Vocabulário essencial
@@ -64,8 +64,8 @@ solução contrafactual, seed 1001
 ### Experimento
 
 É a execução dos 30 pares experimentais. O comando público é `experiment`.
-Internamente, a função `run_pair` ainda executa um único par, mas isso não é
-uma etapa que o usuário precisa chamar.
+Internamente, a função `run_experiment` percorre os 30 pares e salva os
+resultados. Essa é a operação executada pelo comando público `experiment`.
 
 ## 4. Fluxo completo
 
@@ -104,13 +104,13 @@ artifacts/segmented/images/validation/<classe>/
 artifacts/segmented/images/test/<classe>/
 ```
 
-Essa coleção é compartilhada pelos dois braços. Assim, a diferença observada
+Essa coleção é compartilhada pelos dois ramos. Assim, a diferença observada
 não pode ser explicada por uma preparação diferente das imagens.
 
 ### Etapa 2: experimento
 
-`experiment` lê as 30 seeds do `protocol.json`. Para cada seed, chama a lógica
-interna de um par experimental e salva somente as métricas necessárias.
+`experiment` lê as 30 seeds do `protocol.json`. A função `run_experiment` treina
+os dois ramos para cada seed e salva somente as métricas necessárias.
 
 Cada resultado tem este formato conceitual:
 
@@ -132,9 +132,9 @@ Cada resultado tem este formato conceitual:
 
 `analyze` lê os 30 resultados e calcula:
 
-- média e desvio-padrão de F1 macro para cada braço;
-- média e desvio-padrão de acurácia para cada braço;
-- diferença entre os braços em cada seed;
+- média e desvio-padrão de F1 macro para cada ramo;
+- média e desvio-padrão de acurácia para cada ramo;
+- diferença entre os ramos em cada seed;
 - teste t pareado bilateral sobre as diferenças de F1 macro;
 - valor-p do teste.
 
@@ -150,8 +150,11 @@ F1 da solução principal - F1 da solução contrafactual
 Instale o ambiente:
 
 ```bash
-uv sync --frozen
+uv sync --locked
 ```
+
+O `--locked` faz o ambiente usar o `uv.lock` versionado e interrompe a
+instalação se ele estiver incompatível com o `pyproject.toml`.
 
 Veja os comandos disponíveis:
 
@@ -247,7 +250,7 @@ externo, mantém os pixels internos e troca apenas o exterior pelo fundo
 - `horizontal_flip`: permite espelhamento horizontal;
 - `brightness_delta`: controla a variação de brilho.
 
-Os mesmos valores são usados pelos dois braços.
+Os mesmos valores são usados pelos dois ramos.
 
 ### `seeds`
 
@@ -269,7 +272,7 @@ inicialização da cabeça classificadora.
 | `src/experimento_feijao/__init__.py` | Identificação do pacote Python. |
 | `tests/` | Verificações da CLI e do fluxo principal. |
 | `docs/decisoes-experimentais/GLOSSARIO.md` | Vocabulário oficial do domínio. |
-| `docs/decisoes-experimentais/0001-isolar-inicializacao-dos-pesos.md` | Decisão sobre os dois braços. |
+| `docs/decisoes-experimentais/0001-isolar-inicializacao-dos-pesos.md` | Decisão sobre os dois ramos. |
 | `docs/decisoes-experimentais/0002-segmentacao-hsv-da-silhueta.md` | Decisão sobre a segmentação. |
 | `reports/epoch-pilot.json` | Registro histórico usado para fixar o orçamento de épocas. |
 
@@ -285,7 +288,7 @@ desenho do experimento.
 | --- | --- |
 | `_configuration` | Lê o JSON da configuração. |
 | `_prepare` | Recebe os argumentos da operação `prepare` e chama `prepare`. |
-| `_experiment` | Percorre as 30 seeds e chama `run_pair` para cada uma. |
+| `_experiment` | Valida o protocolo e chama `run_experiment`. |
 | `_analyze` | Chama `analyze` e apresenta o resumo no terminal. |
 | `_parser` | Define os comandos e argumentos da CLI. |
 | `main` | Lê os argumentos e executa a operação escolhida. |
@@ -317,9 +320,9 @@ Ele busca a silhueta da folha para preservar sintomas internos.
 | `_load_segmented_inputs` | Encontra as imagens preparadas por split e classe. |
 | `_epoch_training_data` | Ordena e aplica os aumentos de uma época. |
 | `_build_model` | Cria a MobileNetV2 e sua cabeça classificadora. |
-| `_run_arm` | Treina um braço e calcula suas métricas. |
+| `_run_branch` | Treina um ramo e calcula suas métricas. |
 | `_metrics` | Calcula F1 macro e acurácia. |
-| `run_pair` | Executa os dois braços de uma seed e salva o resultado. |
+| `run_experiment` | Executa os 30 pares e salva cada resultado. |
 
 Em `_build_model`, a diferença central está nesta escolha:
 
@@ -328,7 +331,7 @@ solucao_principal      -> weights="imagenet"
 solucao_contrafactual  -> weights=None
 ```
 
-Em `_run_arm`, o melhor estado conforme a perda de validação é mantido em
+Em `_run_branch`, o melhor estado conforme a perda de validação é mantido em
 memória. O teste só é usado depois do treinamento para calcular as métricas.
 
 ### `analysis.py`
@@ -336,7 +339,7 @@ memória. O teste só é usado depois do treinamento para calcular as métricas.
 | Função | O que faz |
 | --- | --- |
 | `_read_results` | Lê e confere os 30 resultados esperados. |
-| `_values` | Extrai uma métrica de um braço para todas as seeds. |
+| `_values` | Extrai uma métrica de um ramo para todas as seeds. |
 | `_summary` | Calcula média e desvio-padrão. |
 | `analyze` | Calcula métricas, diferenças e teste t pareado. |
 
@@ -351,14 +354,14 @@ Uma pessoa nova pode revisar o projeto nesta ordem:
 2. Conferir os valores do `protocol.json`.
 3. Ler as decisões 0001 e 0002 para entender a inicialização e a segmentação.
 4. Ler `preparation.py` e acompanhar como uma imagem vira uma entrada segmentada.
-5. Ler `_build_model` e `_run_arm` em `experiment.py`.
-6. Ler `run_pair` e `_experiment` para entender a repetição das 30 seeds.
+5. Ler `_build_model` e `_run_branch` em `experiment.py`.
+6. Ler `run_experiment` e `_experiment` para entender a repetição das 30 seeds.
 7. Ler `analysis.py` para conferir como os resultados são comparados.
 8. Executar `make help` e, quando houver dados e tempo disponíveis, `make all`.
 
 Durante a revisão, as perguntas mais importantes são:
 
-- Os dois braços realmente recebem as mesmas entradas?
+- Os dois ramos realmente recebem as mesmas entradas?
 - A única diferença entre eles continua sendo a inicialização da base?
 - As 30 seeds são executadas e associadas corretamente?
 - F1 macro e acurácia são calculados sobre o teste?

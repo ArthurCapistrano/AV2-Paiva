@@ -21,8 +21,11 @@ from experimento_feijao.preparation import (
     SPLITS,
 )
 
-Arm = Literal["solucao_principal", "solucao_contrafactual"]
-ARMS: tuple[Arm, Arm] = ("solucao_principal", "solucao_contrafactual")
+Branch = Literal["solucao_principal", "solucao_contrafactual"]
+BRANCHES: tuple[Branch, Branch] = (
+    "solucao_principal",
+    "solucao_contrafactual",
+)
 COMPONENTS = ("base", "head", "data", "augmentation", "dropout")
 
 
@@ -128,7 +131,7 @@ def _epoch_training_data(
     horizontal_flip: bool,
     brightness_delta: float,
 ) -> tuple[NDArray[np.float32], NDArray[np.int64]]:
-    """Cria a mesma ordem e os mesmos aumentos para os dois braços.
+    """Cria a mesma ordem e os mesmos aumentos para os dois ramos.
 
     Args:
         records: Entradas de treino e seus rótulos.
@@ -160,25 +163,25 @@ def _epoch_training_data(
 
 
 def _build_model(
-    arm: Arm, seeds: dict[str, int], training: dict[str, Any]
+    branch: Branch, seeds: dict[str, int], training: dict[str, Any]
 ) -> keras.Model:
-    """Constrói os dois braços com a mesma topologia e cabeça.
+    """Constrói os dois ramos com a mesma topologia e cabeça.
 
     Args:
-        arm: Solução principal ou solução contrafactual.
+        branch: Solução principal ou solução contrafactual.
         seeds: Seeds dos componentes compartilhados do par.
         training: Hiperparâmetros fixos do treinamento.
 
     Returns:
         Modelo MobileNetV2 treinável e compilado.
     """
-    if arm == "solucao_contrafactual":
+    if branch == "solucao_contrafactual":
         keras.utils.set_random_seed(seeds["base"])
     base = keras.applications.MobileNetV2(
         input_shape=(160, 160, 3),
         alpha=1.0,
         include_top=False,
-        weights="imagenet" if arm == "solucao_principal" else None,
+        weights="imagenet" if branch == "solucao_principal" else None,
     )
     base.trainable = True
     inputs = keras.Input(shape=(160, 160, 3), name="segmented_input")
@@ -222,16 +225,16 @@ def _metrics(labels: list[int], predictions: list[int]) -> dict[str, float]:
     }
 
 
-def _run_arm(
-    arm: Arm,
+def _run_branch(
+    branch: Branch,
     seeds: dict[str, int],
     training: dict[str, Any],
     records: dict[str, list[SegmentedRecord]],
 ) -> dict[str, float]:
-    """Treina um braço e devolve seu F1 macro e sua acurácia.
+    """Treina um ramo e devolve seu F1 macro e sua acurácia.
 
     Args:
-        arm: Solução principal ou solução contrafactual.
+        branch: Solução principal ou solução contrafactual.
         seeds: Seeds derivadas para os componentes comuns do par.
         training: Hiperparâmetros fixos do treinamento.
         records: Entradas segmentadas organizadas por divisão.
@@ -239,7 +242,7 @@ def _run_arm(
     Returns:
         F1 macro e acurácia calculados no conjunto de teste.
     """
-    model = _build_model(arm, seeds, training)
+    model = _build_model(branch, seeds, training)
     train_records = records["train"]
     validation_records = records["validation"]
     train_images = _images(train_records)
@@ -284,36 +287,42 @@ def _run_arm(
     return _metrics([record.label for record in test_records], predictions)
 
 
-def run_pair(
+def run_experiment(
     configuration_path: Path,
     segmented_root: Path,
-    pair_seed: int,
     output: Path,
 ) -> None:
-    """Executa e salva um par experimental mínimo.
+    """Executa e salva os 30 pares experimentais definidos no protocolo.
 
     Args:
         configuration_path: Configuração fixa do experimento.
         segmented_root: Diretório compartilhado de entradas segmentadas.
-        pair_seed: Seed do par experimental.
-        output: Diretório do resultado mínimo do par.
+        output: Diretório dos resultados dos pares.
 
     Raises:
         ExperimentError: Se a configuração, as entradas ou o treinamento falharem.
     """
-    if output.exists():
-        raise ExperimentError(f"output already exists: {output}")
-
-    training = _read_configuration(configuration_path, pair_seed)
     records = _load_segmented_inputs(segmented_root)
-    seeds = {component: _derive_seed(pair_seed, component) for component in COMPONENTS}
     tf.config.experimental.enable_op_determinism()
 
-    results = {
-        arm: _run_arm(arm, seeds, training, records) for arm in ARMS
-    }
-    output.mkdir(parents=True)
-    (output / "result.json").write_text(
-        json.dumps({"seed": pair_seed, **results}, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    for pair_seed in SEEDS:
+        pair_output = output / f"pair-{pair_seed}"
+        if pair_output.exists():
+            raise ExperimentError(f"output already exists: {pair_output}")
+
+        training = _read_configuration(configuration_path, pair_seed)
+        seeds = {
+            component: _derive_seed(pair_seed, component) for component in COMPONENTS
+        }
+        results = {
+            branch: _run_branch(branch, seeds, training, records)
+            for branch in BRANCHES
+        }
+        pair_output.mkdir(parents=True)
+        (pair_output / "result.json").write_text(
+            json.dumps(
+                {"seed": pair_seed, **results}, indent=2, sort_keys=True
+            )
+            + "\n",
+            encoding="utf-8",
+        )

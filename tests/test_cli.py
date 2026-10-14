@@ -90,7 +90,7 @@ def test_analyze_prints_the_minimum_paired_summary(tmp_path: Path) -> None:
     assert set(summary["paired_t_test"]) == {"statistic", "p_value"}
 
 
-def test_experiment_executes_all_fixed_seeds(
+def test_experiment_validates_and_delegates_fixed_seeds(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     configuration = tmp_path / "protocol.json"
@@ -103,14 +103,12 @@ def test_experiment_executes_all_fixed_seeds(
         ),
         encoding="utf-8",
     )
-    executed_seeds: list[int] = []
+    calls: list[tuple[Path, Path, Path]] = []
 
-    def fake_run_pair(
-        config: Path, segmented: Path, seed: int, output: Path
-    ) -> None:
-        executed_seeds.append(seed)
+    def fake_run_experiment(config: Path, segmented: Path, output: Path) -> None:
+        calls.append((config, segmented, output))
 
-    monkeypatch.setattr(experiment_module, "run_pair", fake_run_pair)
+    monkeypatch.setattr(experiment_module, "run_experiment", fake_run_experiment)
     monkeypatch.setattr(
         sys,
         "argv",
@@ -130,7 +128,55 @@ def test_experiment_executes_all_fixed_seeds(
         cli.main()
 
     assert exit_info.value.code == 0
-    assert executed_seeds == list(range(1001, 1031))
+    assert calls == [
+        (
+            configuration,
+            tmp_path / "segmented",
+            tmp_path / "results",
+        )
+    ]
+
+
+def test_run_experiment_writes_one_result_per_fixed_seed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    executed: list[tuple[int, str]] = []
+    current_seed = [0]
+
+    monkeypatch.setattr(
+        experiment_module, "_load_segmented_inputs", lambda _root: {}
+    )
+
+    def fake_run_branch(
+        branch: str,
+        seeds: dict[str, int],
+        training: dict[str, object],
+        records: dict[str, list[object]],
+    ) -> dict[str, float]:
+        del seeds, training, records
+        executed.append((current_seed[0], branch))
+        return {"macro_f1": 0.8, "accuracy": 0.9}
+
+    def fake_configuration(_path: Path, seed: int) -> dict[str, object]:
+        current_seed[0] = seed
+        return {}
+
+    monkeypatch.setattr(
+        experiment_module, "_read_configuration", fake_configuration
+    )
+    monkeypatch.setattr(experiment_module, "_run_branch", fake_run_branch)
+
+    output = tmp_path / "results"
+    experiment_module.run_experiment(
+        tmp_path / "protocol.json", tmp_path / "segmented", output
+    )
+
+    assert sorted(output.glob("pair-*/result.json")) == [
+        output / f"pair-{seed}" / "result.json"
+        for seed in range(1001, 1031)
+    ]
+    assert [seed for seed, _branch in executed[::2]] == list(range(1001, 1031))
+    assert [seed for seed, _branch in executed[1::2]] == list(range(1001, 1031))
 
 
 def test_experiment_rejects_a_seed_list_outside_the_protocol(tmp_path: Path) -> None:

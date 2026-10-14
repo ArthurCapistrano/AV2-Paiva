@@ -103,7 +103,7 @@ Depois do piloto, o procedimento será congelado: limites HSV, operações
 morfológicas, maior componente, preenchimento do contorno, fundo RGB
 `(127, 127, 127)` e redimensionamento para 160 x 160 não poderão mais mudar. Os
 splits serão processados uma única vez; configuração, versões e checksums serão
-registrados, e os dois braços consumirão os mesmos artefatos.
+registrados, e os dois ramos consumirão os mesmos artefatos.
 
 GrabCut não será usado, para preservar simplicidade, determinismo e facilidade de
 explicação. Falhas remanescentes do HSV serão contabilizadas como limitação; se
@@ -134,7 +134,7 @@ regra de estabilização e as curvas resumidas; o teste permaneceu intocado.
 Cada par usará os mesmos pesos iniciais da cabeça, ordem de lotes, aumentos e
 realizações de dropout. Seeds ou geradores separados para base, cabeça, dados,
 aumento e dropout evitarão que a criação da base aleatória desloque as sequências
-dos demais componentes. Somente o braço contrafactual usará a seed da base para
+dos demais componentes. Somente o ramo contrafactual usará a seed da base para
 criar seus pesos; o principal carregará os pesos ImageNet.
 
 ### Hipóteses
@@ -150,10 +150,10 @@ interpretação própria de sua hipótese.
 ## 8. Protocolo Grad-CAM
 
 Antes dos resultados, será fixado um dos 30 pares por sua seed. Também será
-sorteada uma imagem de teste por classe. Para cada braço, o Grad-CAM será
+sorteada uma imagem de teste por classe. Para cada ramo, o Grad-CAM será
 calculado para a classe predita na última camada convolucional da MobileNetV2.
 
-Serão produzidos seis mapas, três por braço. Cada caso mostrará a imagem
+Serão produzidos seis mapas, três por ramo. Cada caso mostrará a imagem
 original, a entrada segmentada e o mapa sobreposto a essa entrada. Escala, mapa
 de cores e transparência serão iguais. A análise será qualitativa; destaques nas
 bordas serão tratados como possível dependência da segmentação, não como
@@ -183,7 +183,7 @@ O artigo IEEE e a apresentação não serão produzidos nesta etapa.
 
 - As duas soluções aplicam pelo menos três técnicas?
 - A inicialização da base é a única variável experimental deliberada?
-- Segmentação, dados, arquitetura e orçamento são idênticos nos dois braços?
+- Segmentação, dados, arquitetura e orçamento são idênticos nos dois ramos?
 - Foram executados e registrados os 30 pares?
 - O teste permaneceu fora de todas as decisões de ajuste?
 - O F1 macro e o teste t pareado foram calculados conforme o protocolo?

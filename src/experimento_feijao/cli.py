@@ -53,7 +53,7 @@ def _experiment(args: argparse.Namespace) -> int:
     Returns:
         Código zero em caso de sucesso ou dois quando o experimento falha.
     """
-    from experimento_feijao.experiment import run_pair
+    from experimento_feijao.experiment import run_experiment
     from experimento_feijao.preparation import SEEDS
 
     try:
@@ -61,13 +61,7 @@ def _experiment(args: argparse.Namespace) -> int:
         seeds = configuration.get("seeds")
         if seeds != list(SEEDS):
             raise ValueError("configuration must contain the 30 fixed seeds")
-        for seed in seeds:
-            run_pair(
-                args.config,
-                args.segmented_inputs,
-                seed,
-                args.output / f"pair-{seed}",
-            )
+        run_experiment(args.config, args.segmented_inputs, args.output)
     except (OSError, json.JSONDecodeError, ValueError) as error:
         print(f"Could not run experiment: {error}", file=sys.stderr)
         return 2

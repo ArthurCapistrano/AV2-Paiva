@@ -8,7 +8,7 @@ contra a mesma rede com inicializacao aleatoria.
 Instale as dependencias e veja os comandos disponiveis:
 
 ```bash
-uv sync --frozen
+uv sync --locked
 make help
 ```
 

@@ -9,7 +9,7 @@ from scipy.stats import ttest_rel  # type: ignore[import-untyped]
 
 from experimento_feijao.preparation import SEEDS
 
-ARMS = ("solucao_principal", "solucao_contrafactual")
+BRANCHES = ("solucao_principal", "solucao_contrafactual")
 METRICS = ("macro_f1", "accuracy")
 
 
@@ -43,8 +43,8 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
             raise AnalysisError(f"invalid result: {path}")
         if not isinstance(result.get("seed"), int):
             raise AnalysisError(f"result seed is missing: {path}")
-        for arm in ARMS:
-            metrics = result.get(arm)
+        for branch in BRANCHES:
+            metrics = result.get(branch)
             if not isinstance(metrics, dict) or any(
                 not isinstance(metrics.get(metric), (int, float))
                 for metric in METRICS
@@ -57,9 +57,9 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
     return results
 
 
-def _values(results: list[dict[str, Any]], arm: str, metric: str) -> np.ndarray:
+def _values(results: list[dict[str, Any]], branch: str, metric: str) -> np.ndarray:
     return np.asarray(
-        [float(result[arm][metric]) for result in results], dtype=np.float64
+        [float(result[branch][metric]) for result in results], dtype=np.float64
     )
 
 
@@ -85,21 +85,21 @@ def analyze(results_root: Path) -> dict[str, Any]:
     results = _read_results(results_root)
     metrics = {
         metric: {
-            arm: _summary(_values(results, arm, metric))
-            for arm in ARMS
+            branch: _summary(_values(results, branch, metric))
+            for branch in BRANCHES
         }
         for metric in METRICS
     }
     differences = {
         metric: [
             float(value)
-            for value in _values(results, ARMS[0], metric)
-            - _values(results, ARMS[1], metric)
+            for value in _values(results, BRANCHES[0], metric)
+            - _values(results, BRANCHES[1], metric)
         ]
         for metric in METRICS
     }
-    principal_f1 = _values(results, ARMS[0], "macro_f1")
-    counterfactual_f1 = _values(results, ARMS[1], "macro_f1")
+    principal_f1 = _values(results, BRANCHES[0], "macro_f1")
+    counterfactual_f1 = _values(results, BRANCHES[1], "macro_f1")
     test = ttest_rel(principal_f1, counterfactual_f1)
 
     return {
