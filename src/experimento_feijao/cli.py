@@ -77,7 +77,9 @@ def _stabilization_epoch(window_minima: object) -> int | None:
     return None
 
 
-def _epoch_pilot_errors(training: dict[str, Any], configuration_dir: Path) -> list[str]:
+def _epoch_pilot_errors(
+    training: dict[str, Any], checkpoint: dict[str, Any], configuration_dir: Path
+) -> list[str]:
     reference = training.get("pilot_evidence")
     if not _non_empty_string(reference):
         return ["training pilot evidence is required before fixing epochs"]
@@ -109,8 +111,17 @@ def _epoch_pilot_errors(training: dict[str, Any], configuration_dir: Path) -> li
         and len(set(pilot_seeds)) == len(pilot_seeds)
     ):
         errors.append("training pilot evidence must preserve unique pilot seeds")
-    if not _mapping(evidence.get("training_configuration")):
-        errors.append("training pilot evidence must preserve its configuration")
+    training_configuration = _mapping(evidence.get("training_configuration"))
+    expected_training_configuration = {
+        name: training.get(name)
+        for name in ("batch_size", "learning_rate", "l2", "dropout", "augmentation")
+    }
+    expected_training_configuration["checkpoint_rule"] = checkpoint.get("rule")
+    if any(
+        training_configuration.get(name) != value
+        for name, value in expected_training_configuration.items()
+    ):
+        errors.append("training pilot evidence must match the frozen configuration")
 
     rule = _mapping(evidence.get("stabilization_rule"))
     if not (
@@ -187,10 +198,13 @@ def _validation_errors(configuration: object, configuration_dir: Path) -> list[s
         )
 
     training = _mapping(root.get("training"))
+    checkpoint = _mapping(root.get("checkpoint"))
     epochs = training.get("epochs")
     if not _positive_integer(epochs):
         errors.append("number of epochs must be a positive integer")
-    errors.extend(_epoch_pilot_errors(training, configuration_dir))
+    if not _non_empty_string(checkpoint.get("rule")):
+        errors.append("checkpoint rule is required")
+    errors.extend(_epoch_pilot_errors(training, checkpoint, configuration_dir))
 
     seeds = root.get("seeds")
     if not (
@@ -200,10 +214,6 @@ def _validation_errors(configuration: object, configuration_dir: Path) -> list[s
         and len(set(seeds)) == 30
     ):
         errors.append("exactly 30 unique seeds are required")
-
-    checkpoint = _mapping(root.get("checkpoint"))
-    if not _non_empty_string(checkpoint.get("rule")):
-        errors.append("checkpoint rule is required")
 
     failure = _mapping(root.get("failure"))
     if not _non_empty_string(failure.get("policy")):

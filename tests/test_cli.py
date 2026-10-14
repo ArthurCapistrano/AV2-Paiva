@@ -28,6 +28,14 @@ def valid_configuration() -> dict[str, Any]:
         "training": {
             "epochs": 20,
             "pilot_evidence": "epochs-pilot.json",
+            "batch_size": 32,
+            "learning_rate": 0.0001,
+            "l2": 0.0001,
+            "dropout": 0.2,
+            "augmentation": {
+                "horizontal_flip": True,
+                "brightness_delta": 0.05,
+            },
         },
         "seeds": list(range(1001, 1031)),
         "checkpoint": {"rule": "lowest_validation_loss"},
@@ -53,6 +61,11 @@ def valid_epoch_pilot_evidence() -> dict[str, Any]:
             "learning_rate": 0.0001,
             "l2": 0.0001,
             "dropout": 0.2,
+            "augmentation": {
+                "horizontal_flip": True,
+                "brightness_delta": 0.05,
+            },
+            "checkpoint_rule": "lowest_validation_loss",
         },
         "stabilization_rule": {
             "declared_before_pilot": True,
@@ -223,6 +236,19 @@ def test_validate_rejects_epoch_budget_that_does_not_match_pilot_evidence(
 
     assert result.returncode == 2
     assert "selected epoch budget must match" in result.stderr
+
+
+def test_validate_rejects_training_configuration_that_does_not_match_pilot(
+    tmp_path: Path,
+) -> None:
+    configuration = valid_configuration()
+    configuration["training"]["learning_rate"] = 0.001
+    path = write_configuration(tmp_path, configuration)
+
+    result = run_cli("validate", "--config", str(path))
+
+    assert result.returncode == 2
+    assert "must match the frozen configuration" in result.stderr
 
 
 def test_validate_rejects_a_different_stabilization_rule(tmp_path: Path) -> None:

@@ -300,6 +300,10 @@ def prepare(
         raise PreparationError(
             f"output already exists; artifacts are immutable: {output}"
         )
+    if state == "adjustment" and epoch_pilot:
+        raise PreparationError(
+            "epoch pilot preparation requires frozen segmentation"
+        )
 
     requested_splits = (
         ("train",)
