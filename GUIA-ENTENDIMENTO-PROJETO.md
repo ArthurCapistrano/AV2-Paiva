@@ -301,7 +301,7 @@ Ele apenas recebe parâmetros, chama o módulo responsável e mostra mensagens.
 | Função ou tipo | O que faz |
 | --- | --- |
 | `ImageRecord` | Representa uma imagem carregada, sua identidade e sua classe. |
-| `_load_tfds` | Carrega os três splits oficiais pelo TensorFlow Datasets. |
+| `_load_beans_mirror` | Carrega os três splits oficiais pelo espelho do Beans. |
 | `_load_manifest` | Carrega uma fixture local para execução controlada. |
 | `_read_image` | Lê uma imagem e converte BGR para RGB. |
 | `_segment` | Cria a máscara HSV, limpa a máscara e produz a entrada segmentada. |

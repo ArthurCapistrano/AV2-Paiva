@@ -136,9 +136,11 @@ def _sha256(path: Path) -> str:
 
 def _download_mirror_archive(split: str) -> Path:
     cache_root = Path(
-        os.environ.get("TFDS_DATA_DIR", str(Path.home() / "tensorflow_datasets"))
+        os.environ.get("XDG_CACHE_HOME", str(Path.home() / ".cache"))
     )
-    destination = cache_root / "beans" / "0.1.0" / "huggingface" / f"{split}.zip"
+    destination = (
+        cache_root / "experimento-feijao" / "beans" / "0.1.0" / f"{split}.zip"
+    )
     expected_sha256 = MIRROR_ARCHIVES[split]
     if destination.exists() and _sha256(destination) == expected_sha256:
         return destination
@@ -198,63 +200,12 @@ def _read_archive_records(path: Path, split: str) -> list[ImageRecord]:
     return records
 
 
-def _load_huggingface() -> dict[str, list[ImageRecord]]:
+def _load_beans_mirror() -> dict[str, list[ImageRecord]]:
     """Carrega os arquivos oficiais do Beans pelo espelho do Hugging Face."""
     return {
         split: _read_archive_records(_download_mirror_archive(split), split)
         for split in SPLITS
     }
-
-
-def _load_tfds_source() -> dict[str, list[ImageRecord]]:
-    """Carrega os três splits oficiais diretamente do TFDS.
-
-    Returns:
-        Registros do dataset agrupados por divisão.
-
-    Raises:
-        PreparationError: Se o dataset não puder ser carregado.
-    """
-    import tensorflow_datasets as tfds  # type: ignore[import-untyped]
-
-    try:
-        datasets, info = tfds.load(
-            DATASET_VERSION,
-            split=list(SPLITS),
-            as_supervised=True,
-            with_info=True,
-        )
-    except Exception as error:
-        raise PreparationError(f"could not load {DATASET_VERSION}: {error}") from error
-
-    class_names = tuple(info.features["label"].names)
-    if class_names != BEANS_CLASSES:
-        raise PreparationError("TFDS classes do not match beans:0.1.0")
-
-    records: dict[str, list[ImageRecord]] = {}
-    for split, dataset in zip(SPLITS, datasets, strict=True):
-        records[split] = [
-            ImageRecord(
-                f"{split}-{index:04d}",
-                class_names[int(label)],
-                image.astype(np.uint8),
-            )
-            for index, (image, label) in enumerate(tfds.as_numpy(dataset))
-        ]
-    return records
-
-
-def _load_remote_dataset() -> dict[str, list[ImageRecord]]:
-    try:
-        return _load_huggingface()
-    except (OSError, PreparationError, urllib.error.URLError) as mirror_error:
-        try:
-            return _load_tfds_source()
-        except PreparationError as tfds_error:
-            raise PreparationError(
-                f"could not load {DATASET_VERSION} from the official sources: "
-                f"mirror={mirror_error}; tfds={tfds_error}"
-            ) from tfds_error
 
 
 def _segment(
@@ -354,7 +305,7 @@ def prepare(
     records = (
         _load_manifest(dataset_manifest)
         if dataset_manifest
-        else _load_remote_dataset()
+        else _load_beans_mirror()
     )
     output.mkdir(parents=True)
     count = 0
