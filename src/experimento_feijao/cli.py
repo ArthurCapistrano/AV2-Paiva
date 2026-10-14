@@ -59,7 +59,14 @@ def _run(args: argparse.Namespace) -> int:
 
 
 def _campaign(args: argparse.Namespace) -> int:
-    """Executa um par experimental para cada seed configurada pela CLI."""
+    """Executa um par experimental para cada seed configurada pela CLI.
+
+    Args:
+        args: Parâmetros da operação `campaign`.
+
+    Returns:
+        Código zero em caso de sucesso ou dois quando a campanha falha.
+    """
     from experimento_feijao.experiment import run_pair
     from experimento_feijao.preparation import SEEDS
 
@@ -84,7 +91,14 @@ def _campaign(args: argparse.Namespace) -> int:
 
 
 def _analyze(args: argparse.Namespace) -> int:
-    """Analisa os resultados pareados da campanha pela CLI."""
+    """Analisa os resultados pareados da campanha pela CLI.
+
+    Args:
+        args: Parâmetros da operação `analyze`.
+
+    Returns:
+        Código zero em caso de sucesso ou dois quando a análise falha.
+    """
     from experimento_feijao.analysis import analyze
 
     try:
