@@ -1,72 +1,48 @@
 # Experimento de classificacao de folhas de feijao
 
-Aplicacao Python 3.11 para executar o protocolo experimental pela unica
-interface publica `experimento-feijao`.
+Aplicacao Python 3.11 para comparar uma MobileNetV2 com inicializacao ImageNet
+contra a mesma rede com inicializacao aleatoria.
 
 ## Ambiente
 
-Instale o ambiente bloqueado e execute os checks com:
-
 ```bash
 uv sync --frozen
-uv run pytest
-uv run ruff check .
-uv run mypy
-```
-
-Abra a ajuda da CLI com:
-
-```bash
 uv run experimento-feijao --help
 ```
 
-## Validacao do protocolo
+## Fluxo
 
-A configuracao JSON deve registrar, no minimo:
-
-- `dataset.version`: exatamente `beans:0.1.0`;
-- `segmentation`: estado `frozen`, limites HSV inferior e superior e referencia
-  para a evidencia do piloto;
-- `training`: numero positivo de epocas e referencia para a evidencia do piloto;
-- `seeds`: lista pre-fixada de 30 inteiros distintos;
-- `checkpoint.rule`: regra comum de selecao por validacao;
-- `failure.policy`: regra pre-definida para falhas do par experimental.
-
-Antes de observar as curvas do piloto de epocas, foi definida a seguinte regra
-de estabilizacao para cada braco: dividir a curva de
-`validation_loss` em janelas consecutivas de cinco epocas e comparar o menor
-valor da janela atual com o da anterior. A curva estabiliza no fim da segunda
-comparacao consecutiva cuja melhora relativa seja de no maximo 1%. O orcamento
-comum e a maior epoca de estabilizacao entre os dois bracos.
-
-O piloto foi executado com a seed 1001 usando exclusivamente treino e validacao.
-O horizonte precisou ser estendido ate 150 epocas. A solucao principal
-estabilizou na epoca 100 e a contrafactual na epoca 15; portanto, o protocolo
-confirmatorio em `protocol.json` congela um orcamento comum de 100 epocas. O
-resumo auditavel em `reports/epoch-pilot.json` preserva seeds, configuracao,
-regra, extensoes e curvas resumidas, e registra que o teste nao foi acessado. A
-CLI recalcula a estabilizacao e exige que o orcamento configurado corresponda a
-evidencia.
-
-Depois de congelar o protocolo, gere o manifesto normalizado do ambiente com:
+Prepare uma colecao fixa de entradas segmentadas:
 
 ```bash
-uv run experimento-feijao validate \
+uv run experimento-feijao prepare \
   --config protocol.json \
-  --manifest artifacts/protocol-manifest.json
+  --output artifacts/segmented
 ```
 
-Depois de materializar as entradas segmentadas, execute um par cuja seed esteja
-na lista congelada:
+Em um ambiente com um manifesto local do dataset, informe-o com
+`--dataset-manifest caminho/do/manifesto.json`.
+
+Execute os 30 pares experimentais:
 
 ```bash
-uv run experimento-feijao run \
+uv run experimento-feijao campaign \
   --config protocol.json \
   --segmented-inputs artifacts/segmented \
-  --seed 1001 \
-  --output artifacts/pair-1001
+  --output artifacts/results
 ```
 
-Cada braço produz checkpoint, histórico, duração restrita ao `model.fit`,
-predições, métricas e manifesto. `consolidate`, `analyze` e `grad-cam` aparecem na
-ajuda como etapas futuras e permanecem na mesma CLI.
+Analise e apresente os resultados:
+
+```bash
+uv run experimento-feijao analyze \
+  --results artifacts/results \
+  --output artifacts/summary.json
+```
+
+A análise apresenta F1 macro, acurácia, médias, desvios-padrão, diferenças
+pareadas, estatística do teste t pareado bilateral e valor-p.
+
+O experimento usa as mesmas entradas e configurações nos dois braços. A única
+diferença deliberada é a inicialização da base: ImageNet na solução principal e
+aleatória na solução contrafactual.
