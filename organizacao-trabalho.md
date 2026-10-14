@@ -120,17 +120,16 @@ dos experimentos confirmatórios.
 | Entrada | Imagem segmentada RGB, 160 x 160 |
 | Saída | Três classes |
 | Repetições | 30 pares, 60 treinamentos |
-| Orçamento | Número fixo de épocas |
+| Orçamento | 100 épocas |
 | Métrica primária | F1-score macro |
 | Métricas secundárias | Acurácia, métricas por classe e tempo de treinamento |
 | Explicabilidade | Grad-CAM qualitativo |
 | Análise primária | Teste t pareado bilateral |
 
-O número de épocas será determinado em um piloto com treino e validação, usando
-um orçamento comum suficiente para estabilizar a perda de validação dos dois
-braços. O código exploratório desse piloto não integra a entrega, mas deverão ser
-preservados o número escolhido, as seeds, as configurações, a regra de
-estabilização e um resumo das curvas. O teste permanecerá intocado.
+O piloto com treino e validação estabilizou a perda da solução principal na
+época 100 e a da contrafactual na época 15. O orçamento comum foi congelado em
+100 épocas. O resumo preserva o número escolhido, a seed, as configurações, a
+regra de estabilização e as curvas resumidas; o teste permaneceu intocado.
 
 Cada par usará os mesmos pesos iniciais da cabeça, ordem de lotes, aumentos e
 realizações de dropout. Seeds ou geradores separados para base, cabeça, dados,

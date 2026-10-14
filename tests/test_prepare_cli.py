@@ -179,6 +179,63 @@ def test_prepare_adjustment_materializes_only_the_training_audit_sample(
     assert "shared_inputs" not in manifest
 
 
+def test_prepare_epoch_pilot_never_reads_or_materializes_test(
+    tmp_path: Path,
+) -> None:
+    protocol = write_protocol(tmp_path)
+    dataset = write_dataset(tmp_path)
+    dataset_document = json.loads(dataset.read_text())
+    for record in dataset_document["splits"]["test"]:
+        Path(record["path"]).unlink()
+    output = tmp_path / "pilot-inputs"
+
+    result = run_cli(
+        "prepare",
+        "--config",
+        str(protocol),
+        "--dataset-manifest",
+        str(dataset),
+        "--epoch-pilot",
+        "--output",
+        str(output),
+    )
+
+    assert result.returncode == 0, result.stderr
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["scope"] == {
+        "purpose": "epoch_pilot",
+        "loaded_splits": ["train", "validation"],
+        "test_data_accessed": False,
+    }
+    assert {artifact["split"] for artifact in manifest["artifacts"]} == {
+        "train",
+        "validation",
+    }
+    assert not (output / "images/test").exists()
+
+
+def test_prepare_epoch_pilot_rejects_segmentation_adjustment(tmp_path: Path) -> None:
+    protocol_path = write_protocol(tmp_path)
+    protocol = json.loads(protocol_path.read_text())
+    protocol["segmentation"]["state"] = "adjustment"
+    protocol_path.write_text(json.dumps(protocol), encoding="utf-8")
+    dataset = write_dataset(tmp_path)
+
+    result = run_cli(
+        "prepare",
+        "--config",
+        str(protocol_path),
+        "--dataset-manifest",
+        str(dataset),
+        "--epoch-pilot",
+        "--output",
+        str(tmp_path / "pilot-inputs"),
+    )
+
+    assert result.returncode == 2
+    assert "epoch pilot preparation requires frozen segmentation" in result.stderr
+
+
 def test_prepare_blocks_before_other_splits_when_training_rubric_fails(
     tmp_path: Path,
 ) -> None:

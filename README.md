@@ -32,9 +32,21 @@ A configuracao JSON deve registrar, no minimo:
 - `checkpoint.rule`: regra comum de selecao por validacao;
 - `failure.policy`: regra pre-definida para falhas do par experimental.
 
-Enquanto os pilotos nao tiverem sido executados, use `state: "pending"` e nao
-informe valores HSV ou epocas como determinados. A validacao recusara essa
-configuracao ate que os valores e suas evidencias sejam registrados.
+Antes de observar as curvas do piloto de epocas, foi definida a seguinte regra
+de estabilizacao para cada braco: dividir a curva de
+`validation_loss` em janelas consecutivas de cinco epocas e comparar o menor
+valor da janela atual com o da anterior. A curva estabiliza no fim da segunda
+comparacao consecutiva cuja melhora relativa seja de no maximo 1%. O orcamento
+comum e a maior epoca de estabilizacao entre os dois bracos.
+
+O piloto foi executado com a seed 1001 usando exclusivamente treino e validacao.
+O horizonte precisou ser estendido ate 150 epocas. A solucao principal
+estabilizou na epoca 100 e a contrafactual na epoca 15; portanto, o protocolo
+confirmatorio em `protocol.json` congela um orcamento comum de 100 epocas. O
+resumo auditavel em `reports/epoch-pilot.json` preserva seeds, configuracao,
+regra, extensoes e curvas resumidas, e registra que o teste nao foi acessado. A
+CLI recalcula a estabilizacao e exige que o orcamento configurado corresponda a
+evidencia.
 
 Depois de congelar o protocolo, gere o manifesto normalizado do ambiente com:
 

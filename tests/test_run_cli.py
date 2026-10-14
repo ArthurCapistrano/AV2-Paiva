@@ -51,10 +51,13 @@ def write_protocol(tmp_path: Path) -> Path:
     return path
 
 
-def write_segmented_inputs(tmp_path: Path) -> Path:
+def write_segmented_inputs(tmp_path: Path, *, epoch_pilot: bool = False) -> Path:
     root = tmp_path / "segmented"
     artifacts: list[dict[str, str]] = []
-    for split, count in (("train", 2), ("validation", 1), ("test", 1)):
+    splits = [("train", 2), ("validation", 1)]
+    if not epoch_pilot:
+        splits.append(("test", 1))
+    for split, count in splits:
         for class_index, class_name in enumerate(CLASSES):
             for index in range(count):
                 image = np.full((160, 160, 3), 127, dtype=np.uint8)
@@ -96,6 +99,12 @@ def write_segmented_inputs(tmp_path: Path) -> Path:
         },
         "artifacts": artifacts,
     }
+    if epoch_pilot:
+        manifest["scope"] = {
+            "purpose": "epoch_pilot",
+            "loaded_splits": ["train", "validation"],
+            "test_data_accessed": False,
+        }
     (root / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
@@ -183,3 +192,39 @@ def test_run_executes_a_reduced_paired_experiment_through_the_cli(
         assert arm_manifests[arm]["selected_checkpoint"]["epoch"] == 1
         for name, checksum in arm_manifests[arm]["artifacts"].items():
             assert checksum == hashlib.sha256((arm_dir / name).read_bytes()).hexdigest()
+
+
+def test_pilot_trains_and_validates_both_arms_without_test_data(tmp_path: Path) -> None:
+    protocol = write_protocol(tmp_path)
+    segmented = write_segmented_inputs(tmp_path, epoch_pilot=True)
+    output = tmp_path / "pilot-pair"
+
+    result = run_cli(
+        "pilot",
+        "--config",
+        str(protocol),
+        "--segmented-inputs",
+        str(segmented),
+        "--seed",
+        "1001",
+        "--output",
+        str(output),
+    )
+
+    assert result.returncode == 0, result.stderr
+    pair_manifest = json.loads((output / "manifest.json").read_text())
+    assert pair_manifest["mode"] == "epoch_pilot"
+    assert pair_manifest["loaded_splits"] == ["train", "validation"]
+    assert pair_manifest["test_data_accessed"] is False
+    for arm in ARMS:
+        arm_dir = output / arm
+        assert {path.name for path in arm_dir.iterdir()} == {
+            "duration.json",
+            "history.json",
+            "manifest.json",
+        }
+        history = json.loads((arm_dir / "history.json").read_text())
+        assert len(history["loss"]) == 1
+        assert len(history["val_loss"]) == 1
+        manifest = json.loads((arm_dir / "manifest.json").read_text())
+        assert manifest["test_data_accessed"] is False

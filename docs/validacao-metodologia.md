@@ -142,12 +142,12 @@ observar os resultados.
 
 Usar a mesma função de perda, otimizador, tamanho de lote, regularização,
 aumento, número fixo de épocas e regra de seleção de checkpoint nos dois braços.
-Determinar esse número em um piloto separado com treino e validação, escolhendo
-um orçamento comum suficiente para estabilizar a perda de validação dos dois
-braços. O piloto não integra as 30 repetições. Seu código exploratório ficará
-fora da entrega, mas devem ser preservados o orçamento escolhido, as seeds, as
-configurações, a regra de estabilização e um resumo das curvas. Até existirem
-essas evidências, o piloto deve ser descrito no futuro, não como já executado.
+Esse número foi determinado em um piloto separado com treino e validação. Pela
+regra definida antes da leitura das curvas, a solução principal estabilizou na
+época 100 e a contrafactual na época 15; o orçamento comum ficou congelado em
+100 épocas. O horizonte do piloto foi estendido até 150 épocas sem consultar o
+teste. O piloto não integra as 30 repetições, e `reports/epoch-pilot.json`
+preserva o orçamento, a seed, a configuração, a regra e o resumo das curvas.
 
 ### 3. Reprodutibilidade e pareamento
 

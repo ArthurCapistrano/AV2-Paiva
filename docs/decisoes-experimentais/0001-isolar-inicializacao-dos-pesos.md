@@ -24,8 +24,8 @@ geradores separados por componente impedirão que a inicialização aleatória d
 base desloque as sequências usadas pela cabeça, pelos dados, pelo aumento e pelo
 dropout. Entre os braços, somente o estado inicial da base será diferente.
 
-O número fixo de épocas será determinado em um piloto que usará somente treino
-e validação. O código exploratório não integrará a entrega, mas serão preservados
-o orçamento escolhido, as seeds, as configurações, a regra de estabilização e um
-resumo das curvas. O documento não deve afirmar que o piloto ocorreu antes de
-essas evidências existirem.
+O piloto usou somente treino e validação e fixou um orçamento comum de 100
+épocas: a solução principal estabilizou na época 100 e a contrafactual na época
+15. O código exploratório não integra a entrega; a seed, as configurações, a
+regra de estabilização e o resumo das curvas estão preservados em
+`reports/epoch-pilot.json`.

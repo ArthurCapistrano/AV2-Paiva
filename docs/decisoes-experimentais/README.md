@@ -12,7 +12,8 @@ registros numerados para os motivos e consequências de cada escolha.
 
 ## Estado
 
-As decisões estão aceitas. Os valores obtidos durante a implementação, como os
-limites HSV e o número fixo de épocas, devem ser acrescentados aos registros
-correspondentes somente depois dos pilotos descritos na metodologia. Até lá,
-esses procedimentos permanecem planejados, não executados.
+As decisões estão aceitas. O piloto de épocas foi executado e congelou o
+orçamento comum em 100 épocas; sua evidência está em
+`reports/epoch-pilot.json`. Os demais valores obtidos durante a implementação
+devem ser acrescentados aos registros correspondentes somente depois dos
+pilotos descritos na metodologia.

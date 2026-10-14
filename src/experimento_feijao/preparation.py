@@ -269,7 +269,11 @@ def _segment(
 
 
 def prepare(
-    configuration: dict[str, Any], dataset_manifest: Path | None, output: Path
+    configuration: dict[str, Any],
+    dataset_manifest: Path | None,
+    output: Path,
+    *,
+    epoch_pilot: bool = False,
 ) -> dict[str, Any]:
     dataset = _mapping(configuration.get("dataset"), "dataset configuration")
     if dataset.get("version") != DATASET_VERSION:
@@ -296,8 +300,18 @@ def prepare(
         raise PreparationError(
             f"output already exists; artifacts are immutable: {output}"
         )
+    if state == "adjustment" and epoch_pilot:
+        raise PreparationError(
+            "epoch pilot preparation requires frozen segmentation"
+        )
 
-    requested_splits = ("train",) if state == "adjustment" else SPLITS
+    requested_splits = (
+        ("train",)
+        if state == "adjustment"
+        else ("train", "validation")
+        if epoch_pilot
+        else SPLITS
+    )
     records = (
         _load_tfds(requested_splits)
         if dataset_manifest is None
@@ -429,6 +443,12 @@ def prepare(
         },
         "artifacts": artifacts,
     }
+    if epoch_pilot:
+        manifest["scope"] = {
+            "purpose": "epoch_pilot",
+            "loaded_splits": ["train", "validation"],
+            "test_data_accessed": False,
+        }
     if state == "frozen":
         manifest["shared_inputs"] = {
             "solucao_principal": "images",

@@ -27,7 +27,15 @@ def valid_configuration() -> dict[str, Any]:
         },
         "training": {
             "epochs": 20,
-            "pilot_evidence": "reports/epochs-pilot.md",
+            "pilot_evidence": "epochs-pilot.json",
+            "batch_size": 32,
+            "learning_rate": 0.0001,
+            "l2": 0.0001,
+            "dropout": 0.2,
+            "augmentation": {
+                "horizontal_flip": True,
+                "brightness_delta": 0.05,
+            },
         },
         "seeds": list(range(1001, 1031)),
         "checkpoint": {"rule": "lowest_validation_loss"},
@@ -35,9 +43,50 @@ def valid_configuration() -> dict[str, Any]:
     }
 
 
+def valid_epoch_pilot_evidence() -> dict[str, Any]:
+    curve = {
+        "epochs_observed": 30,
+        "stabilized_at_epoch": 20,
+        "window_minimum_validation_loss": [1.0, 0.5, 0.498, 0.497, 0.496, 0.495],
+        "validation_loss": {"initial": 1.2, "minimum": 0.4, "final": 0.42},
+    }
+    return {
+        "status": "executed",
+        "dataset_splits": ["train", "validation"],
+        "test_data_accessed": False,
+        "selected_epochs": 20,
+        "pilot_seeds": [7001, 7002],
+        "training_configuration": {
+            "batch_size": 32,
+            "learning_rate": 0.0001,
+            "l2": 0.0001,
+            "dropout": 0.2,
+            "augmentation": {
+                "horizontal_flip": True,
+                "brightness_delta": 0.05,
+            },
+            "checkpoint_rule": "lowest_validation_loss",
+        },
+        "stabilization_rule": {
+            "declared_before_pilot": True,
+            "metric": "validation_loss",
+            "window_epochs": 5,
+            "maximum_relative_improvement": 0.01,
+            "required_stable_windows": 2,
+        },
+        "curve_summary": {
+            "solucao_principal": curve,
+            "solucao_contrafactual": curve,
+        },
+    }
+
+
 def write_configuration(tmp_path: Path, configuration: dict[str, Any]) -> Path:
     path = tmp_path / "protocol.json"
     path.write_text(json.dumps(configuration), encoding="utf-8")
+    (tmp_path / "epochs-pilot.json").write_text(
+        json.dumps(valid_epoch_pilot_evidence()), encoding="utf-8"
+    )
     return path
 
 
@@ -48,6 +97,7 @@ def test_help_exposes_the_single_cli_and_all_planned_operations() -> None:
     assert "validate" in result.stdout
     assert "prepare" in result.stdout
     assert "run" in result.stdout
+    assert "pilot" in result.stdout
     assert "consolidate" in result.stdout
     assert "analyze" in result.stdout
     assert "grad-cam" in result.stdout
@@ -134,6 +184,112 @@ def test_validate_writes_normalized_configuration_and_environment_manifest(
     assert "gpu" in manifest["environment"]["hardware"]
     assert "cuda" in manifest["environment"]
     assert "cudnn" in manifest["environment"]
+
+
+def test_validate_rejects_epoch_pilot_evidence_that_accessed_test_data(
+    tmp_path: Path,
+) -> None:
+    configuration = valid_configuration()
+    path = write_configuration(tmp_path, configuration)
+    evidence = valid_epoch_pilot_evidence()
+    evidence["test_data_accessed"] = True
+    (tmp_path / "epochs-pilot.json").write_text(json.dumps(evidence), encoding="utf-8")
+
+    result = run_cli("validate", "--config", str(path))
+
+    assert result.returncode == 2
+    assert "must not access test data" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "missing_field",
+    [
+        "pilot_seeds",
+        "training_configuration",
+        "stabilization_rule",
+        "curve_summary",
+    ],
+)
+def test_validate_rejects_epoch_pilot_without_minimum_evidence(
+    tmp_path: Path, missing_field: str
+) -> None:
+    configuration = valid_configuration()
+    path = write_configuration(tmp_path, configuration)
+    evidence = valid_epoch_pilot_evidence()
+    del evidence[missing_field]
+    (tmp_path / "epochs-pilot.json").write_text(json.dumps(evidence), encoding="utf-8")
+
+    result = run_cli("validate", "--config", str(path))
+
+    assert result.returncode == 2
+    assert "training pilot evidence" in result.stderr
+
+
+def test_validate_rejects_epoch_budget_that_does_not_match_pilot_evidence(
+    tmp_path: Path,
+) -> None:
+    configuration = valid_configuration()
+    configuration["training"]["epochs"] = 19
+    path = write_configuration(tmp_path, configuration)
+
+    result = run_cli("validate", "--config", str(path))
+
+    assert result.returncode == 2
+    assert "selected epoch budget must match" in result.stderr
+
+
+def test_validate_rejects_training_configuration_that_does_not_match_pilot(
+    tmp_path: Path,
+) -> None:
+    configuration = valid_configuration()
+    configuration["training"]["learning_rate"] = 0.001
+    path = write_configuration(tmp_path, configuration)
+
+    result = run_cli("validate", "--config", str(path))
+
+    assert result.returncode == 2
+    assert "must match the frozen configuration" in result.stderr
+
+
+def test_validate_rejects_a_different_stabilization_rule(tmp_path: Path) -> None:
+    configuration = valid_configuration()
+    path = write_configuration(tmp_path, configuration)
+    evidence = valid_epoch_pilot_evidence()
+    evidence["stabilization_rule"]["window_epochs"] = 4
+    (tmp_path / "epochs-pilot.json").write_text(json.dumps(evidence), encoding="utf-8")
+
+    result = run_cli("validate", "--config", str(path))
+
+    assert result.returncode == 2
+    assert "predeclared stabilization rule" in result.stderr
+
+
+def test_validate_rejects_curve_summary_that_does_not_support_stabilization(
+    tmp_path: Path,
+) -> None:
+    configuration = valid_configuration()
+    path = write_configuration(tmp_path, configuration)
+    evidence = valid_epoch_pilot_evidence()
+    evidence["curve_summary"]["solucao_principal"][
+        "window_minimum_validation_loss"
+    ] = [1.0, 0.8, 0.6, 0.4, 0.3, 0.2]
+    (tmp_path / "epochs-pilot.json").write_text(json.dumps(evidence), encoding="utf-8")
+
+    result = run_cli("validate", "--config", str(path))
+
+    assert result.returncode == 2
+    assert "summarize a stabilized curve" in result.stderr
+
+
+def test_validate_rejects_missing_epoch_pilot_evidence_file(tmp_path: Path) -> None:
+    configuration = valid_configuration()
+    path = write_configuration(tmp_path, configuration)
+    (tmp_path / "epochs-pilot.json").unlink()
+
+    result = run_cli("validate", "--config", str(path))
+
+    assert result.returncode == 2
+    assert "Could not read training pilot evidence" in result.stderr
 
 
 def test_future_operation_is_explicitly_unavailable() -> None:
