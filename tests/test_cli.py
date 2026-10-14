@@ -62,6 +62,15 @@ def test_analyze_prints_the_minimum_paired_summary(tmp_path: Path) -> None:
     assert summary["pair_count"] == 30
     principal_mean = summary["metrics"]["macro_f1"]["solucao_principal"]["mean"]
     assert abs(principal_mean - 0.8) < 1e-12
+    accuracy_mean = summary["metrics"]["accuracy"]["solucao_principal"]["mean"]
+    assert abs(accuracy_mean - 0.9) < 1e-12
+    macro_f1_std = summary["metrics"]["macro_f1"]["solucao_principal"]["std"]
+    assert abs(macro_f1_std) < 1e-12
+    assert all(
+        abs(difference - 0.2) < 1e-12
+        for difference in summary["macro_f1_differences"]
+    )
+    assert set(summary["paired_t_test"]) == {"statistic", "p_value"}
 
 
 def test_campaign_rejects_a_seed_list_outside_the_protocol(tmp_path: Path) -> None:

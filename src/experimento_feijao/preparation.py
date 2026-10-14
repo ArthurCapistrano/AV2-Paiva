@@ -126,7 +126,19 @@ def _load_tfds() -> dict[str, list[ImageRecord]]:
 def _segment(
     image: NDArray[np.uint8], segmentation: dict[str, Any]
 ) -> NDArray[np.uint8]:
-    """Remove o fundo e preserva o interior da folha na entrada segmentada."""
+    """Remove o fundo e preserva o interior da folha na entrada segmentada.
+
+    Args:
+        image: Imagem RGB original.
+        segmentation: Limites HSV e operações morfológicas congeladas.
+
+    Returns:
+        Imagem RGB redimensionada com o fundo substituído.
+
+    Raises:
+        PreparationError: Se os parâmetros forem inválidos ou nenhuma folha for
+            encontrada.
+    """
     hsv = _mapping(segmentation.get("hsv"), "segmentation.hsv")
     morphology = _mapping(segmentation.get("morphology"), "segmentation.morphology")
     lower = _hsv_triplet(hsv.get("lower"))
@@ -181,7 +193,20 @@ def prepare(
     dataset_manifest: Path | None,
     output: Path,
 ) -> dict[str, int]:
-    """Prepara todos os splits e devolve a quantidade de entradas produzidas."""
+    """Prepara todos os splits e devolve a quantidade de entradas produzidas.
+
+    Args:
+        configuration: Dataset e parâmetros fixos de segmentação.
+        dataset_manifest: Fonte local opcional para execução controlada.
+        output: Diretório que receberá as imagens segmentadas.
+
+    Returns:
+        Quantidade de entradas materializadas.
+
+    Raises:
+        PreparationError: Se a configuração, o dataset ou a segmentação forem
+            incompatíveis com o experimento.
+    """
     dataset = _mapping(configuration.get("dataset"), "dataset configuration")
     if dataset.get("version") != DATASET_VERSION:
         raise PreparationError(f"dataset version must be {DATASET_VERSION}")

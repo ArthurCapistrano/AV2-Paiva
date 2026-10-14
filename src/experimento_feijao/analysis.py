@@ -18,7 +18,17 @@ class AnalysisError(ValueError):
 
 
 def _read_results(results_root: Path) -> list[dict[str, Any]]:
-    """Lê os resultados individuais da campanha."""
+    """Lê os 30 resultados individuais da campanha.
+
+    Args:
+        results_root: Diretório que contém uma pasta por par experimental.
+
+    Returns:
+        Resultados ordenados pelas seeds do protocolo.
+
+    Raises:
+        AnalysisError: Se a campanha não contiver exatamente as 30 seeds.
+    """
     paths = sorted(results_root.glob("pair-*/result.json"))
     if len(paths) != 30:
         raise AnalysisError("exactly 30 paired results are required")
@@ -52,7 +62,17 @@ def _summary(values: np.ndarray) -> dict[str, float]:
 
 
 def analyze(results_root: Path) -> dict[str, Any]:
-    """Consolida métricas e calcula o teste t pareado bilateral."""
+    """Consolida métricas e calcula o teste t pareado bilateral.
+
+    Args:
+        results_root: Diretório com os resultados individuais da campanha.
+
+    Returns:
+        Resumo das métricas, diferenças pareadas e teste estatístico.
+
+    Raises:
+        AnalysisError: Se os resultados não formarem a campanha esperada.
+    """
     results = _read_results(results_root)
     metrics = {
         metric: {

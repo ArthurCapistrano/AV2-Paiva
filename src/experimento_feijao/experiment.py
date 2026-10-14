@@ -175,7 +175,17 @@ def _run_arm(
     training: dict[str, Any],
     records: dict[str, list[SegmentedRecord]],
 ) -> dict[str, float]:
-    """Treina um braço e devolve seu F1 macro e sua acurácia."""
+    """Treina um braço e devolve seu F1 macro e sua acurácia.
+
+    Args:
+        arm: Solução principal ou solução contrafactual.
+        seeds: Seeds derivadas para os componentes comuns do par.
+        training: Hiperparâmetros fixos do treinamento.
+        records: Entradas segmentadas organizadas por divisão.
+
+    Returns:
+        F1 macro e acurácia calculados no conjunto de teste.
+    """
     model = _build_model(arm, seeds, training)
     train_records = records["train"]
     validation_records = records["validation"]
@@ -227,7 +237,17 @@ def run_pair(
     pair_seed: int,
     output: Path,
 ) -> None:
-    """Executa e salva um par experimental mínimo."""
+    """Executa e salva um par experimental mínimo.
+
+    Args:
+        configuration_path: Configuração fixa do experimento.
+        segmented_root: Diretório compartilhado de entradas segmentadas.
+        pair_seed: Seed do par experimental.
+        output: Diretório do resultado mínimo do par.
+
+    Raises:
+        ExperimentError: Se a configuração, as entradas ou o treinamento falharem.
+    """
     if output.exists():
         raise ExperimentError(f"output already exists: {output}")
 
