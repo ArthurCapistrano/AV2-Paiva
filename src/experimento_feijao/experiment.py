@@ -242,49 +242,54 @@ def _run_branch(
     Returns:
         F1 macro e acurácia calculados no conjunto de teste.
     """
-    model = _build_model(branch, seeds, training)
-    train_records = records["train"]
-    validation_records = records["validation"]
-    train_images = _images(train_records)
-    validation_images = _images(validation_records).astype(np.float32)
-    validation_labels = np.asarray(
-        [record.label for record in validation_records], dtype=np.int64
-    )
-    augmentation = training["augmentation"]
-    if not isinstance(augmentation, dict):
-        raise ExperimentError("training augmentation is required")
-
-    best_loss = float("inf")
-    best_weights = model.get_weights()
-    for epoch in range(int(training["epochs"])):
-        epoch_images, epoch_labels = _epoch_training_data(
-            train_records,
-            train_images,
-            epoch,
-            seeds["data"],
-            seeds["augmentation"],
-            bool(augmentation["horizontal_flip"]),
-            float(augmentation["brightness_delta"]),
+    model: keras.Model | None = None
+    try:
+        model = _build_model(branch, seeds, training)
+        train_records = records["train"]
+        validation_records = records["validation"]
+        train_images = _images(train_records)
+        validation_images = _images(validation_records).astype(np.float32)
+        validation_labels = np.asarray(
+            [record.label for record in validation_records], dtype=np.int64
         )
-        history = model.fit(
-            epoch_images,
-            epoch_labels,
-            batch_size=int(training["batch_size"]),
-            epochs=1,
-            shuffle=False,
-            validation_data=(validation_images, validation_labels),
-            verbose=0,
-        )
-        validation_loss = float(history.history["val_loss"][0])
-        if validation_loss < best_loss:
-            best_loss = validation_loss
-            best_weights = model.get_weights()
+        augmentation = training["augmentation"]
+        if not isinstance(augmentation, dict):
+            raise ExperimentError("training augmentation is required")
 
-    model.set_weights(best_weights)
-    test_records = records["test"]
-    probabilities = model.predict(_images(test_records), verbose=0)
-    predictions = np.argmax(probabilities, axis=1).tolist()
-    return _metrics([record.label for record in test_records], predictions)
+        best_loss = float("inf")
+        best_weights = model.get_weights()
+        for epoch in range(int(training["epochs"])):
+            epoch_images, epoch_labels = _epoch_training_data(
+                train_records,
+                train_images,
+                epoch,
+                seeds["data"],
+                seeds["augmentation"],
+                bool(augmentation["horizontal_flip"]),
+                float(augmentation["brightness_delta"]),
+            )
+            history = model.fit(
+                epoch_images,
+                epoch_labels,
+                batch_size=int(training["batch_size"]),
+                epochs=1,
+                shuffle=False,
+                validation_data=(validation_images, validation_labels),
+                verbose=0,
+            )
+            validation_loss = float(history.history["val_loss"][0])
+            if validation_loss < best_loss:
+                best_loss = validation_loss
+                best_weights = model.get_weights()
+
+        model.set_weights(best_weights)
+        test_records = records["test"]
+        probabilities = model.predict(_images(test_records), verbose=0)
+        predictions = np.argmax(probabilities, axis=1).tolist()
+        return _metrics([record.label for record in test_records], predictions)
+    finally:
+        del model
+        keras.backend.clear_session()
 
 
 def run_experiment(
@@ -307,6 +312,9 @@ def run_experiment(
 
     for pair_seed in SEEDS:
         pair_output = output / f"pair-{pair_seed}"
+        result_path = pair_output / "result.json"
+        if result_path.is_file():
+            continue
         if pair_output.exists():
             raise ExperimentError(f"output already exists: {pair_output}")
 

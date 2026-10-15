@@ -1,0 +1,11 @@
+{
+  "seed": 1021,
+  "solucao_contrafactual": {
+    "accuracy": 0.3359375,
+    "macro_f1": 0.16764132553606237
+  },
+  "solucao_principal": {
+    "accuracy": 0.9765625,
+    "macro_f1": 0.9766476705624779
+  }
+}
