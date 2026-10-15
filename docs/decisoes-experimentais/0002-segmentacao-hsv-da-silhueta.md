@@ -49,3 +49,6 @@ O procedimento foi aplicado aos splits oficiais e as mesmas entradas segmentadas
 foram fornecidas aos dois ramos. As imagens de exemplo da segmentação estão em
 `docs/assets/segmentation/`. O Grad-CAM da V1 também mostra a imagem original, a
 entrada segmentada e o mapa sobreposto à entrada segmentada.
+
+A V1 não preservou um inventário separado de versões e checksums dos artefatos.
+Essa parte do registro fica classificada como não feita na auditoria da V1.

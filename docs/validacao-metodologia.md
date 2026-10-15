@@ -35,7 +35,8 @@ itens ficam fora da V1.
 Esta tabela separa o protocolo planejado da execução efetivamente versionada.
 “Feito” significa que há código, resultado ou artefato correspondente. “Parcial”
 significa que somente uma parte do requisito foi executada. “Não feito na V1”
-fica reservado para itens que exigiriam novos treinamentos ou nova coleta.
+indica que o item não foi produzido ou registrado nesta entrega, mesmo quando
+poderia ser calculado sem novo treinamento.
 “Não aplicável/contraditório” identifica uma formulação que não corresponde à
 pergunta executada. “Inconclusivo” indica que as fontes ou artefatos atuais não
 permitem decidir.
@@ -44,6 +45,7 @@ permitem decidir.
 | --- | --- | --- |
 | Dataset `beans:0.1.0` e splits oficiais | Feito | `protocol.json`, preparação e resultados versionados; o teste tem 128 imagens. |
 | Contagens por classe de todos os splits | Não feito na V1 | A auditoria direta registra as classes do teste, mas a campanha não preservou o inventário completo dos splits. |
+| Versões e checksums dos artefatos | Não feito na V1 | A preparação foi executada, mas a campanha não preservou um inventário separado desses metadados. |
 | Segmentação HSV comum aos dois ramos | Parcial | A mesma preparação foi usada nos dois ramos e há exemplos visuais; não há métrica objetiva de qualidade da máscara. |
 | Entrada `160 x 160` e MobileNetV2 comum | Feito | A arquitetura e a entrada estão fixadas no protocolo e no código. |
 | Única diferença deliberada na base | Feito | Os dois ramos foram treinados fim a fim com a mesma configuração, variando a inicialização da base. |

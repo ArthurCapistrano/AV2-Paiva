@@ -21,3 +21,7 @@ o orçamento comum em 100 épocas; sua evidência está em
 Os registros numerados preservam a justificativa anterior à execução. Quando
 uma decisão tem resultado observado, ele é acrescentado ao final do registro
 correspondente sem apagar o motivo original.
+
+A V1 aplicou as decisões de desenho, mas não preservou todos os metadados
+auxiliares previstos nos registros, como o inventário separado de versões e
+checksums dos artefatos.
