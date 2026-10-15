@@ -224,3 +224,9 @@ __marimo__/
 
 # Generated epoch-pilot images
 /experiments/epoch-pilot/segmented-train-validation-real-*/
+
+# AI instructions and suggestions
+/.docs/
+/docs/
+/AGENTS.md
+/.scratch/
