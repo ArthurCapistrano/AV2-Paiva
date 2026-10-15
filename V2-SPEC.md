@@ -26,6 +26,8 @@ contrafactual. A V2 nao altera o protocolo de treinamento na primeira rodada.
   e retomada antes da campanha completa.
 - Se o piloto estiver correto, ele permanece como parte da V2 e não é repetido.
 - Se houver erro na instrumentação, corrigir e repetir somente o `seed 1002`.
+- Após conferir o piloto, executar `scripts/v2-approve-full.sh` para liberar a
+  campanha completa.
 
 ### 3. Campanha completa
 
@@ -49,6 +51,15 @@ contrafactual. A V2 nao altera o protocolo de treinamento na primeira rodada.
   confiança da diferença de F1 macro.
 - Comparar o diagnóstico do `seed 1001` com os demais sem afirmar uma causa que
   os artefatos não sustentem.
+
+### 6. Simplificacao pos-piloto
+
+- Depois de validar o piloto, revisar os scripts e validadores antes de ampliar
+  o protocolo.
+- Remover controles, campos e caminhos que não tenham sido úteis para a
+  auditoria ou retomada.
+- Preferir uma execução menor e compreensível a uma infraestrutura genérica
+  para cenários que ainda não foram observados.
 
 ## Formato local
 
@@ -79,6 +90,13 @@ Depois do treinamento do piloto:
 ```bash
 scripts/v2-run.sh gradcam --seeds 1002
 scripts/v2-run.sh analyze
+```
+
+Depois da revisão manual do piloto:
+
+```bash
+scripts/v2-approve-full.sh
+scripts/v2-run.sh experiment --full
 ```
 
 O processo retorna imediatamente ao terminal. Fechar o terminal não encerra o

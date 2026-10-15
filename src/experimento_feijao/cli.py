@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -122,6 +123,8 @@ def _analyze(args: argparse.Namespace) -> int:
 def _v2_seeds(args: argparse.Namespace) -> tuple[int, ...] | None:
     if args.seeds is None:
         return None
+    if args.seeds == "all":
+        return None
     try:
         return tuple(int(value) for value in args.seeds.split(","))
     except ValueError as error:
@@ -133,6 +136,8 @@ def _v2_experiment(args: argparse.Namespace) -> int:
     from experimento_feijao.v2 import run_v2_experiment
 
     try:
+        if args.seeds == "all" and os.environ.get("V2_PILOT_APPROVED") != "1":
+            raise ValueError("full V2 run requires pilot approval")
         run_v2_experiment(
             args.config,
             args.segmented_inputs,
@@ -217,7 +222,9 @@ def _parser() -> argparse.ArgumentParser:
     v2_experiment_parser.add_argument("--segmented-inputs", required=True, type=Path)
     v2_experiment_parser.add_argument("--output", required=True, type=Path)
     v2_experiment_parser.add_argument(
-        "--seeds", help="optional comma-separated subset of fixed seeds"
+        "--seeds",
+        default="1002",
+        help="comma-separated subset, or all after pilot approval",
     )
     v2_experiment_parser.set_defaults(handler=_v2_experiment)
 
@@ -228,7 +235,9 @@ def _parser() -> argparse.ArgumentParser:
     v2_gradcam_parser.add_argument("--segmented-inputs", required=True, type=Path)
     v2_gradcam_parser.add_argument("--output", required=True, type=Path)
     v2_gradcam_parser.add_argument(
-        "--seeds", help="optional comma-separated subset of fixed seeds"
+        "--seeds",
+        default="1002",
+        help="optional comma-separated subset of fixed seeds",
     )
     v2_gradcam_parser.set_defaults(handler=_v2_gradcam)
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections import Counter
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -220,7 +221,7 @@ def run_v2_experiment(
         for branch in BRANCHES:
             result_path = _branch_result_path(output, pair_seed, branch)
             checkpoint = _checkpoint_path(output, pair_seed, branch)
-            if result_path.is_file() and checkpoint.is_file():
+            if _complete_branch(result_path, checkpoint, pair_seed, branch):
                 branch_results[branch] = str(result_path)
                 continue
             component_seeds = {
@@ -235,6 +236,7 @@ def run_v2_experiment(
                 records,
                 checkpoint,
             )
+            _validate_branch_result(result, pair_seed, branch, checkpoint)
             _write_json(result_path, result)
             branch_results[branch] = str(result_path)
         pair_result = output / "results" / f"pair-{pair_seed}" / "result.json"
@@ -253,6 +255,83 @@ def _load_json(path: Path) -> dict[str, Any]:
     if not isinstance(document, dict):
         raise ValueError(f"invalid V2 artifact: {path}")
     return document
+
+
+def _validate_branch_result(
+    document: dict[str, Any],
+    seed: int,
+    branch: Branch,
+    checkpoint: Path | None = None,
+) -> None:
+    if document.get("schema_version") != V2_SCHEMA_VERSION:
+        raise ValueError("unsupported V2 result schema")
+    if document.get("seed") != seed or document.get("branch") != branch:
+        raise ValueError("V2 result identity does not match its path")
+    if not isinstance(document.get("best_epoch"), int):
+        raise ValueError("V2 result is missing best_epoch")
+    if not isinstance(document.get("best_validation_loss"), (int, float)):
+        raise ValueError("V2 result is missing best_validation_loss")
+    if not isinstance(document.get("training_seconds"), (int, float)):
+        raise ValueError("V2 result is missing training_seconds")
+    history = document.get("history")
+    if not isinstance(history, list) or not history:
+        raise ValueError("V2 result is missing training history")
+    evaluation = document.get("evaluation")
+    if not isinstance(evaluation, dict):
+        raise ValueError("V2 result is missing evaluation")
+    for metric in ("accuracy", "macro_f1"):
+        if not isinstance(evaluation.get(metric), (int, float)):
+            raise ValueError(f"V2 evaluation is missing {metric}")
+    per_class = evaluation.get("per_class")
+    if not isinstance(per_class, dict) or set(per_class) != set(BEANS_CLASSES):
+        raise ValueError("V2 evaluation is missing per-class metrics")
+    matrix = evaluation.get("confusion_matrix")
+    if not (
+        isinstance(matrix, list)
+        and len(matrix) == len(BEANS_CLASSES)
+        and all(
+            isinstance(row, list) and len(row) == len(BEANS_CLASSES)
+            for row in matrix
+        )
+    ):
+        raise ValueError("V2 evaluation has an invalid confusion matrix")
+    predictions = document.get("predictions")
+    if not isinstance(predictions, list) or not predictions:
+        raise ValueError("V2 result is missing predictions")
+    for prediction in predictions:
+        if not isinstance(prediction, dict):
+            raise ValueError("V2 prediction is invalid")
+        if not isinstance(prediction.get("identity"), str):
+            raise ValueError("V2 prediction is missing identity")
+        if prediction.get("true_class") not in BEANS_CLASSES:
+            raise ValueError("V2 prediction has an invalid true class")
+        if prediction.get("predicted_class") not in BEANS_CLASSES:
+            raise ValueError("V2 prediction has an invalid predicted class")
+        probabilities = prediction.get("probabilities")
+        if not isinstance(probabilities, dict) or set(probabilities) != set(
+            BEANS_CLASSES
+        ):
+            raise ValueError("V2 prediction is missing probabilities")
+        try:
+            probability_sum = sum(float(value) for value in probabilities.values())
+        except (TypeError, ValueError) as error:
+            raise ValueError("V2 prediction probabilities are not numeric") from error
+        if not np.isclose(probability_sum, 1.0):
+            raise ValueError("V2 prediction probabilities do not sum to one")
+    if checkpoint is not None and not checkpoint.is_file():
+        raise ValueError(f"missing V2 checkpoint: {checkpoint}")
+
+
+def _complete_branch(
+    result_path: Path, checkpoint: Path, seed: int, branch: Branch
+) -> bool:
+    if not result_path.is_file() or not checkpoint.is_file():
+        return False
+    try:
+        _validate_branch_result(_load_json(result_path), seed, branch, checkpoint)
+    except (OSError, TypeError, json.JSONDecodeError, ValueError):
+        return False
+    return True
 
 
 def _confidence_interval(values: list[float]) -> dict[str, float] | None:
@@ -275,6 +354,8 @@ def analyze_v2(output: Path, summary_path: Path | None = None) -> dict[str, Any]
     seeds: list[int] = []
     for pair_path in sorted((output / "results").glob("pair-*/result.json")):
         pair = _load_json(pair_path)
+        if pair.get("schema_version") != V2_SCHEMA_VERSION:
+            raise ValueError(f"unsupported V2 pair schema: {pair_path}")
         seed = int(pair["seed"])
         loaded: dict[str, dict[str, Any]] = {}
         for branch in BRANCHES:
@@ -282,6 +363,12 @@ def analyze_v2(output: Path, summary_path: Path | None = None) -> dict[str, Any]
             if not result_path.is_file():
                 break
             loaded[branch] = _load_json(result_path)
+            _validate_branch_result(
+                loaded[branch],
+                seed,
+                branch,
+                _checkpoint_path(output, seed, branch),
+            )
         if len(loaded) != len(BRANCHES):
             continue
         seeds.append(seed)
@@ -308,6 +395,52 @@ def analyze_v2(output: Path, summary_path: Path | None = None) -> dict[str, Any]
     )
     differences = (principal - counterfactual).tolist()
     test = ttest_rel(principal, counterfactual) if len(seeds) > 1 else None
+    comparison: dict[str, Any] = {"available": 1001 in seeds}
+    if 1001 in seeds:
+        seed_index = seeds.index(1001)
+        comparison["seed_1001"] = {}
+        comparison["other_seeds"] = {}
+        for branch in BRANCHES:
+            seed_result = branch_data[branch][seed_index]
+            others = [
+                item
+                for index, item in enumerate(branch_data[branch])
+                if index != seed_index
+            ]
+            comparison["seed_1001"][branch] = {
+                "macro_f1": seed_result["evaluation"]["macro_f1"],
+                "accuracy": seed_result["evaluation"]["accuracy"],
+                "predicted_class_counts": dict(
+                    Counter(
+                        prediction["predicted_class"]
+                        for prediction in seed_result["predictions"]
+                    )
+                ),
+            }
+            comparison["other_seeds"][branch] = {
+                "pair_count": len(others),
+                "macro_f1_mean": float(
+                    np.mean([item["evaluation"]["macro_f1"] for item in others])
+                )
+                if others
+                else None,
+                "accuracy_mean": float(
+                    np.mean([item["evaluation"]["accuracy"] for item in others])
+                )
+                if others
+                else None,
+                "constant_prediction_pairs": sum(
+                    len(
+                        {
+                            prediction["predicted_class"]
+                            for prediction in item["predictions"]
+                        }
+                    )
+                    == 1
+                    for item in others
+                ),
+            }
+
     summary = {
         "schema_version": V2_SCHEMA_VERSION,
         "pair_count": len(seeds),
@@ -320,6 +453,7 @@ def analyze_v2(output: Path, summary_path: Path | None = None) -> dict[str, Any]
             if test is None
             else {"statistic": float(test.statistic), "p_value": float(test.pvalue)},
         },
+        "seed_1001_comparison": comparison,
     }
     if summary_path is not None:
         _write_json(summary_path, summary)

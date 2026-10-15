@@ -9,7 +9,8 @@ for phase in experiment gradcam analyze; do
   pid_path="$state_root/$phase.pid"
   if [[ -f "$pid_path" ]]; then
     pid=$(<"$pid_path")
-    if kill -0 "$pid" 2>/dev/null; then
+    process_args=$(ps -p "$pid" -o args= 2>/dev/null || true)
+    if [[ "$process_args" == *"v2-$phase"* ]]; then
       printf '%s: running (PID %s)\n' "$phase" "$pid"
     else
       printf '%s: stopped (last PID %s)\n' "$phase" "$pid"
@@ -22,7 +23,12 @@ done
 completed=0
 if [[ -d "$output_root/results" ]]; then
   for result in "$output_root"/results/pair-*/result.json; do
-    if [[ -f "$result" ]]; then
+    pair_dir=$(dirname "$result")
+    if [[ -f "$result" \
+      && -f "$pair_dir/solucao_principal/result.json" \
+      && -f "$pair_dir/solucao_contrafactual/result.json" \
+      && -f "$output_root/checkpoints/$(basename "$pair_dir")/solucao_principal.weights.h5" \
+      && -f "$output_root/checkpoints/$(basename "$pair_dir")/solucao_contrafactual.weights.h5" ]]; then
       completed=$((completed + 1))
     fi
   done
