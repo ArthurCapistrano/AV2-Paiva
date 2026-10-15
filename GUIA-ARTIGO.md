@@ -11,7 +11,7 @@ precisam de trabalho.
 3. `GUIA-ENTENDIMENTO-PROJETO.md`: pergunta, desenho e vocabulário.
 4. `RESULTADOS-EXPERIMENTO.md`: resultados agregados dos 30 pares.
 5. `LIMITACAO-COLAPSO-CONTRAFACTUAL.md`: auditoria do ramo aleatorio.
-6. `docs/validacao-metodologia.md`: justificativas e limites metodologicos.
+6. `docs/validacao-metodologia.md`: auditoria do que foi e não foi executado.
 7. `reports/epoch-pilot.json`: evidencia do orçamento de 100 epocas.
 8. `reports/gradcam/seed-1001/README.md`: análise qualitativa de Grad-CAM.
 

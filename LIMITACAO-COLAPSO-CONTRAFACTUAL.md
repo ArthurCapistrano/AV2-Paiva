@@ -51,9 +51,21 @@ As metricas desse diagnóstico foram:
 - F1 de `healthy`: `0`;
 - melhor perda de validacao: `1.0992578268`.
 
-O valor da perda fica proximo de `ln(3)`, coerente com um modelo que nao
-aprendeu uma separacao util entre as tres classes. O diagnostico completo esta
+O valor da perda fica proximo de `ln(3)`, compatível com um comportamento sem
+separação útil entre as três classes no diagnóstico. O diagnóstico completo está
 em `reports/gradcam/seed-1001/diagnostic.json`.
+
+## Causa não determinada na V1
+
+A V1 confirmou o comportamento, mas não foi instrumentada para isolar sua causa.
+Não foram coletados, para os 30 pares, as curvas de treinamento, probabilidades,
+checkpoints ou previsões completas necessárias para comparar explicações. Esta
+entrega não atribui o colapso principalmente à inicialização aleatória, à taxa
+de aprendizado, à cabeça classificadora ou a qualquer outro componente.
+
+Essa ausência não invalida o resultado observado. Apenas limita a conclusão à
+seguinte afirmação: sob o protocolo executado, o ramo contrafactual colapsou no
+diagnóstico direto do `seed 1001`, e a causa do colapso ficou fora da V1.
 
 ## O que foi confirmado
 

@@ -9,7 +9,8 @@ experimental e uma auditoria detalhada do `seed 1001`.
 1. Leia `GUIA-ARTIGO.md`.
 2. Consulte `RESULTADOS-EXPERIMENTO.md`.
 3. Leia `LIMITACAO-COLAPSO-CONTRAFACTUAL.md`.
-4. Abra `reports/gradcam/seed-1001/README.md` antes de interpretar as imagens.
+4. Leia a auditoria de execução em `docs/validacao-metodologia.md`.
+5. Abra `reports/gradcam/seed-1001/README.md` antes de interpretar as imagens.
 
 Para consultar os números sem iniciar treinamentos:
 

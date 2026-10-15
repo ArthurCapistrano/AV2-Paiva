@@ -30,6 +30,51 @@ original armazenou F1 macro e acurácia, mas não armazenou previsões, matrizes
 confusão, métricas por classe ou checkpoints para os outros 29 pares. Esses
 itens ficam fora da V1.
 
+## Auditoria do que foi feito na V1
+
+Esta tabela separa o protocolo planejado da execução efetivamente versionada.
+“Feito” significa que há código, resultado ou artefato correspondente. “Parcial”
+significa que somente uma parte do requisito foi executada. “Não feito na V1”
+fica reservado para itens que exigiriam novos treinamentos ou nova coleta.
+“Não aplicável/contraditório” identifica uma formulação que não corresponde à
+pergunta executada. “Inconclusivo” indica que as fontes ou artefatos atuais não
+permitem decidir.
+
+| Item metodológico | Status V1 | Evidência e limite |
+| --- | --- | --- |
+| Dataset `beans:0.1.0` e splits oficiais | Feito | `protocol.json`, preparação e resultados versionados; o teste tem 128 imagens. |
+| Contagens por classe de todos os splits | Não feito na V1 | A auditoria direta registra as classes do teste, mas a campanha não preservou o inventário completo dos splits. |
+| Segmentação HSV comum aos dois ramos | Parcial | A mesma preparação foi usada nos dois ramos e há exemplos visuais; não há métrica objetiva de qualidade da máscara. |
+| Entrada `160 x 160` e MobileNetV2 comum | Feito | A arquitetura e a entrada estão fixadas no protocolo e no código. |
+| Única diferença deliberada na base | Feito | Os dois ramos foram treinados fim a fim com a mesma configuração, variando a inicialização da base. |
+| Treinamento fim a fim ImageNet versus aleatório | Feito | 30 pares, totalizando 60 treinamentos, em `artifacts/results/`. |
+| Fine-tuning canônico em duas fases | Não aplicável/contraditório | Não era a pergunta da V1; não se deve chamar o treinamento executado de fine-tuning canônico. |
+| F1 macro, acurácia e teste t pareado | Feito | Resultado em `artifacts/summary.json`; o nível de significância não foi registrado no protocolo. |
+| Intervalo de confiança da diferença pareada | Não feito na V1 | O valor-p foi preservado, mas o intervalo de confiança não foi calculado. |
+| Previsões, matrizes e métricas por classe dos 29 pares restantes | Não feito na V1 | Os `result.json` antigos guardam somente F1 macro e acurácia. |
+| Auditoria detalhada do ramo contrafactual | Parcial | O `seed 1001` foi auditado diretamente; os outros 29 não têm previsões versionadas. |
+| Grad-CAM nos 30 pares | Não feito na V1 | Há somente seis painéis do `seed 1001`. |
+| Seleção aleatória das imagens do Grad-CAM | Parcial | Na V1 foi usada a primeira entrada de cada classe na ordem de `test.zip`, como regra determinística exploratória. |
+| Tempo, épocas efetivas, probabilidades e checkpoints | Não feito na V1 | Esses artefatos não foram preservados pela campanha original. |
+| Independência biológica entre os splits | Inconclusivo | O dataset separa os arquivos, mas não fornece identificadores de planta ou sessão para auditoria por grupo. |
+| Causa do colapso contrafactual | Não feito na V1 | A V1 confirmou o comportamento, mas não coletou evidências para isolar sua causa. |
+
+## O que não deve ser inferido
+
+O colapso para uma única classe é um resultado observado, não um diagnóstico da
+causa. A V1 não permite afirmar qual componente do treinamento produziu o
+comportamento. Não há evidência suficiente para atribuir a causa a uma escolha
+específica.
+
+Também não se deve afirmar que os outros 29 ramos contrafactuais previram a
+mesma classe, porque somente o `seed 1001` foi auditado diretamente.
+
+## Limite da revisão
+
+Esta auditoria documenta o estado da V1 e não corrige retroativamente os
+resultados. A coleta de previsões, a investigação da causa do colapso, os
+intervalos de confiança e o Grad-CAM adicional pertencem a uma futura V2.
+
 ## Pergunta científica
 
 > A inicialização com pesos ImageNet altera o desempenho, medido pelo F1-score
@@ -49,7 +94,11 @@ execução \(i\).
 Assim, as hipóteses operacionais são \(H_0: \mu_d = 0\) e
 \(H_1: \mu_d \neq 0\).
 
-## Síntese da validação
+## Síntese da validação do desenho (histórico)
+
+A tabela abaixo registra a análise metodológica feita antes da execução. Para
+saber o que foi realmente produzido na V1, use a auditoria acima; esta tabela
+preserva justificativas e requisitos que não foram necessariamente coletados.
 
 | Ponto da proposta | Classificação | Validação e ação necessária |
 | --- | --- | --- |
@@ -57,14 +106,18 @@ Assim, as hipóteses operacionais são \(H_0: \mu_d = 0\) e
 | Usar segmentação HSV como técnica comum | **Válido com auditoria** | O HSV deve localizar a folha, não selecionar apenas pixels verdes. Preencher o contorno externo preserva sintomas internos amarelos ou marrons. Ajustar o procedimento somente no treino, congelá-lo antes de processar validação e teste e registrar falhas remanescentes. |
 | Entrada 160 x 160 na MobileNetV2 | **Válido com especificação** | A implementação oficial aceita três canais e dimensões espaciais a partir de 32; há pesos ImageNet sem a cabeça para 160 x 160 [[3]](#ref-3). Fixar também interpolação, `alpha=1.0`, formato de canais e política de recorte/redimensionamento. |
 | Comparar `weights="imagenet"` com `weights=None` | **Válido com ressalvas** | A API define precisamente essas opções como pesos ImageNet e inicialização aleatória [[3]](#ref-3). A arquitetura completa, a cabeça, o pré-processamento e o orçamento precisam ser idênticos; somente os pesos iniciais da base devem variar. |
-| Chamar de “fine-tuning” o treinamento de todas as camadas desde o início | **Problemático** | No fluxo oficial da Keras, extração de características congela a base; fine-tuning ocorre depois de treinar a nova cabeça, ao descongelar toda ou parte da base com taxa baixa [[4]](#ref-4). Treinar tudo desde a primeira época é treinamento fim a fim iniciado com pesos pré-treinados, não o fluxo canônico de fine-tuning. |
+| Chamar de “fine-tuning” o treinamento de todas as camadas desde o início | **Não aplicável ao protocolo executado** | No fluxo oficial da Keras, extração de características congela a base; fine-tuning ocorre depois de treinar a nova cabeça, ao descongelar toda ou parte da base com taxa baixa [[4]](#ref-4). O treinamento da V1 foi fim a fim desde a primeira época e não deve receber o nome de fine-tuning canônico. |
 | Manter exatamente os mesmos hiperparâmetros | **Válido para isolar a inicialização, mas limitado** | Um protocolo comum responde ao efeito dos pesos iniciais sob um orçamento fixo; ele não demonstra qual abordagem teria o melhor resultado após otimização específica. Essa interpretação deve ser declarada, e qualquer ajuste deve usar apenas treino/validação, nunca teste. |
 | Fazer 30 execuções por abordagem | **Válido como requisito, inconclusivo como garantia de poder** | Trinta pares medem a variação causada pelo procedimento estocástico definido, mas esse número, sozinho, não garante poder para um efeito desconhecido; poder depende, entre outros elementos, do tamanho do efeito, da variabilidade e do nível de significância [[17]](#ref-17). Publicar os 30 valores e o intervalo de confiança, sem tratar “30” como justificativa automática de suficiência. |
 | Escolher entre teste t pareado e Wilcoxon | **Requer correção** | O teste t pareado testa igualdade dos valores médios esperados em amostras relacionadas [[8]](#ref-8), exatamente a hipótese declarada. Wilcoxon testa se a distribuição das diferenças é simétrica em torno de zero e possui regras próprias para zeros e empates [[9]](#ref-9); portanto, não é substituto direto para uma hipótese sobre médias. |
 | Usar Grad-CAM nas duas abordagens | **Válido como análise complementar** | Grad-CAM pondera mapas de ativação convolucionais pelos gradientes da classe-alvo para produzir uma localização grosseira das regiões relevantes [[11]](#ref-11). Sem anotação espacial e métrica pré-definida, os mapas sustentam análise qualitativa, não uma afirmação de que uma explicação é “melhor”. |
 | Afirmar que os splits evitam imagens relacionadas entre treino e teste | **Inconclusivo** | O construtor oficial confirma arquivos separados de treino, validação e teste, mas as fontes consultadas não documentam identificadores de planta, talhão ou sessão fotográfica que permitam verificar independência por grupo [[1]](#ref-1) [[2]](#ref-2). Não alegar ausência de vazamento por indivíduo sem auditoria adicional. |
 
-## Protocolo experimental recomendado
+## Protocolo de referência e limites
+
+Esta seção preserva os detalhes técnicos que sustentaram o desenho. Ela não
+substitui a auditoria da V1 e não significa que cada artefato recomendado foi
+coletado na campanha já concluída.
 
 ### 1. Dados e pré-processamento
 
@@ -289,7 +342,7 @@ tratados como possível efeito da segmentação. Sem máscara de lesão, anotaç
 especialista ou métrica espacial, a análise permanece qualitativa e não sustenta
 afirmar que uma explicação é “melhor”.
 
-## Limitações que devem acompanhar os resultados futuros
+## Limitações aplicáveis à V1 e a campanhas futuras
 
 - **Teste pequeno:** existem somente 128 imagens no split de teste oficial
   [[1]](#ref-1); publicar incerteza e resultados por classe, evitando conclusões
@@ -318,7 +371,10 @@ afirmar que uma explicação é “melhor”.
 - **Grad-CAM:** sem referência espacial, sua leitura é qualitativa e não mede
   fidelidade clínica ou agronômica das regiões destacadas [[11]](#ref-11).
 
-## Checklist antes da implementação
+## Checklist para uma futura campanha
+
+Os itens abaixo não são pendências para iniciar a V2 automaticamente. Eles são
+requisitos a revisar somente quando uma nova campanha for autorizada.
 
 - Fixar dataset `beans:0.1.0`, hashes/versões e contagens por classe.
 - Ajustar o HSV em 30 imagens do treino, registrar a rubrica, congelar os
