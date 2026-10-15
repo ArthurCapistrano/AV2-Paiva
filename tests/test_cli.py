@@ -24,7 +24,14 @@ def test_help_exposes_only_the_simple_experiment_operations() -> None:
     result = run_cli("--help")
 
     assert result.returncode == 0
-    for operation in ("prepare", "experiment", "analyze"):
+    for operation in (
+        "prepare",
+        "experiment",
+        "analyze",
+        "v2-experiment",
+        "v2-gradcam",
+        "v2-analyze",
+    ):
         assert operation in result.stdout
     for removed_operation in (
         "run",

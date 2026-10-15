@@ -163,7 +163,11 @@ def _epoch_training_data(
 
 
 def _build_model(
-    branch: Branch, seeds: dict[str, int], training: dict[str, Any]
+    branch: Branch,
+    seeds: dict[str, int],
+    training: dict[str, Any],
+    *,
+    include_metrics: bool = False,
 ) -> keras.Model:
     """Constrói os dois ramos com a mesma topologia e cabeça.
 
@@ -202,10 +206,15 @@ def _build_model(
         kernel_regularizer=keras.regularizers.l2(float(training["l2"])),
     )(dropped)
     model = keras.Model(inputs, outputs)
-    model.compile(
-        optimizer=keras.optimizers.Adam(float(training["learning_rate"])),
-        loss=keras.losses.SparseCategoricalCrossentropy(),
-    )
+    compile_options: dict[str, Any] = {
+        "optimizer": keras.optimizers.Adam(float(training["learning_rate"])),
+        "loss": keras.losses.SparseCategoricalCrossentropy(),
+    }
+    if include_metrics:
+        compile_options["metrics"] = [
+            keras.metrics.SparseCategoricalAccuracy(name="accuracy")
+        ]
+    model.compile(**compile_options)
     return model
 
 
