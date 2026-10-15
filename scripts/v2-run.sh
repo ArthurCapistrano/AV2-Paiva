@@ -28,7 +28,8 @@ for argument in "$@"; do
   fi
 done
 
-if [[ "$phase" == "experiment" && "$full_run" == true ]]; then
+if [[ "$phase" == "experiment" || "$phase" == "gradcam" ]] \
+  && [[ "$full_run" == true ]]; then
   if [[ ! -f "$state_root/pilot-approved" ]]; then
     printf 'full V2 run requires pilot approval: %s\n' "$state_root/pilot-approved" >&2
     exit 1
@@ -38,8 +39,11 @@ if [[ "$phase" == "experiment" && "$full_run" == true ]]; then
     exit 2
   fi
   forwarded_args+=(--seeds all)
-  export V2_PILOT_APPROVED=1
-elif [[ "$phase" == "experiment" && "$has_seeds" == false ]]; then
+  if [[ "$phase" == "experiment" ]]; then
+    export V2_PILOT_APPROVED=1
+  fi
+elif [[ ( "$phase" == "experiment" || "$phase" == "gradcam" ) \
+  && "$has_seeds" == false ]]; then
   forwarded_args+=(--seeds 1002)
 fi
 

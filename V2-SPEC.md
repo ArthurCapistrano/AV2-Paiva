@@ -97,6 +97,8 @@ Depois da revisão manual do piloto:
 ```bash
 scripts/v2-approve-full.sh
 scripts/v2-run.sh experiment --full
+scripts/v2-run.sh gradcam --full
+scripts/v2-run.sh analyze
 ```
 
 O processo retorna imediatamente ao terminal. Fechar o terminal não encerra o
