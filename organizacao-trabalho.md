@@ -132,11 +132,11 @@ O piloto com treino e validação estabilizou a perda da solução principal na
 100 épocas. O resumo preserva o número escolhido, a seed, as configurações, a
 regra de estabilização e as curvas resumidas; o teste permaneceu intocado.
 
-Cada par usará os mesmos pesos iniciais da cabeça, ordem de lotes, aumentos e
+Cada par usou os mesmos pesos iniciais da cabeça, ordem de lotes, aumentos e
 realizações de dropout. Seeds ou geradores separados para base, cabeça, dados,
-aumento e dropout evitarão que a criação da base aleatória desloque as sequências
-dos demais componentes. Somente o ramo contrafactual usará a seed da base para
-criar seus pesos; o principal carregará os pesos ImageNet.
+aumento e dropout evitaram que a criação da base aleatória deslocasse as
+sequências dos demais componentes. Somente o ramo contrafactual usou a seed da
+base para criar seus pesos; o principal carregou os pesos ImageNet.
 
 ### Hipóteses
 
@@ -152,8 +152,10 @@ fora da V1.
 ## 8. Protocolo Grad-CAM
 
 Para a análise qualitativa, foi fixado o par `seed 1001` e selecionada uma
-imagem de teste por classe. Para cada ramo, o Grad-CAM foi calculado para a
-classe predita na última camada convolucional da MobileNetV2.
+imagem de teste por classe. A seleção usou a primeira entrada de cada classe na
+ordem de `test.zip`, em vez do sorteio aleatório previsto no protocolo original.
+Para cada ramo, o Grad-CAM foi calculado para a classe predita na última camada
+convolucional da MobileNetV2.
 
 Foram produzidos seis mapas, três por ramo. Cada caso mostra a imagem
 original, a entrada segmentada e o mapa sobreposto a essa entrada. Escala, mapa
@@ -176,11 +178,17 @@ O diagnóstico do `seed 1001` mostrou que a solução contrafactual previu
 `angular_leaf_spot` para todas as 128 imagens de teste. Os demais pares não
 possuem previsões individuais versionadas.
 
-O estudo respondeu:
+Na V1, o estudo respondeu à primeira pergunta sob o protocolo fixado e mostrou
+as regiões destacadas no diagnóstico qualitativo. A magnitude da diferença foi
+calculada, mas seu intervalo de confiança não foi coletado.
 
-1. A inicialização ImageNet altera o F1-score macro?
-2. Qual é a magnitude e a incerteza da diferença observada?
-3. Quais regiões das entradas segmentadas aparecem nos mapas Grad-CAM?
+As perguntas ficam registradas assim:
+
+1. A inicialização ImageNet altera o F1-score macro? Sim, sob o protocolo V1.
+2. Qual é a magnitude e a incerteza da diferença observada? A magnitude foi
+   calculada; a incerteza por intervalo de confiança ficou fora da V1.
+3. Quais regiões das entradas segmentadas aparecem nos mapas Grad-CAM? Os seis
+   paineis do `seed 1001` mostram essa evidência qualitativa.
 
 ## 10. Entregáveis da V1
 

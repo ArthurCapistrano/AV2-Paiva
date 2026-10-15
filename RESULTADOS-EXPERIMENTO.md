@@ -63,5 +63,9 @@ O teste reutiliza as mesmas 128 imagens em todos os pares. As 30 repeticoes
 medem principalmente a variacao do treinamento condicionada a esse split; nao
 representam 30 conjuntos de teste independentes.
 
+O intervalo de confianca da diferenca pareada nao foi calculado na campanha
+original. Ele fica fora da V1 e nao deve ser inferido a partir dos desvios-padrao
+das metricas de cada ramo.
+
 O comportamento anomalo da solucao contrafactual esta detalhado em
 `LIMITACAO-COLAPSO-CONTRAFACTUAL.md`.

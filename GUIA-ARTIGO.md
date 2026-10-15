@@ -43,7 +43,8 @@ make prepare
 
 Esse comando baixa os tres arquivos oficiais do Beans pelo espelho fixado,
 confere os checksums e gera `artifacts/segmented/`. As imagens geradas nao sao
-versionadas.
+versionadas. Ele exige que `artifacts/segmented/` ainda nao exista; nao o
+execute durante a leitura se as entradas ja estiverem preparadas.
 
 Nao executar `make experiment` novamente como parte da leitura do projeto. O
 comando ignora pares com `result.json`, mas pode iniciar treinamentos ausentes;
