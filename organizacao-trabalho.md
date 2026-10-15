@@ -95,9 +95,10 @@ folha, mas a máscara final preencheu o contorno externo, preservando regiões
 internas amarelas e marrons que podem representar sintomas.
 
 Os parâmetros globais foram ajustados em 30 imagens do treino, dez por classe,
-selecionadas por uma seed pré-fixada. A rubrica verificará continuidade da folha,
-preservação das bordas e sintomas, remoção da maior parte do fundo e ausência de
-correções manuais. Validação e teste não participarão desse ajuste.
+selecionadas por uma seed pré-fixada. A rubrica foi definida para verificar
+continuidade da folha, preservação das bordas e sintomas, remoção da maior parte
+do fundo e ausência de correções manuais. Validação e teste não participaram
+desse ajuste.
 
 Depois do piloto, o procedimento foi congelado: limites HSV, operações
 morfológicas, maior componente, preenchimento do contorno, fundo RGB
@@ -122,7 +123,7 @@ dos experimentos confirmatórios.
 | Repetições | 30 pares, 60 treinamentos |
 | Orçamento | 100 épocas |
 | Métrica primária | F1-score macro |
-| Métricas secundárias | Acurácia, métricas por classe e tempo de treinamento |
+| Métricas secundárias | Acurácia; métricas por classe e tempo ficaram fora da V1 |
 | Explicabilidade | Grad-CAM qualitativo |
 | Análise primária | Teste t pareado bilateral |
 
@@ -143,9 +144,10 @@ criar seus pesos; o principal carregará os pesos ImageNet.
 - **H1:** a média das diferenças pareadas de F1 macro é diferente de zero.
 
 Seja \(d_i = F1_{ImageNet,i} - F1_{aleatoria,i}\). A análise primária aplicou
-um teste t pareado bilateral aos 30 valores \(d_i\), com nível de significância
-pré-fixado. Wilcoxon poderá aparecer apenas como análise de sensibilidade, com a
-interpretação própria de sua hipótese.
+um teste t pareado bilateral aos 30 valores \(d_i\). O nível de significância
+não foi armazenado no protocolo executado; a V1 publica o valor-p e não deve
+apresentar uma decisão confirmatória sem explicitar esse limite. Wilcoxon fica
+fora da V1.
 
 ## 8. Protocolo Grad-CAM
 

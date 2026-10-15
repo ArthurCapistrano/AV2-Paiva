@@ -125,17 +125,17 @@
   "examples": {
     "angular_leaf_spot": {
       "identity": "test-0042",
-      "segmented_path": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/segmented/images/test/angular_leaf_spot/test-0042.png",
+      "segmented_path": "artifacts/segmented/images/test/angular_leaf_spot/test-0042.png",
       "source_member": "test/angular_leaf_spot/angular_leaf_spot_test.42.jpg"
     },
     "bean_rust": {
       "identity": "test-0085",
-      "segmented_path": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/segmented/images/test/bean_rust/test-0085.png",
+      "segmented_path": "artifacts/segmented/images/test/bean_rust/test-0085.png",
       "source_member": "test/bean_rust/bean_rust_test.33.jpg"
     },
     "healthy": {
       "identity": "test-0000",
-      "segmented_path": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/segmented/images/test/healthy/test-0000.png",
+      "segmented_path": "artifacts/segmented/images/test/healthy/test-0000.png",
       "source_member": "test/healthy/healthy_test.21.jpg"
     }
   },

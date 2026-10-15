@@ -380,7 +380,7 @@ Uma pessoa nova pode revisar o projeto nesta ordem:
 5. Ler `_build_model` e `_run_branch` em `experiment.py`.
 6. Ler `run_experiment` e `_experiment` para entender a repetição das 30 seeds.
 7. Ler `analysis.py` para conferir como os resultados são comparados.
-8. Executar `make help` e, quando houver dados e tempo disponíveis, `make all`.
+8. Executar `make help` e `make analyze` para consultar a entrega sem treinar.
 
 Durante a revisão, as perguntas mais importantes são:
 
@@ -397,7 +397,8 @@ Os itens abaixo foram retirados do fluxo principal para evitar complexidade que
 não ajuda a responder à pergunta do trabalho:
 
 - execução pública de apenas um par;
-- Grad-CAM;
+- Grad-CAM não faz parte do fluxo principal `make all`; a V1 possui uma análise
+  qualitativa separada em `reports/gradcam/seed-1001/`;
 - inventário de GPU, CUDA e sistema operacional;
 - manifests de auditoria adicionais;
 - persistência de históricos, probabilidades e checkpoints;

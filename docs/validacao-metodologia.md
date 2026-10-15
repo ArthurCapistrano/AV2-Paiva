@@ -5,9 +5,11 @@
 ## Escopo da pesquisa metodológica
 
 Este documento registra o desenho experimental definido antes dos treinamentos e
-a sua aplicação na entrega V1. O protocolo abaixo foi aplicado sem alterações
-aos 30 pares de execuções. As recomendações e limitações preservadas no texto
-continuam sendo a base para interpretar os resultados, não resultados novos.
+a sua aplicação na entrega V1. O protocolo de treinamento foi aplicado sem
+alterações aos 30 pares de execuções. O Grad-CAM da V1 é uma análise exploratória
+separada e está documentada com sua regra operacional própria. As recomendações
+e limitações preservadas no texto continuam sendo a base para interpretar os
+resultados, não resultados novos.
 
 ## Estado da execução V1
 
@@ -17,6 +19,8 @@ continuam sendo a base para interpretar os resultados, não resultados novos.
 - Análise primária: teste t pareado bilateral.
 - Grad-CAM: seis mapas somente para o `seed 1001`.
 - Auditoria de previsões: somente para o ramo contrafactual do `seed 1001`.
+- Nível de significância: não registrado no protocolo executado; a V1 publica o
+  valor-p sem tratar uma decisão confirmatória como pré-registrada.
 
 O resumo completo está em `artifacts/summary.json`. A auditoria do caso
 contrafactual está em `reports/gradcam/seed-1001/diagnostic.json`.

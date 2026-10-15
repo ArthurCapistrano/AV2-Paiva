@@ -34,6 +34,10 @@ As diferencas pareadas foram calculadas como principal menos contrafactual:
 - estatistica t pareada: `186.4706`;
 - valor-p: `3.3036e-46`.
 
+O valor-p é publicado como resultado descritivo da análise executada. O nível de
+significância não foi armazenado no protocolo desta campanha, portanto a V1 não
+trata uma decisão de rejeição como pré-registrada.
+
 O arquivo completo esta em `artifacts/summary.json`. Cada par individual esta
 em `artifacts/results/pair-SEED/result.json`.
 

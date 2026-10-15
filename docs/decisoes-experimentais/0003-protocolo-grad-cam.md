@@ -21,9 +21,11 @@ evidência automática de atenção a sintomas.
 
 ## Aplicação na V1
 
-O protocolo foi aplicado ao par `seed 1001`. Foram selecionadas as primeiras
-imagens de cada classe na ordem do arquivo oficial `test.zip`, e os seis painéis
-estão em `reports/gradcam/seed-1001/`. O diagnóstico com previsões, matriz de
-confusão e métricas está em `reports/gradcam/seed-1001/diagnostic.json`.
+Para este diagnóstico exploratório, foi fixado o par `seed 1001` e usada uma
+regra determinística: a primeira imagem de cada classe na ordem do arquivo
+oficial `test.zip`. Essa regra é uma escolha operacional da V1 e não o sorteio
+aleatório previsto no protocolo original. Os seis painéis estão em
+`reports/gradcam/seed-1001/`. O diagnóstico com previsões, matriz de confusão e
+métricas está em `reports/gradcam/seed-1001/diagnostic.json`.
 
-Esta aplicação é exploratória e não representa os outros 29 pares.
+Esta aplicação não representa os outros 29 pares.

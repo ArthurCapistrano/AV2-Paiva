@@ -148,5 +148,6 @@ Para consultar os resultados sem treinar novamente:
 make analyze
 ```
 
-Nao execute `make experiment` ou `make all` durante a leitura da entrega. Esses
-comandos iniciam novamente os 60 treinamentos.
+Nao execute `make experiment` ou `make all` durante a leitura da entrega. O
+comando `experiment` ignora pares que ja possuem resultado, mas pode iniciar
+treinamentos ausentes; nenhum deles e necessario para consultar esta entrega.

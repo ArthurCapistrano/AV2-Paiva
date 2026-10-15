@@ -18,8 +18,9 @@ uv sync --locked
 make analyze
 ```
 
-Não execute `make experiment` ou `make all` nesta entrega. Esses comandos
-refazem os 60 treinamentos.
+Não execute `make experiment` ou `make all` nesta entrega. O comando
+`experiment` ignora pares que já possuem `result.json`, mas pode iniciar
+treinamentos ausentes; nenhum deles é necessário para consultar esta entrega.
 
 ## Evidências principais
 

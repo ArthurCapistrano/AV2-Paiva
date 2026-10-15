@@ -45,8 +45,9 @@ Esse comando baixa os tres arquivos oficiais do Beans pelo espelho fixado,
 confere os checksums e gera `artifacts/segmented/`. As imagens geradas nao sao
 versionadas.
 
-Nao executar `make experiment` novamente como parte da leitura do projeto. A
-campanha completa exige 60 treinamentos e ja esta registrada no repositorio.
+Nao executar `make experiment` novamente como parte da leitura do projeto. O
+comando ignora pares com `result.json`, mas pode iniciar treinamentos ausentes;
+a campanha completa ja esta registrada no repositorio.
 
 ## Pergunta e conclusao atual
 
