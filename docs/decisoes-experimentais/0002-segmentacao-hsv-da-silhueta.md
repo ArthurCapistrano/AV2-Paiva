@@ -42,3 +42,10 @@ Todos os splits serão segmentados uma única vez depois do congelamento. A
 configuração, as versões e os checksums dos artefatos serão registrados, e os
 dois braços consumirão exatamente os mesmos arquivos. “Congelado” se refere ao
 procedimento de segmentação, não às camadas da rede neural.
+
+## Aplicação na V1
+
+O procedimento foi aplicado aos splits oficiais e as mesmas entradas segmentadas
+foram fornecidas aos dois ramos. As imagens de exemplo da segmentação estão em
+`docs/assets/segmentation/`. O Grad-CAM da V1 também mostra a imagem original, a
+entrada segmentada e o mapa sobreposto à entrada segmentada.

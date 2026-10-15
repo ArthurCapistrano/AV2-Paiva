@@ -15,6 +15,12 @@ make help
 Para entender o projeto sem conhecimento previo, consulte o
 [Guia de entendimento do projeto](GUIA-ENTENDIMENTO-PROJETO.md).
 
+Para iniciar o trabalho do artigo, consulte o
+[guia para o artigo](GUIA-ARTIGO.md), os
+[resultados do experimento](RESULTADOS-EXPERIMENTO.md) e a
+[limitacao do ramo contrafactual](LIMITACAO-COLAPSO-CONTRAFACTUAL.md).
+O checklist da entrega esta em [ENTREGA-V1.md](ENTREGA-V1.md).
+
 ## Fluxo principal
 
 O fluxo completo e executado com:
@@ -129,3 +135,18 @@ uv run experimento-feijao prepare \
   --dataset-manifest caminho/do/manifesto.json \
   --output artifacts/segmented
 ```
+
+## Resultados publicados
+
+Os 30 pares experimentais ja foram executados e seus resultados estao
+versionados em `artifacts/results/`. O resumo estatistico esta em
+`artifacts/summary.json`.
+
+Para consultar os resultados sem treinar novamente:
+
+```bash
+make analyze
+```
+
+Nao execute `make experiment` ou `make all` durante a leitura da entrega. Esses
+comandos iniciam novamente os 60 treinamentos.

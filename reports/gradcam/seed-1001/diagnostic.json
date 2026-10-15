@@ -1,0 +1,144 @@
+{
+  "branches": {
+    "solucao_contrafactual": {
+      "best_validation_loss": 1.0992578268051147,
+      "classification_report": {
+        "accuracy": 0.3359375,
+        "angular_leaf_spot": {
+          "f1-score": 0.5029239766081871,
+          "precision": 0.3359375,
+          "recall": 1.0,
+          "support": 43.0
+        },
+        "bean_rust": {
+          "f1-score": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 43.0
+        },
+        "healthy": {
+          "f1-score": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 42.0
+        },
+        "macro avg": {
+          "f1-score": 0.16764132553606237,
+          "precision": 0.11197916666666667,
+          "recall": 0.3333333333333333,
+          "support": 128.0
+        },
+        "weighted avg": {
+          "f1-score": 0.16895102339181287,
+          "precision": 0.11285400390625,
+          "recall": 0.3359375,
+          "support": 128.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          43,
+          0,
+          0
+        ],
+        [
+          43,
+          0,
+          0
+        ],
+        [
+          42,
+          0,
+          0
+        ]
+      ],
+      "predicted_counts": [
+        128,
+        0,
+        0
+      ]
+    },
+    "solucao_principal": {
+      "best_validation_loss": 0.23093900084495544,
+      "classification_report": {
+        "accuracy": 0.9453125,
+        "angular_leaf_spot": {
+          "f1-score": 0.9438202247191011,
+          "precision": 0.9130434782608695,
+          "recall": 0.9767441860465116,
+          "support": 43.0
+        },
+        "bean_rust": {
+          "f1-score": 0.9156626506024096,
+          "precision": 0.95,
+          "recall": 0.8837209302325582,
+          "support": 43.0
+        },
+        "healthy": {
+          "f1-score": 0.9761904761904762,
+          "precision": 0.9761904761904762,
+          "recall": 0.9761904761904762,
+          "support": 42.0
+        },
+        "macro avg": {
+          "f1-score": 0.9452244505039956,
+          "precision": 0.9464113181504485,
+          "recall": 0.9455518641565153,
+          "support": 128.0
+        },
+        "weighted avg": {
+          "f1-score": 0.94498252842832,
+          "precision": 0.9461786684782609,
+          "recall": 0.9453125,
+          "support": 128.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          42,
+          1,
+          0
+        ],
+        [
+          4,
+          38,
+          1
+        ],
+        [
+          0,
+          1,
+          41
+        ]
+      ],
+      "predicted_counts": [
+        46,
+        40,
+        42
+      ]
+    }
+  },
+  "classes": [
+    "angular_leaf_spot",
+    "bean_rust",
+    "healthy"
+  ],
+  "examples": {
+    "angular_leaf_spot": {
+      "identity": "test-0042",
+      "segmented_path": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/segmented/images/test/angular_leaf_spot/test-0042.png",
+      "source_member": "test/angular_leaf_spot/angular_leaf_spot_test.42.jpg"
+    },
+    "bean_rust": {
+      "identity": "test-0085",
+      "segmented_path": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/segmented/images/test/bean_rust/test-0085.png",
+      "source_member": "test/bean_rust/bean_rust_test.33.jpg"
+    },
+    "healthy": {
+      "identity": "test-0000",
+      "segmented_path": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/segmented/images/test/healthy/test-0000.png",
+      "source_member": "test/healthy/healthy_test.21.jpg"
+    }
+  },
+  "seed": 1001,
+  "selection_rule": "first archive member per class in official test.zip order"
+}

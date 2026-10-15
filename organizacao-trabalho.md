@@ -1,8 +1,8 @@
-# Proposta de projeto de Visão Computacional
+# Registro do projeto de Visão Computacional
 
-## 1. Proposta
+## 1. Objetivo e pergunta
 
-**Título provisório:** Avaliação do impacto da inicialização ImageNet na
+**Título:** Avaliação do impacto da inicialização ImageNet na
 classificação de doenças em folhas de feijão com pré-processamento por
 segmentação.
 
@@ -22,7 +22,7 @@ mesmo protocolo experimental.
 > classificação de doenças em folhas de feijão quando comparada à inicialização
 > aleatória, mantendo iguais as demais condições experimentais?
 
-“Altera” é usado em vez de “melhora” porque o teste de hipóteses será bilateral.
+“Altera” foi usado em vez de “melhora” porque o teste de hipóteses foi bilateral.
 
 ## 2. Técnicas utilizadas
 
@@ -39,7 +39,7 @@ na solução principal.
 
 ## 3. Dataset
 
-Será usado o `beans:0.1.0`, disponível no
+Foi usado o `beans:0.1.0`, disponível no
 [espelho oficial do Beans no Hugging Face](https://huggingface.co/datasets/AI-Lab-Makerere/beans),
 com 1.295 imagens RGB 500 x 500 nos splits oficiais:
 
@@ -57,22 +57,22 @@ torna viáveis as 30 repetições pareadas exigidas.
 
 ### Solução principal
 
-1. Aplicar a segmentação de silhueta.
-2. Instanciar MobileNetV2 sem a cabeça original e com pesos ImageNet.
-3. Acrescentar a cabeça de classificação para três classes.
-4. Treinar todas as camadas desde a primeira época.
-5. Gerar Grad-CAM segundo o protocolo pré-fixado.
+1. Aplicou a segmentação de silhueta.
+2. Instanciou MobileNetV2 sem a cabeça original e com pesos ImageNet.
+3. Acrescentou a cabeça de classificação para três classes.
+4. Treinou todas as camadas desde a primeira época.
+5. Gerou Grad-CAM para o par auditado segundo o protocolo fixado.
 
 ### Solução contrafactual
 
-1. Consumir exatamente as mesmas entradas segmentadas.
-2. Instanciar a mesma MobileNetV2 sem a cabeça original e com pesos aleatórios.
-3. Usar a mesma cabeça de classificação, com os mesmos pesos iniciais do par.
-4. Treinar todas as camadas desde a primeira época.
-5. Gerar Grad-CAM segundo o mesmo protocolo.
+1. Consumiu exatamente as mesmas entradas segmentadas.
+2. Instanciou a mesma MobileNetV2 sem a cabeça original e com pesos aleatórios.
+3. Usou a mesma cabeça de classificação, com os mesmos pesos iniciais do par.
+4. Treinou todas as camadas desde a primeira época.
+5. Gerou Grad-CAM para o par auditado segundo o mesmo protocolo.
 
-A única variável experimental deliberada será o estado inicial dos pesos da base
-MobileNetV2. O estudo será descrito como **treinamento fim a fim com inicialização
+A única variável experimental deliberada foi o estado inicial dos pesos da base
+MobileNetV2. O estudo é descrito como **treinamento fim a fim com inicialização
 ImageNet versus aleatória**, e não como fine-tuning canônico em duas fases.
 
 ## 5. Justificativa da MobileNetV2
@@ -90,23 +90,23 @@ MobileNetV2 é a melhor arquitetura possível para o Beans.
 
 ## 6. Segmentação de silhueta
 
-A segmentação HSV removerá apenas o fundo. O verde será usado para localizar a
-folha, mas a máscara final preencherá o contorno externo, preservando regiões
-internas amarelas e marrons que possam representar sintomas.
+A segmentação HSV removeu apenas o fundo. O verde foi usado para localizar a
+folha, mas a máscara final preencheu o contorno externo, preservando regiões
+internas amarelas e marrons que podem representar sintomas.
 
-Os parâmetros globais serão ajustados em 30 imagens do treino, dez por classe,
+Os parâmetros globais foram ajustados em 30 imagens do treino, dez por classe,
 selecionadas por uma seed pré-fixada. A rubrica verificará continuidade da folha,
 preservação das bordas e sintomas, remoção da maior parte do fundo e ausência de
 correções manuais. Validação e teste não participarão desse ajuste.
 
-Depois do piloto, o procedimento será congelado: limites HSV, operações
+Depois do piloto, o procedimento foi congelado: limites HSV, operações
 morfológicas, maior componente, preenchimento do contorno, fundo RGB
 `(127, 127, 127)` e redimensionamento para 160 x 160 não poderão mais mudar. Os
-splits serão processados uma única vez; configuração, versões e checksums serão
-registrados, e os dois ramos consumirão os mesmos artefatos.
+splits foram processados uma única vez; configuração, versões e checksums foram
+registrados, e os dois ramos consumiram os mesmos artefatos.
 
-GrabCut não será usado, para preservar simplicidade, determinismo e facilidade de
-explicação. Falhas remanescentes do HSV serão contabilizadas como limitação; se
+GrabCut não foi usado, para preservar simplicidade, determinismo e facilidade de
+explicação. Falhas remanescentes do HSV foram tratadas como limitação; se
 forem frequentes ou removerem sintomas, o desenho deverá ser reconsiderado antes
 dos experimentos confirmatórios.
 
@@ -142,52 +142,65 @@ criar seus pesos; o principal carregará os pesos ImageNet.
 - **H0:** a média das diferenças pareadas de F1 macro é zero.
 - **H1:** a média das diferenças pareadas de F1 macro é diferente de zero.
 
-Seja \(d_i = F1_{ImageNet,i} - F1_{aleatoria,i}\). A análise primária aplicará
+Seja \(d_i = F1_{ImageNet,i} - F1_{aleatoria,i}\). A análise primária aplicou
 um teste t pareado bilateral aos 30 valores \(d_i\), com nível de significância
 pré-fixado. Wilcoxon poderá aparecer apenas como análise de sensibilidade, com a
 interpretação própria de sua hipótese.
 
 ## 8. Protocolo Grad-CAM
 
-Antes dos resultados, será fixado um dos 30 pares por sua seed. Também será
-sorteada uma imagem de teste por classe. Para cada ramo, o Grad-CAM será
-calculado para a classe predita na última camada convolucional da MobileNetV2.
+Para a análise qualitativa, foi fixado o par `seed 1001` e selecionada uma
+imagem de teste por classe. Para cada ramo, o Grad-CAM foi calculado para a
+classe predita na última camada convolucional da MobileNetV2.
 
-Serão produzidos seis mapas, três por ramo. Cada caso mostrará a imagem
+Foram produzidos seis mapas, três por ramo. Cada caso mostra a imagem
 original, a entrada segmentada e o mapa sobreposto a essa entrada. Escala, mapa
-de cores e transparência serão iguais. A análise será qualitativa; destaques nas
-bordas serão tratados como possível dependência da segmentação, não como
+de cores e transparência foram iguais. A análise é qualitativa; destaques nas
+bordas são tratados como possível dependência da segmentação, não como
 evidência automática de atenção a sintomas.
 
-## 9. Resultados esperados
+## 9. Resultados observados na V1
 
-A expectativa, ainda não comprovada, é que a inicialização ImageNet produza
-melhor desempenho. Um resultado sem diferença estatisticamente significativa
-também será válido. O estudo deverá responder:
+Os resultados agregados mostram desempenho superior da inicialização ImageNet
+sob o protocolo fixado:
+
+- F1 macro médio principal: `0.9380`;
+- F1 macro médio contrafactual: `0.1676`;
+- acurácia média principal: `0.9385`;
+- acurácia média contrafactual: `0.3359`;
+- valor-p do teste t pareado: `3.3036e-46`.
+
+O diagnóstico do `seed 1001` mostrou que a solução contrafactual previu
+`angular_leaf_spot` para todas as 128 imagens de teste. Os demais pares não
+possuem previsões individuais versionadas.
+
+O estudo respondeu:
 
 1. A inicialização ImageNet altera o F1-score macro?
 2. Qual é a magnitude e a incerteza da diferença observada?
 3. Quais regiões das entradas segmentadas aparecem nos mapas Grad-CAM?
 
-## 10. Entregáveis desta etapa
+## 10. Entregáveis da V1
 
 - código-fonte em Python com as duas soluções;
 - segmentação HSV e artefatos reproduzíveis;
-- 30 execuções por abordagem;
-- métricas, teste estatístico e gráficos comparativos;
-- visualizações Grad-CAM.
+- 30 pares, totalizando 60 execuções;
+- métricas agregadas e teste estatístico;
+- seis visualizações Grad-CAM do `seed 1001`;
+- documentação de resultados e limitações para o artigo.
 
-O artigo IEEE e a apresentação não serão produzidos nesta etapa.
+O artigo IEEE e a apresentação não foram produzidos nesta etapa; esta entrega
+fornece a base documental para que a equipe os escreva.
 
-## 11. Critérios de conclusão
+## 11. Critérios de conclusão da V1
 
 - As duas soluções aplicam pelo menos três técnicas?
 - A inicialização da base é a única variável experimental deliberada?
 - Segmentação, dados, arquitetura e orçamento são idênticos nos dois ramos?
-- Foram executados e registrados os 30 pares?
+- Foram executados e registrados os 30 pares? Sim.
 - O teste permaneceu fora de todas as decisões de ajuste?
-- O F1 macro e o teste t pareado foram calculados conforme o protocolo?
-- O Grad-CAM foi apresentado e interpretado somente como análise qualitativa?
+- O F1 macro e o teste t pareado foram calculados conforme o protocolo? Sim.
+- O Grad-CAM foi apresentado e interpretado somente como análise qualitativa? Sim.
 
 ## 12. Decisões e validação detalhada
 

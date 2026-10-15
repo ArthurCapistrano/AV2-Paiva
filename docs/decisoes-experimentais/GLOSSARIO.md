@@ -34,3 +34,21 @@ _Evitar_: duas execuções independentes
 Estado inicial da base MobileNetV2 formado por pesos aprendidos previamente no
 ImageNet.
 _Evitar_: fine-tuning, modelo congelado
+
+**Seed experimental**:
+Identificador de um par de treinamentos. Nesta V1, as seeds válidas são `1001` a
+`1030`.
+_Evitar_: tratar a seed como um novo conjunto de teste
+
+**Colapso contrafactual**:
+Comportamento observado quando a solução contrafactual passa a prever uma única
+classe para as entradas avaliadas. No diagnóstico direto do `seed 1001`, todas
+as 128 previsões foram `angular_leaf_spot`.
+_Evitar_: afirmar que todos os 30 pares tiveram a mesma classe prevista sem
+previsões individuais
+
+**Grad-CAM**:
+Mapa qualitativo das regiões da entrada segmentada associadas à classe predita,
+calculado a partir da última camada convolucional. Na V1, os mapas existem
+somente para o `seed 1001`.
+_Evitar_: tratar o mapa como prova de causalidade ou como métrica de desempenho

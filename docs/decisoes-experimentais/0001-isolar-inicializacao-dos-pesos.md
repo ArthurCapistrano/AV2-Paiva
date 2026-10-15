@@ -29,3 +29,10 @@ O piloto usou somente treino e validação e fixou um orçamento comum de 100
 15. O código exploratório não integra a entrega; a seed, as configurações, a
 regra de estabilização e o resumo das curvas estão preservados em
 `reports/epoch-pilot.json`.
+
+## Aplicação na V1
+
+A decisão foi aplicada aos 30 pares. Os dois ramos foram treinados fim a fim
+desde a primeira época, variando somente a inicialização da base. Os resultados
+agregados estão em `artifacts/summary.json` e são interpretados em
+`RESULTADOS-EXPERIMENTO.md`.

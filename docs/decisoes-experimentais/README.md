@@ -12,8 +12,12 @@ registros numerados para os motivos e consequências de cada escolha.
 
 ## Estado
 
-As decisões estão aceitas. O piloto de épocas foi executado e congelou o
-orçamento comum em 100 épocas; sua evidência está em
-`reports/epoch-pilot.json`. Os demais valores obtidos durante a implementação
-devem ser acrescentados aos registros correspondentes somente depois dos
-pilotos descritos na metodologia.
+As decisões estão aceitas e foram aplicadas na V1. O piloto de épocas congelou
+o orçamento comum em 100 épocas; sua evidência está em
+`reports/epoch-pilot.json`. Os resultados agregados estão em
+`artifacts/summary.json`. O diagnóstico e os seis mapas do `seed 1001` estão em
+`reports/gradcam/seed-1001/`.
+
+Os registros numerados preservam a justificativa anterior à execução. Quando
+uma decisão tem resultado observado, ele é acrescentado ao final do registro
+correspondente sem apagar o motivo original.

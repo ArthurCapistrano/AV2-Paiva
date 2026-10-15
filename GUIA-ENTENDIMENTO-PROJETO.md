@@ -145,6 +145,25 @@ seed, a diferença é calculada assim:
 F1 da solução principal - F1 da solução contrafactual
 ```
 
+## 4.1 Estado da entrega V1
+
+Os 30 pares foram executados. A solução principal teve F1 macro médio de
+`0.9380` e acurácia média de `0.9385`. A solução contrafactual teve F1 macro
+médio de `0.1676` e acurácia média de `0.3359`.
+
+O teste t pareado resultou em estatística `186.4706` e valor-p
+`3.3036e-46`. Esses valores estão consolidados em `artifacts/summary.json` e
+explicados em `RESULTADOS-EXPERIMENTO.md`.
+
+Uma auditoria adicional foi feita para o `seed 1001`. Nesse caso, a solução
+contrafactual previu `angular_leaf_spot` para todas as 128 imagens de teste. A
+matriz de confusão e as métricas por classe estão em
+`reports/gradcam/seed-1001/diagnostic.json`. Essa auditoria não foi feita para
+os outros 29 pares.
+
+Os mapas Grad-CAM disponíveis também se limitam ao `seed 1001`. Eles são uma
+análise qualitativa e não alteram a análise estatística dos 30 pares.
+
 ## 5. Como executar
 
 Instale o ambiente:
@@ -275,6 +294,10 @@ inicialização da cabeça classificadora.
 | `docs/decisoes-experimentais/0001-isolar-inicializacao-dos-pesos.md` | Decisão sobre os dois ramos. |
 | `docs/decisoes-experimentais/0002-segmentacao-hsv-da-silhueta.md` | Decisão sobre a segmentação. |
 | `reports/epoch-pilot.json` | Registro histórico usado para fixar o orçamento de épocas. |
+| `GUIA-ARTIGO.md` | Roteiro de leitura e uso dos resultados pelos autores. |
+| `RESULTADOS-EXPERIMENTO.md` | Resultados agregados e limites de interpretação. |
+| `LIMITACAO-COLAPSO-CONTRAFACTUAL.md` | Auditoria do colapso contrafactual no seed 1001. |
+| `reports/gradcam/seed-1001/` | Seis painéis Grad-CAM e diagnóstico do seed 1001. |
 
 ## 8. Funções por módulo
 

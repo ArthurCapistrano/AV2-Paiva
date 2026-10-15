@@ -18,3 +18,12 @@ métrica previamente definida.
 O protocolo produzirá seis mapas, três por braço. Destaques sobre a borda da
 folha serão interpretados como possível dependência da segmentação, e não como
 evidência automática de atenção a sintomas.
+
+## Aplicação na V1
+
+O protocolo foi aplicado ao par `seed 1001`. Foram selecionadas as primeiras
+imagens de cada classe na ordem do arquivo oficial `test.zip`, e os seis painéis
+estão em `reports/gradcam/seed-1001/`. O diagnóstico com previsões, matriz de
+confusão e métricas está em `reports/gradcam/seed-1001/diagnostic.json`.
+
+Esta aplicação é exploratória e não representa os outros 29 pares.

@@ -4,9 +4,27 @@
 
 ## Escopo da pesquisa metodológica
 
-Este documento demonstra o desenho experimental proposto para este trabalho. A conclusão metodológica é que
-a comparação é **viável**, desde que o protocolo abaixo seja definido antes dos
-experimentos e aplicado sem alterações aos 30 pares de execuções.
+Este documento registra o desenho experimental definido antes dos treinamentos e
+a sua aplicação na entrega V1. O protocolo abaixo foi aplicado sem alterações
+aos 30 pares de execuções. As recomendações e limitações preservadas no texto
+continuam sendo a base para interpretar os resultados, não resultados novos.
+
+## Estado da execução V1
+
+- Dataset executado: `beans:0.1.0`.
+- Pares executados: 30, totalizando 60 treinamentos.
+- Métrica primária: F1 macro.
+- Análise primária: teste t pareado bilateral.
+- Grad-CAM: seis mapas somente para o `seed 1001`.
+- Auditoria de previsões: somente para o ramo contrafactual do `seed 1001`.
+
+O resumo completo está em `artifacts/summary.json`. A auditoria do caso
+contrafactual está em `reports/gradcam/seed-1001/diagnostic.json`.
+
+Os 30 pares reutilizam o mesmo split de teste de 128 imagens. A campanha
+original armazenou F1 macro e acurácia, mas não armazenou previsões, matrizes de
+confusão, métricas por classe ou checkpoints para os outros 29 pares. Esses
+itens ficam fora da V1.
 
 ## Pergunta científica
 
