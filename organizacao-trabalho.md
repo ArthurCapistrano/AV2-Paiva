@@ -103,8 +103,8 @@ desse ajuste.
 Depois do piloto, o procedimento foi congelado: limites HSV, operações
 morfológicas, maior componente, preenchimento do contorno, fundo RGB
 `(127, 127, 127)` e redimensionamento para 160 x 160 não poderão mais mudar. Os
-splits foram processados uma única vez; configuração, versões e checksums foram
-registrados, e os dois ramos consumiram os mesmos artefatos.
+splits foram processados uma única vez, e os dois ramos consumiram os mesmos
+artefatos. A V1 não preservou um inventário separado de versões e checksums.
 
 GrabCut não foi usado, para preservar simplicidade, determinismo e facilidade de
 explicação. Falhas remanescentes do HSV foram tratadas como limitação; se

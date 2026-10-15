@@ -72,13 +72,12 @@ diagnóstico direto do `seed 1001`, e a causa do colapso ficou fora da V1.
 - O calculo de acuracia e F1 nao explica sozinho a anomalia.
 - O `seed 1001` realmente colapsou para uma classe.
 - A auditoria confirma exatamente as metricas salvas para esse seed.
-- As metricas agregadas dos 30 pares indicam que o mesmo padrao provavelmente
-  ocorreu nos demais seeds.
+- As metricas agregadas dos 30 pares sao identicas no ramo contrafactual.
 
 Ainda nao foram armazenadas as previsoes dos outros 29 seeds. Portanto, a
 afirmacao direta sobre a classe prevista foi confirmada para o `seed 1001`,
 enquanto para os demais seeds a evidencia disponivel e a repeticao exata das
-metricas agregadas.
+metricas agregadas, sem confirmar suas classes previstas.
 
 ## Interpretacao correta
 
