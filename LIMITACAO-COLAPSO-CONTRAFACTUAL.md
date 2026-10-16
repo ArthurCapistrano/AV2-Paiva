@@ -106,3 +106,11 @@ solucao aleatoria e incapaz de aprender em qualquer protocolo.
 
 Uma nova campanha com ajuste de hiperparametros seria outro experimento e nao
 deve ser misturada aos resultados atuais.
+
+## Atualização V2
+
+Esta auditoria preserva o que foi possível confirmar diretamente na V1. A V2
+coletou previsões dos 30 pares e confirmou que todos os ramos contrafactuais
+previram uma única classe: 14 seeds escolheram `angular_leaf_spot` e 16
+escolheram `bean_rust`. A causa do colapso continua não determinada. Consulte
+[`RESULTADOS-V2.md`](RESULTADOS-V2.md) para os resultados instrumentados.

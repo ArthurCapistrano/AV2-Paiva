@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -119,6 +120,66 @@ def _analyze(args: argparse.Namespace) -> int:
     return 0
 
 
+def _v2_seeds(args: argparse.Namespace) -> tuple[int, ...] | None:
+    if args.seeds is None:
+        return None
+    if args.seeds == "all":
+        return None
+    try:
+        return tuple(int(value) for value in args.seeds.split(","))
+    except ValueError as error:
+        raise ValueError("V2 seeds must be comma-separated integers") from error
+
+
+def _v2_experiment(args: argparse.Namespace) -> int:
+    """Executa a V2 instrumentada e retomável."""
+    from experimento_feijao.v2 import run_v2_experiment
+
+    try:
+        if args.seeds == "all" and os.environ.get("V2_PILOT_APPROVED") != "1":
+            raise ValueError("full V2 run requires pilot approval")
+        run_v2_experiment(
+            args.config,
+            args.segmented_inputs,
+            args.output,
+            _v2_seeds(args),
+        )
+    except (OSError, json.JSONDecodeError, ValueError) as error:
+        print(f"Could not run V2 experiment: {error}", file=sys.stderr)
+        return 2
+    return 0
+
+
+def _v2_gradcam(args: argparse.Namespace) -> int:
+    """Gera os mapas Grad-CAM fixos da V2."""
+    from experimento_feijao.v2 import run_v2_gradcam
+
+    try:
+        run_v2_gradcam(
+            args.config,
+            args.segmented_inputs,
+            args.output,
+            _v2_seeds(args),
+        )
+    except (OSError, json.JSONDecodeError, ValueError) as error:
+        print(f"Could not run V2 Grad-CAM: {error}", file=sys.stderr)
+        return 2
+    return 0
+
+
+def _v2_analyze(args: argparse.Namespace) -> int:
+    """Consolida os pares V2 disponíveis sem treinar."""
+    from experimento_feijao.v2 import analyze_v2
+
+    try:
+        summary = analyze_v2(args.results, args.output)
+    except (OSError, json.JSONDecodeError, ValueError) as error:
+        print(f"Could not analyze V2 results: {error}", file=sys.stderr)
+        return 2
+    print(f"V2: {summary['pair_count']} pares completos")
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     """Cria a interface pública mínima da aplicação.
 
@@ -153,6 +214,39 @@ def _parser() -> argparse.ArgumentParser:
     analyze_parser.add_argument("--results", required=True, type=Path)
     analyze_parser.add_argument("--output", type=Path)
     analyze_parser.set_defaults(handler=_analyze)
+
+    v2_experiment_parser = subparsers.add_parser(
+        "v2-experiment", help="execute the instrumented V2 experiment"
+    )
+    v2_experiment_parser.add_argument("--config", required=True, type=Path)
+    v2_experiment_parser.add_argument("--segmented-inputs", required=True, type=Path)
+    v2_experiment_parser.add_argument("--output", required=True, type=Path)
+    v2_experiment_parser.add_argument(
+        "--seeds",
+        default="1002",
+        help="comma-separated subset, or all after pilot approval",
+    )
+    v2_experiment_parser.set_defaults(handler=_v2_experiment)
+
+    v2_gradcam_parser = subparsers.add_parser(
+        "v2-gradcam", help="generate fixed V2 Grad-CAM panels"
+    )
+    v2_gradcam_parser.add_argument("--config", required=True, type=Path)
+    v2_gradcam_parser.add_argument("--segmented-inputs", required=True, type=Path)
+    v2_gradcam_parser.add_argument("--output", required=True, type=Path)
+    v2_gradcam_parser.add_argument(
+        "--seeds",
+        default="1002",
+        help="optional comma-separated subset of fixed seeds",
+    )
+    v2_gradcam_parser.set_defaults(handler=_v2_gradcam)
+
+    v2_analyze_parser = subparsers.add_parser(
+        "v2-analyze", help="analyze completed V2 pairs"
+    )
+    v2_analyze_parser.add_argument("--results", required=True, type=Path)
+    v2_analyze_parser.add_argument("--output", required=True, type=Path)
+    v2_analyze_parser.set_defaults(handler=_v2_analyze)
 
     return parser
 

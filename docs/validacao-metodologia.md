@@ -4,12 +4,11 @@
 
 ## Escopo da pesquisa metodológica
 
-Este documento registra o desenho experimental definido antes dos treinamentos e
-a sua aplicação na entrega V1. O protocolo de treinamento foi aplicado sem
-alterações aos 30 pares de execuções. O Grad-CAM da V1 é uma análise exploratória
-separada e está documentada com sua regra operacional própria. As recomendações
-e limitações preservadas no texto continuam sendo a base para interpretar os
-resultados, não resultados novos.
+Este documento registra o desenho experimental definido antes dos treinamentos,
+a sua aplicação na entrega V1 e a auditoria instrumentada da V2. A V1 permanece
+descrita como histórico: seus limites não são substituídos retroativamente. A
+V2 reexecutou o mesmo protocolo e acrescentou artefatos para investigar os
+limites que ficaram fora da V1.
 
 ## Estado da execução V1
 
@@ -29,6 +28,28 @@ Os 30 pares reutilizam o mesmo split de teste de 128 imagens. A campanha
 original armazenou F1 macro e acurácia, mas não armazenou previsões, matrizes de
 confusão, métricas por classe ou checkpoints para os outros 29 pares. Esses
 itens ficam fora da V1.
+
+## Estado da execução V2
+
+- Dataset e splits: os mesmos `beans:0.1.0` e 128 imagens de teste da V1.
+- Pares executados: 30, totalizando 60 treinamentos.
+- Previsões, probabilidades, métricas por classe e matrizes: coletadas para os
+  30 pares.
+- Históricos, melhores épocas e checkpoints: coletados localmente para os 30
+  pares.
+- Grad-CAM: 60 diagnósticos e 180 painéis, usando os três exemplos fixos nos
+  dois ramos.
+- Intervalo de confiança da diferença pareada de F1: `[0.7619, 0.7788]`.
+- Diferença média de F1: `0.7704`; estatística t: `186.4706`; valor-p:
+  `3.3036e-46`.
+
+Na V2, todos os 30 pares contrafactuais previram uma única classe no teste: 14
+previram `angular_leaf_spot` e 16 previram `bean_rust`. Esse resultado amplia a
+auditoria do colapso observado na V1, mas não identifica sua causa.
+
+Os resultados consolidados estão em `RESULTADOS-V2.md` e
+`artifacts/v2/summary.json`. Os artefatos brutos e checkpoints da V2 são locais
+e não fazem parte do histórico versionado.
 
 ## Auditoria do que foi feito na V1
 
@@ -62,6 +83,17 @@ permitem decidir.
 | Independência biológica entre os splits | Inconclusivo | O dataset separa os arquivos, mas não fornece identificadores de planta ou sessão para auditoria por grupo. |
 | Causa do colapso contrafactual | Não feito na V1 | A V1 confirmou o comportamento, mas não coletou evidências para isolar sua causa. |
 
+## Auditoria da V2
+
+| Item metodológico | Status V2 | Evidência e limite |
+| --- | --- | --- |
+| Previsões, probabilidades, matrizes e métricas por classe | Feito | Coletados para os 30 pares em `artifacts/v2/`; os arquivos são locais. |
+| Históricos, melhores épocas e checkpoints | Feito | Coletados para os 30 pares; checkpoints não são versionados. |
+| Grad-CAM nos dois ramos e nos 30 pares | Feito | 60 diagnósticos e 180 painéis em `artifacts/v2/gradcam/`. |
+| Intervalo de confiança da diferença pareada | Feito | IC 95% `[0.7619, 0.7788]` no resumo da V2. |
+| Auditoria do colapso contrafactual | Feito | Todos os 30 pares colapsaram para uma classe; a causa continua inconclusiva. |
+| Independência estatística entre os testes | Limite preservado | As 30 repetições reutilizam o mesmo split de teste de 128 imagens. |
+
 ## O que não deve ser inferido
 
 O colapso para uma única classe é um resultado observado, não um diagnóstico da
@@ -72,13 +104,21 @@ específica.
 Também não se deve afirmar que os outros 29 ramos contrafactuais previram a
 mesma classe, porque somente o `seed 1001` foi auditado diretamente.
 
+Essa última restrição era necessária para a V1. Na V2, as previsões dos 30 pares
+foram coletadas e permitem afirmar que todos os ramos contrafactuais previram
+uma única classe, embora a classe tenha variado entre seeds.
+
+A V2 também não permite afirmar que ImageNet sempre supera qualquer
+inicialização aleatória, que o resultado vale para outros splits ou que o
+Grad-CAM demonstra causalidade.
+
 ## Limite da revisão
 
-Esta auditoria documenta o estado da V1 e não corrige retroativamente os
-resultados. A coleta de previsões, a investigação da causa do colapso e o
-Grad-CAM adicional pertencem a uma futura V2. O intervalo de confiança pode ser
-calculado a partir das diferenças já versionadas, sem novo treinamento, mas não
-foi incluído nesta V1.
+Esta auditoria preserva o estado histórico da V1 e registra a V2 como uma
+reexecução instrumentada. A V2 coletou previsões, investigou a extensão do
+colapso, calculou o intervalo de confiança e gerou Grad-CAM para todos os pares.
+Ela não isolou experimentalmente a causa do colapso nem transformou o split de
+teste em 30 amostras independentes.
 
 ## Pergunta científica
 
@@ -121,8 +161,9 @@ preserva justificativas e requisitos que não foram necessariamente coletados.
 ## Protocolo de referência e limites
 
 Esta seção preserva os detalhes técnicos que sustentaram o desenho. Ela não
-substitui a auditoria da V1 e não significa que cada artefato recomendado foi
-coletado na campanha já concluída.
+substitui as auditorias da V1 e da V2. As tabelas anteriores distinguem o que
+foi coletado em cada versão; esta seção preserva a justificativa e os requisitos
+do desenho, inclusive os que continuam sendo apenas recomendações futuras.
 
 ### 1. Dados e pré-processamento
 
@@ -339,7 +380,8 @@ a camada convolucional final [[11]](#ref-11), e o exemplo oficial da Keras
 implementa essa construção com `GradientTape` e média espacial dos gradientes
 [[13]](#ref-13).
 
-O protocolo gera seis mapas, três por braço. Para cada caso, mostrar lado a lado
+Na aplicação da V1, o protocolo gera seis mapas, três por braço. Para cada caso,
+mostrar lado a lado
 a imagem original, a entrada segmentada e o mapa sobreposto à entrada segmentada,
 sempre com a mesma escala, mapa de cores e transparência. O mapa explica o que o
 modelo recebeu, não o fundo da imagem original. Destaques na borda devem ser
@@ -347,7 +389,7 @@ tratados como possível efeito da segmentação. Sem máscara de lesão, anotaç
 especialista ou métrica espacial, a análise permanece qualitativa e não sustenta
 afirmar que uma explicação é “melhor”.
 
-## Limitações aplicáveis à V1 e a campanhas futuras
+## Limitações após a V2
 
 - **Teste pequeno:** existem somente 128 imagens no split de teste oficial
   [[1]](#ref-1); publicar incerteza e resultados por classe, evitando conclusões
@@ -376,10 +418,20 @@ afirmar que uma explicação é “melhor”.
 - **Grad-CAM:** sem referência espacial, sua leitura é qualitativa e não mede
   fidelidade clínica ou agronômica das regiões destacadas [[11]](#ref-11).
 
+## O que a V2 já acrescentou
+
+A V2 cumpriu as principais ações que estavam fora da entrega V1: coletou
+previsões, probabilidades, métricas por classe, matrizes de confusão, históricos,
+checkpoints, intervalo de confiança e Grad-CAM para todos os pares. Esses itens
+não são pendências para iniciar a V2; eles fazem parte do estado concluído da
+auditoria. O que permanece abaixo é uma lista de melhorias para uma campanha
+futura e independente.
+
 ## Checklist para uma futura campanha
 
-Os itens abaixo não são pendências para iniciar a V2 automaticamente. Eles são
-requisitos a revisar somente quando uma nova campanha for autorizada.
+Os itens abaixo não são pendências da V2. São requisitos a revisar somente quando
+uma nova campanha for autorizada, especialmente se ela mudar o dataset, os
+splits, a arquitetura ou a pergunta científica.
 
 - Fixar dataset `beans:0.1.0`, hashes/versões e contagens por classe.
 - Ajustar o HSV em 30 imagens do treino, registrar a rubrica, congelar os

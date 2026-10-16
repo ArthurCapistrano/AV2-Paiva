@@ -221,6 +221,8 @@ __marimo__/
 
 # Generated experiment inputs
 /artifacts/segmented/
+/artifacts/v2/
+/reports/v2/
 
 # Generated epoch-pilot images
 /experiments/epoch-pilot/segmented-train-validation-real-*/

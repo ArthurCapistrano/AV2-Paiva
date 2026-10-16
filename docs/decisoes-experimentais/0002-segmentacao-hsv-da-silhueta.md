@@ -3,7 +3,16 @@
 A segmentação removerá somente o fundo. Um procedimento determinístico em HSV
 localizará a folha, preencherá seu contorno externo e preservará todos os pixels
 internos, inclusive regiões amarelas e marrons que possam representar sintomas.
-GrabCut foi rejeitado para manter a implementação e a explicação simples.
+
+HSV separa matiz, saturação e valor: família da cor, intensidade da cor e
+brilho. Os limites inferior `[20, 20, 20]` e superior `[100, 255, 255]`
+selecionam pixels candidatos à folha. O exterior é substituído por
+`(127, 127, 127)`, um cinza médio neutro que não introduz um fundo preto ou
+branco forte e fica próximo de zero após a normalização da rede.
+
+GrabCut foi rejeitado porque normalmente exige uma inicialização ou máscara por
+imagem e uma segmentação iterativa. Isso acrescentaria parâmetros e decisões
+específicas por imagem, dificultando a reprodução e a explicação.
 
 ## Ajuste e rubrica
 
@@ -52,3 +61,9 @@ entrada segmentada e o mapa sobreposto à entrada segmentada.
 
 A V1 não preservou um inventário separado de versões e checksums dos artefatos.
 Essa parte do registro fica classificada como não feita na auditoria da V1.
+
+## Aplicação na V2
+
+A V2 reutilizou o mesmo procedimento de segmentação congelado da V1 nos três
+splits. A coleta adicional preservou os resultados dos modelos e os diagnósticos
+locais, mas não transformou a segmentação em uma métrica objetiva de qualidade.

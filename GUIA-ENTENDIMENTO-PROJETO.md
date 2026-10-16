@@ -28,6 +28,19 @@ Os dois ramos usam a mesma arquitetura, as mesmas imagens, os mesmos
 hiperparâmetros e as mesmas seeds. A única diferença deliberada é a
 inicialização da base da rede.
 
+### Arquitetura e pesos
+
+MobileNetV2 é a arquitetura da rede. ImageNet é um dataset usado para
+pré-treinar pesos, não outra arquitetura. Assim, a solução principal usa uma
+MobileNetV2 que começa com pesos aprendidos no ImageNet; a solução contrafactual
+usa a mesma arquitetura começando com pesos aleatórios.
+
+A MobileNetV2 foi escolhida por ser compacta, ter pesos ImageNet oficiais e uma
+inicialização aleatória equivalente, aceitar imagens `160 x 160`, permitir
+Grad-CAM e tornar viáveis os 60 treinamentos. `alpha=1.0` significa a largura
+padrão da rede: a quantidade usual de canais em suas camadas. Isso não indica
+uma taxa de aprendizado.
+
 ## 2. A ideia em uma frase
 
 O projeto prepara as imagens uma vez, treina os dois ramos para cada uma das
@@ -164,6 +177,36 @@ os outros 29 pares.
 Os mapas Grad-CAM disponíveis também se limitam ao `seed 1001`. Eles são uma
 análise qualitativa e não alteram a análise estatística dos 30 pares.
 
+## 4.2 Estado da V2
+
+A V2 reexecutou o mesmo protocolo com telemetria completa. Os 30 pares possuem
+previsoes, probabilidades, metricas por classe, matrizes de confusao,
+historicos, checkpoints locais e Grad-CAM para os tres exemplos fixos. Os
+resultados e limites de interpretacao estao em `RESULTADOS-V2.md`.
+
+Na V2, o ramo contrafactual previu uma unica classe em todos os 30 seeds. A
+classe constante foi `angular_leaf_spot` em 14 seeds e `bean_rust` em 16. Esse
+resultado confirma o colapso sob o protocolo fixado, mas nao isola sua causa.
+
+O Grad-CAM da V2 usa os três exemplos fixos da V1 para os 30 pares, nos dois
+ramos. Foram produzidos 60 diagnósticos e 180 painéis. A leitura continua
+qualitativa e não demonstra causalidade.
+
+### O que entrou na V2
+
+Em relação à V1, a V2 acrescentou:
+
+- previsões e probabilidades por imagem;
+- métricas por classe e matrizes de confusão;
+- histórico de treinamento e melhor época;
+- checkpoints locais para retomada e auditoria;
+- intervalo de confiança da diferença pareada de F1;
+- Grad-CAM para todos os 30 pares;
+- scripts de execução destacável, status e análise.
+
+Esses acréscimos melhoram a observabilidade do mesmo experimento. Eles não
+mudaram a pergunta, a arquitetura, os dados ou as condições de treinamento.
+
 ## 5. Como executar
 
 Instale o ambiente:
@@ -223,7 +266,13 @@ Identifica qual versão do dataset Beans deve ser usada.
 ```
 
 Define os limites usados para criar uma máscara da folha no espaço de cores
-HSV. Pixels dentro dos limites são candidatos a pertencer à folha.
+HSV. HSV separa matiz, saturação e valor: família da cor, intensidade da cor e
+brilho. Pixels dentro dos limites são candidatos a pertencer à folha.
+
+`lower=[20,20,20]` é o limite inferior de matiz, saturação e valor; `upper` é o
+limite superior. Os valores foram ajustados em uma amostra do treino para
+localizar a folha e foram congelados antes de processar validação e teste. Eles
+não são uma seleção feita olhando os resultados dos modelos.
 
 ### `segmentation.morphology`
 
@@ -243,7 +292,22 @@ Controla a limpeza da máscara:
 
 Depois disso, o código seleciona o maior componente, preenche seu contorno
 externo, mantém os pixels internos e troca apenas o exterior pelo fundo
-`(127, 127, 127)`. A imagem final é redimensionada para `160 x 160`.
+`(127, 127, 127)`. Esse cinza médio evita introduzir um fundo preto ou branco
+com uma característica forte e fica próximo de zero após a normalização da
+MobileNetV2. A imagem final é redimensionada para `160 x 160`.
+
+As imagens de validação e teste também passam por essa transformação. Isso é
+esperado: o modelo precisa receber entradas no mesmo formato em todos os
+splits. Não há leakage dos parâmetros de pré-processamento porque os limites e
+as operações foram definidos usando somente imagens do treino, congelados e
+então aplicados sem reajuste aos outros splits. Isso não prova, por si só, que
+não existam imagens relacionadas entre os splits; essa independência biológica
+não foi auditada pelo dataset.
+
+GrabCut não foi usado porque normalmente exige uma inicialização por imagem,
+como um retângulo ou uma máscara aproximada, e uma segmentação iterativa. Isso
+traria mais parâmetros e decisões específicas por imagem, dificultando a
+reprodução e a explicação. A segmentação HSV é mais simples e determinística.
 
 ### `training`
 
@@ -261,21 +325,31 @@ externo, mantém os pixels internos e troca apenas o exterior pelo fundo
 }
 ```
 
-- `epochs`: número de épocas de cada treinamento;
-- `batch_size`: quantidade de imagens processadas em cada lote;
-- `learning_rate`: tamanho dos passos de atualização dos pesos;
-- `l2`: regularização da camada classificadora;
-- `dropout`: proporção de ativações desligadas na cabeça classificadora;
-- `horizontal_flip`: permite espelhamento horizontal;
-- `brightness_delta`: controla a variação de brilho.
+| Parâmetro | O que faz | Por que foi usado |
+| --- | --- | --- |
+| `epochs=100` | Número de épocas de cada treinamento. | Orçamento comum definido pelo piloto; a solução principal estabilizou até a época 100 e a contrafactual antes disso. |
+| `batch_size=32` | Número de imagens processadas em cada lote. | Compromisso operacional entre memória, custo e estabilidade dos lotes; igual nos dois ramos. |
+| `learning_rate=0.0001` | Tamanho dos passos de atualização dos pesos. | Taxa pequena e fixa para atualizar a rede inteira sem favorecer um ramo. |
+| `l2=0.0001` | Penaliza pesos muito grandes na cabeça classificadora. | Ajuda a reduzir sobreajuste em um dataset pequeno. |
+| `dropout=0.2` | Desliga uma parte das ativações da cabeça durante o treino. | Reduz dependência excessiva de características específicas e funciona como regularização. |
+| `horizontal_flip=true` | Permite espelhamento horizontal das imagens de treino. | Aumenta a variedade sem alterar a classe esperada da folha. |
+| `brightness_delta=0.05` | Permite variação de brilho de até aproximadamente 5%. | Simula pequenas diferenças de iluminação sem modificar a estrutura da folha. |
 
-Os mesmos valores são usados pelos dois ramos.
+Os mesmos valores são usados pelos dois ramos. O piloto definiu o orçamento de
+épocas; os demais valores são escolhas fixas do protocolo, e não ajustes
+independentes feitos para favorecer uma das soluções. Os aumentos são aplicados
+somente às imagens de treino; validação e teste permanecem sem aumento.
 
 ### `seeds`
 
 A lista contém exatamente 30 seeds. Cada seed identifica um par experimental e
 é usada para controlar componentes como ordem dos dados, aumentos, dropout e
-inicialização da cabeça classificadora.
+inicialização da cabeça classificadora. No código, a seed do par é transformada
+em seeds determinísticas separadas para `base`, `head`, `data`, `augmentation` e
+`dropout`. Os dois ramos compartilham as seeds dos componentes comuns; somente
+o ramo contrafactual usa a seed da base para criar pesos aleatórios. Isso mantém
+as condições do par comparáveis sem transformar a seed em um novo conjunto de
+teste.
 
 ## 7. Mapa dos arquivos
 
@@ -287,17 +361,21 @@ inicialização da cabeça classificadora.
 | `src/experimento_feijao/cli.py` | Interface de linha de comando e coordenação. |
 | `src/experimento_feijao/preparation.py` | Carregamento e segmentação das imagens. |
 | `src/experimento_feijao/experiment.py` | Construção, treinamento e avaliação dos modelos. |
+| `src/experimento_feijao/v2.py` | Treinamento instrumentado, retomada, Grad-CAM e análise da V2. |
 | `src/experimento_feijao/analysis.py` | Consolidação e análise estatística. |
 | `src/experimento_feijao/__init__.py` | Identificação do pacote Python. |
 | `tests/` | Verificações da CLI e do fluxo principal. |
 | `docs/decisoes-experimentais/GLOSSARIO.md` | Vocabulário oficial do domínio. |
 | `docs/decisoes-experimentais/0001-isolar-inicializacao-dos-pesos.md` | Decisão sobre os dois ramos. |
 | `docs/decisoes-experimentais/0002-segmentacao-hsv-da-silhueta.md` | Decisão sobre a segmentação. |
+| `docs/decisoes-experimentais/0003-protocolo-grad-cam.md` | Protocolo e aplicação do Grad-CAM na V1 e na V2. |
 | `reports/epoch-pilot.json` | Registro histórico usado para fixar o orçamento de épocas. |
 | `GUIA-ARTIGO.md` | Roteiro de leitura e uso dos resultados pelos autores. |
 | `RESULTADOS-EXPERIMENTO.md` | Resultados agregados e limites de interpretação. |
 | `LIMITACAO-COLAPSO-CONTRAFACTUAL.md` | Auditoria do colapso contrafactual no seed 1001. |
 | `reports/gradcam/seed-1001/` | Seis painéis Grad-CAM e diagnóstico do seed 1001. |
+| `RESULTADOS-V2.md` | Resultados instrumentados, Grad-CAM e interpretação final da V2. |
+| `scripts/v2-run.sh`, `scripts/v2-status.sh`, `scripts/v2-approve-full.sh` | Execução destacável, aprovação e acompanhamento da V2. |
 
 ## 8. Funções por módulo
 
@@ -375,12 +453,15 @@ Uma pessoa nova pode revisar o projeto nesta ordem:
 
 1. Ler este guia e entender a pergunta experimental.
 2. Conferir os valores do `protocol.json`.
-3. Ler as decisões 0001 e 0002 para entender a inicialização e a segmentação.
+3. Ler as decisões 0001, 0002 e 0003 para entender a inicialização, a
+   segmentação e o Grad-CAM.
 4. Ler `preparation.py` e acompanhar como uma imagem vira uma entrada segmentada.
 5. Ler `_build_model` e `_run_branch` em `experiment.py`.
 6. Ler `run_experiment` e `_experiment` para entender a repetição das 30 seeds.
 7. Ler `analysis.py` para conferir como os resultados são comparados.
-8. Executar `make help` e `make analyze` para consultar a entrega sem treinar.
+8. Ler `v2.py` e os comandos `v2-*` para entender a auditoria instrumentada.
+9. Executar `make help` e `make analyze` para consultar a V1 sem treinar.
+10. Consultar `RESULTADOS-V2.md` para interpretar a V2 sem treinar.
 
 Durante a revisão, as perguntas mais importantes são:
 
@@ -391,17 +472,17 @@ Durante a revisão, as perguntas mais importantes são:
 - O teste estatístico usa diferenças pareadas?
 - O código continua simples o suficiente para ser explicado?
 
-## 10. O que não faz parte do fluxo
+## 10. O que não faz parte do fluxo V1
 
-Os itens abaixo foram retirados do fluxo principal para evitar complexidade que
-não ajuda a responder à pergunta do trabalho:
+Os itens abaixo foram retirados do fluxo principal `make all` da V1 para evitar
+complexidade que não ajuda a responder à pergunta do trabalho:
 
 - execução pública de apenas um par;
 - Grad-CAM não faz parte do fluxo principal `make all`; a V1 possui uma análise
   qualitativa separada em `reports/gradcam/seed-1001/`;
 - inventário de GPU, CUDA e sistema operacional;
 - manifests de auditoria adicionais;
-- persistência de históricos, probabilidades e checkpoints;
+- persistência de históricos, probabilidades e checkpoints na campanha V1;
 - piloto automático de épocas;
 - retries e execução concorrente;
 - busca de hiperparâmetros;
@@ -409,3 +490,9 @@ não ajuda a responder à pergunta do trabalho:
 
 Essas ausências são intencionais. O projeto prioriza uma comparação funcional,
 reproduzível e explicável no ambiente controlado da disciplina.
+
+A V2 manteve o fluxo principal separado, mas criou uma campanha complementar
+com históricos, probabilidades, checkpoints, métricas por classe, matrizes de
+confusão e Grad-CAM para auditoria. Ela é consultada pelos comandos `v2-*` e
+pelos artefatos locais em `artifacts/v2/`; não substitui o fluxo V1 nem deve ser
+confundida com uma nova pergunta experimental.

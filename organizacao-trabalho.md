@@ -77,18 +77,40 @@ ImageNet versus aleatória**, e não como fine-tuning canônico em duas fases.
 
 ## 5. Justificativa da MobileNetV2
 
+A MobileNetV2 é a arquitetura da rede de classificação. ImageNet não é uma
+arquitetura: é um dataset grande usado para pré-treinar pesos. Portanto,
+“MobileNetV2 com pesos ImageNet” significa a mesma arquitetura começando com
+pesos aprendidos anteriormente no ImageNet. A comparação também usa a mesma
+MobileNetV2 com pesos aleatórios.
+
 A MobileNetV2 foi escolhida porque:
 
 - possui pesos ImageNet oficiais e opção equivalente de inicialização aleatória;
-- aceita entrada RGB 160 x 160;
-- possui aproximadamente 3,5 milhões de parâmetros;
-- tem custo compatível com 60 treinamentos;
+- é uma CNN compacta, com aproximadamente 3,5 milhões de parâmetros;
+- tem custo compatível com 60 treinamentos em um dataset pequeno;
+- aceita entrada RGB 160 x 160, adequada ao pré-processamento definido;
 - permite Grad-CAM sobre sua última camada convolucional.
 
-Essa é uma escolha pragmática para o experimento, não uma alegação de que a
-MobileNetV2 é a melhor arquitetura possível para o Beans.
+Na configuração usada, `alpha=1.0` mantém a largura padrão da MobileNetV2, ou
+seja, a quantidade usual de canais das camadas. Valores menores deixariam a
+rede mais estreita e barata; valores maiores a deixariam mais larga e custosa.
+
+Essa é uma escolha pragmática para responder à pergunta com uma arquitetura
+leve, reprodutível e compatível com as técnicas do trabalho. Não é uma alegação
+de que a MobileNetV2 é a melhor arquitetura possível para o Beans.
 
 ## 6. Segmentação de silhueta
+
+HSV significa matiz, saturação e valor. Em vez de comparar diretamente os três
+valores RGB, esse espaço separa a família da cor, a intensidade da cor e o
+brilho. Isso facilita procurar a região colorida da folha e tratar o fundo com
+uma regra simples.
+
+Na configuração registrada, `lower=[20,20,20]` e `upper=[100,255,255]` são os
+limites inferior e superior dos três componentes HSV. Pixels dentro desses
+limites são candidatos a pertencer à folha. Os limites foram escolhidos na
+amostra de ajuste do treino para localizar a folha sem depender de uma correção
+manual por imagem.
 
 A segmentação HSV removeu apenas o fundo. O verde foi usado para localizar a
 folha, mas a máscara final preencheu o contorno externo, preservando regiões
@@ -106,10 +128,17 @@ morfológicas, maior componente, preenchimento do contorno, fundo RGB
 splits foram processados uma única vez, e os dois ramos consumiram os mesmos
 artefatos. A V1 não preservou um inventário separado de versões e checksums.
 
-GrabCut não foi usado, para preservar simplicidade, determinismo e facilidade de
-explicação. Falhas remanescentes do HSV foram tratadas como limitação; se
-forem frequentes ou removerem sintomas, o desenho deverá ser reconsiderado antes
-dos experimentos confirmatórios.
+O fundo `(127, 127, 127)` é um cinza médio neutro. Ele evita introduzir um fundo
+preto ou branco que poderia parecer uma característica da imagem e fica próximo
+de zero depois da normalização usada pela MobileNetV2.
+
+GrabCut não foi usado porque normalmente exige uma inicialização por imagem,
+como um retângulo ou uma máscara aproximada, e executa uma segmentação
+iterativa. Isso acrescentaria parâmetros, decisões específicas por imagem e
+mais dificuldade para reproduzir e explicar o procedimento. A escolha do HSV é
+mais simples e determinística. Falhas remanescentes do HSV foram tratadas como
+limitação. Se forem frequentes ou removerem sintomas, o desenho deverá ser
+reconsiderado antes dos experimentos confirmatórios.
 
 ## 7. Metodologia experimental
 
@@ -117,7 +146,7 @@ dos experimentos confirmatórios.
 | --- | --- |
 | Linguagem | Python |
 | Framework | TensorFlow e Keras |
-| Arquitetura | MobileNetV2, `alpha=1.0`, `include_top=False` |
+| Arquitetura | MobileNetV2, `alpha=1.0` (largura padrão), `include_top=False` |
 | Entrada | Imagem segmentada RGB, 160 x 160 |
 | Saída | Três classes |
 | Repetições | 30 pares, 60 treinamentos |
@@ -127,16 +156,23 @@ dos experimentos confirmatórios.
 | Explicabilidade | Grad-CAM qualitativo |
 | Análise primária | Teste t pareado bilateral |
 
+Esses valores definem o protocolo comum da V1 e da V2. A V2 não alterou a
+arquitetura, o dataset, os splits, os hiperparâmetros, o orçamento de épocas ou
+as seeds; ela acrescentou telemetria e auditoria aos mesmos treinamentos.
+
 O piloto com treino e validação estabilizou a perda da solução principal na
 época 100 e a da contrafactual na época 15. O orçamento comum foi congelado em
 100 épocas. O resumo preserva o número escolhido, a seed, as configurações, a
 regra de estabilização e as curvas resumidas; o teste permaneceu intocado.
 
 Cada par usou os mesmos pesos iniciais da cabeça, ordem de lotes, aumentos e
-realizações de dropout. Seeds ou geradores separados para base, cabeça, dados,
-aumento e dropout evitaram que a criação da base aleatória deslocasse as
-sequências dos demais componentes. Somente o ramo contrafactual usou a seed da
-base para criar seus pesos; o principal carregou os pesos ImageNet.
+realizações de dropout. A seed do par é transformada em seeds determinísticas
+separadas para `base`, `head`, `data`, `augmentation` e `dropout`. Assim, a
+criação da base aleatória não desloca as sequências dos demais componentes.
+Somente o ramo contrafactual usou a seed da base para criar seus pesos; o
+principal carregou os pesos ImageNet. A implementação está em
+`src/experimento_feijao/experiment.py`, nas funções `_derive_seed`,
+`_build_model`, `_epoch_training_data` e `run_experiment`.
 
 ### Hipóteses
 
@@ -149,7 +185,7 @@ não foi armazenado no protocolo executado; a V1 publica o valor-p e não deve
 apresentar uma decisão confirmatória sem explicitar esse limite. Wilcoxon fica
 fora da V1.
 
-## 8. Protocolo Grad-CAM
+## 8. Protocolo Grad-CAM da V1
 
 Para a análise qualitativa, foi fixado o par `seed 1001` e selecionada uma
 imagem de teste por classe. A seleção usou a primeira entrada de cada classe na
@@ -190,7 +226,51 @@ As perguntas ficam registradas assim:
 3. Quais regiões das entradas segmentadas aparecem nos mapas Grad-CAM? Os seis
    paineis do `seed 1001` mostram essa evidência qualitativa.
 
-## 10. Entregáveis da V1
+## 10. Atualização da V2
+
+A V2 reexecutou o mesmo protocolo com telemetria adicional. Ela não introduziu
+uma nova arquitetura, dataset ou divisão dos dados.
+
+### Metodologia preservada
+
+| Elemento | V1 e V2 |
+| --- | --- |
+| Arquitetura | MobileNetV2, `alpha=1.0`, sem a cabeça ImageNet original |
+| Inicializações comparadas | Pesos ImageNet contra pesos aleatórios |
+| Dataset e splits | `beans:0.1.0`, com 1034 treino, 133 validação e 128 teste |
+| Treinamento | Fim a fim, 100 épocas, batch size 32, learning rate `0.0001` |
+| Regularização | L2 `0.0001`, dropout `0.2` e os mesmos aumentos no treino |
+| Repetições | Seeds `1001` a `1030`, formando 30 pares |
+| Métrica primária | F1 macro no mesmo split de teste |
+
+O que mudou na V2 foi a observabilidade: cada ramo passou a guardar previsões,
+probabilidades, métricas por classe, matrizes de confusão, histórico por época,
+melhor época, checkpoints locais e diagnósticos Grad-CAM. A retomada por seed e
+os scripts de status permitiram concluir a campanha sem transformar a operação
+em uma nova condição experimental.
+
+- Foram concluídos 30 pares, totalizando 60 treinamentos.
+- A solução principal teve F1 macro médio `0.9380` e acurácia média `0.9385`.
+- A solução contrafactual teve F1 macro médio `0.1676` e acurácia média `0.3359`.
+- A diferença pareada média de F1 macro foi `0.7704`, com IC 95%
+  `[0.7619, 0.7788]`.
+- O teste t pareado produziu estatística `186.4706` e valor-p
+  `3.3036e-46`.
+- Todos os 30 pares contrafactuais previram uma única classe no teste: 14
+  escolheram `angular_leaf_spot` e 16 escolheram `bean_rust`.
+- Foram coletados históricos, probabilidades, métricas por classe, matrizes de
+  confusão e checkpoints locais.
+- O Grad-CAM foi produzido para os 30 pares, com 60 diagnósticos e 180 painéis.
+
+As 30 execuções reutilizaram o mesmo split de teste de 128 imagens. Portanto,
+medem principalmente a variação estocástica do treinamento sob esse split, e
+não a variação entre 30 conjuntos de teste independentes. A causa do colapso
+contrafactual também não foi isolada experimentalmente.
+
+Os resultados detalhados da V2 estão em `RESULTADOS-V2.md`. Os artefatos brutos
+e checkpoints da V2 permanecem locais.
+
+## 11. Entregáveis da V1
 
 - código-fonte em Python com as duas soluções;
 - segmentação HSV e artefatos reproduzíveis;
@@ -202,7 +282,7 @@ As perguntas ficam registradas assim:
 O artigo IEEE e a apresentação não foram produzidos nesta etapa; esta entrega
 fornece a base documental para que a equipe os escreva.
 
-## 11. Critérios de conclusão da V1
+## 12. Critérios de conclusão da V1
 
 - As duas soluções aplicam pelo menos três técnicas?
 - A inicialização da base é a única variável experimental deliberada?
@@ -212,7 +292,7 @@ fornece a base documental para que a equipe os escreva.
 - O F1 macro e o teste t pareado foram calculados conforme o protocolo? Sim.
 - O Grad-CAM foi apresentado e interpretado somente como análise qualitativa? Sim.
 
-## 12. Decisões e validação detalhada
+## 13. Decisões e validação detalhada
 
 As justificativas das escolhas estão em
 [`docs/decisoes-experimentais/`](docs/decisoes-experimentais/README.md). O

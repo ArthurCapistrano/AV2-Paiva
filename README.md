@@ -20,6 +20,8 @@ Para iniciar o trabalho do artigo, consulte o
 [resultados do experimento](RESULTADOS-EXPERIMENTO.md) e a
 [limitacao do ramo contrafactual](LIMITACAO-COLAPSO-CONTRAFACTUAL.md).
 O checklist da entrega esta em [ENTREGA-V1.md](ENTREGA-V1.md).
+A especificacao da campanha V2 esta em [V2-SPEC.md](V2-SPEC.md).
+Os resultados finais da V2 estao em [RESULTADOS-V2.md](RESULTADOS-V2.md).
 
 ## Fluxo principal
 
