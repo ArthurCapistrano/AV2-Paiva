@@ -283,9 +283,11 @@ MobileNetV2. A imagem final é redimensionada para `160 x 160`.
 
 As imagens de validação e teste também passam por essa transformação. Isso é
 esperado: o modelo precisa receber entradas no mesmo formato em todos os
-splits. Não há data leakage porque os limites e as operações foram definidos
-usando somente imagens do treino, congelados e então aplicados sem reajuste aos
-outros splits.
+splits. Não há leakage dos parâmetros de pré-processamento porque os limites e
+as operações foram definidos usando somente imagens do treino, congelados e
+então aplicados sem reajuste aos outros splits. Isso não prova, por si só, que
+não existam imagens relacionadas entre os splits; essa independência biológica
+não foi auditada pelo dataset.
 
 GrabCut não foi usado porque normalmente exige uma inicialização por imagem,
 como um retângulo ou uma máscara aproximada, e uma segmentação iterativa. Isso
@@ -429,12 +431,15 @@ Uma pessoa nova pode revisar o projeto nesta ordem:
 
 1. Ler este guia e entender a pergunta experimental.
 2. Conferir os valores do `protocol.json`.
-3. Ler as decisões 0001 e 0002 para entender a inicialização e a segmentação.
+3. Ler as decisões 0001, 0002 e 0003 para entender a inicialização, a
+   segmentação e o Grad-CAM.
 4. Ler `preparation.py` e acompanhar como uma imagem vira uma entrada segmentada.
 5. Ler `_build_model` e `_run_branch` em `experiment.py`.
 6. Ler `run_experiment` e `_experiment` para entender a repetição das 30 seeds.
 7. Ler `analysis.py` para conferir como os resultados são comparados.
-8. Executar `make help` e `make analyze` para consultar a entrega sem treinar.
+8. Ler `v2.py` e os comandos `v2-*` para entender a auditoria instrumentada.
+9. Executar `make help` e `make analyze` para consultar a V1 sem treinar.
+10. Consultar `RESULTADOS-V2.md` para interpretar a V2 sem treinar.
 
 Durante a revisão, as perguntas mais importantes são:
 

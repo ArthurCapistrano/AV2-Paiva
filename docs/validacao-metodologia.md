@@ -379,7 +379,8 @@ a camada convolucional final [[11]](#ref-11), e o exemplo oficial da Keras
 implementa essa construção com `GradientTape` e média espacial dos gradientes
 [[13]](#ref-13).
 
-O protocolo gera seis mapas, três por braço. Para cada caso, mostrar lado a lado
+Na aplicação da V1, o protocolo gera seis mapas, três por braço. Para cada caso,
+mostrar lado a lado
 a imagem original, a entrada segmentada e o mapa sobreposto à entrada segmentada,
 sempre com a mesma escala, mapa de cores e transparência. O mapa explica o que o
 modelo recebeu, não o fundo da imagem original. Destaques na borda devem ser
