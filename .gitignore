@@ -219,16 +219,18 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Generated experiment inputs
-/artifacts/segmented/
-/artifacts/v2/
+# Generated experiment inputs and large model artifacts
+/artifacts/v1/segmented/
+/artifacts/v2/checkpoints/
 /reports/v2/
+/scripts/
 
 # Generated epoch-pilot images
 /experiments/epoch-pilot/segmented-train-validation-real-*/
 
 # AI instructions and suggestions
 /.docs/
-/docs/
+/docs/CODING-GUIDELINES.md
+/docs/agents/
 /AGENTS.md
 /.scratch/

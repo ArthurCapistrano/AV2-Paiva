@@ -1,0 +1,23 @@
+{
+  "branch": "solucao_principal",
+  "examples": {
+    "angular_leaf_spot": {
+      "identity": "test-0042",
+      "path": "artifacts/v2/gradcam/pair-1015/solucao_principal/angular_leaf_spot.png",
+      "predicted_class": "angular_leaf_spot"
+    },
+    "bean_rust": {
+      "identity": "test-0085",
+      "path": "artifacts/v2/gradcam/pair-1015/solucao_principal/bean_rust.png",
+      "predicted_class": "bean_rust"
+    },
+    "healthy": {
+      "identity": "test-0000",
+      "path": "artifacts/v2/gradcam/pair-1015/solucao_principal/healthy.png",
+      "predicted_class": "healthy"
+    }
+  },
+  "schema_version": 1,
+  "seed": 1015,
+  "target": "predicted_class"
+}

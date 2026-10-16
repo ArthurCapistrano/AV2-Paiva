@@ -13,15 +13,35 @@ make help
 ```
 
 Para entender o projeto sem conhecimento previo, consulte o
-[Guia de entendimento do projeto](GUIA-ENTENDIMENTO-PROJETO.md).
+[Guia de entendimento do projeto](docs/GUIA-ENTENDIMENTO-PROJETO.md).
 
 Para iniciar o trabalho do artigo, consulte o
-[guia para o artigo](GUIA-ARTIGO.md), os
-[resultados do experimento](RESULTADOS-EXPERIMENTO.md) e a
-[limitacao do ramo contrafactual](LIMITACAO-COLAPSO-CONTRAFACTUAL.md).
-O checklist da entrega esta em [ENTREGA-V1.md](ENTREGA-V1.md).
-A especificacao da campanha V2 esta em [V2-SPEC.md](V2-SPEC.md).
-Os resultados finais da V2 estao em [RESULTADOS-V2.md](RESULTADOS-V2.md).
+[guia para o artigo](docs/GUIA-ARTIGO.md) e os documentos do
+[historico V1](docs/HISTORICO-V1/).
+
+## Documentação
+
+### Projeto e metodologia
+
+- [Guia de entendimento](docs/GUIA-ENTENDIMENTO-PROJETO.md)
+- [Guia para o artigo](docs/GUIA-ARTIGO.md)
+- [Organização do trabalho](docs/ORGANIZACAO-TRABALHO.md)
+- [Validação da metodologia](docs/VALIDACAO-METODOLOGIA.md)
+- [Decisões experimentais](docs/decisoes-experimentais/INDICE.md)
+- [Glossário](docs/decisoes-experimentais/GLOSSARIO.md)
+
+### V2 atual
+
+- [Especificação da V2](docs/V2-SPEC.md)
+- [Resultados V2](docs/RESULTADOS-V2.md)
+- [Índice de evidências](docs/INDICE-EVIDENCIAS.md)
+
+### Histórico V1
+
+- [Entrega V1](docs/HISTORICO-V1/ENTREGA-V1.md)
+- [Resultados V1](docs/HISTORICO-V1/RESULTADOS-EXPERIMENTO.md)
+- [Limitação contrafactual](docs/HISTORICO-V1/LIMITACAO-COLAPSO-CONTRAFACTUAL.md)
+- [Relatório Grad-CAM V1](docs/RELATORIO-GRADCAM-V1-SEED-1001.md)
 
 ## Fluxo principal
 
@@ -96,9 +116,9 @@ contrafactual.
 Carrega o dataset, aplica a segmentacao de silhueta e salva as entradas em:
 
 ```text
-artifacts/segmented/images/train/
-artifacts/segmented/images/validation/
-artifacts/segmented/images/test/
+artifacts/v1/segmented/images/train/
+artifacts/v1/segmented/images/validation/
+artifacts/v1/segmented/images/test/
 ```
 
 Os dois modelos usam essa mesma colecao de imagens.
@@ -111,7 +131,7 @@ Para cada uma das 30 seeds, a aplicacao treina:
 - a solucao contrafactual, com pesos aleatorios.
 
 Os dois modelos usam a mesma arquitetura, dados e configuracao. Cada resultado
-e salvo em `artifacts/results/pair-SEED/result.json`.
+e salvo em `artifacts/v1/results/pair-SEED/result.json`.
 
 ### `make analyze`
 
@@ -123,7 +143,7 @@ Le os 30 resultados e calcula:
 - teste t pareado bilateral sobre F1 macro;
 - valor-p.
 
-O resumo tambem e salvo em `artifacts/summary.json`.
+O resumo tambem e salvo em `artifacts/v1/summary.json`.
 
 ## Dataset local
 
@@ -135,14 +155,14 @@ controlado, o comando Python tambem aceita um manifesto local:
 uv run experimento-feijao prepare \
   --config protocol.json \
   --dataset-manifest caminho/do/manifesto.json \
-  --output artifacts/segmented
+  --output artifacts/v1/segmented
 ```
 
 ## Resultados publicados
 
 Os 30 pares experimentais ja foram executados e seus resultados estao
-versionados em `artifacts/results/`. O resumo estatistico esta em
-`artifacts/summary.json`.
+versionados em `artifacts/v1/results/`. O resumo estatistico esta em
+`artifacts/v1/summary.json`.
 
 Para consultar os resultados sem treinar novamente:
 

@@ -1,0 +1,8 @@
+{
+  "branches": {
+    "solucao_contrafactual": "artifacts/v2/results/pair-1010/solucao_contrafactual/result.json",
+    "solucao_principal": "artifacts/v2/results/pair-1010/solucao_principal/result.json"
+  },
+  "schema_version": 1,
+  "seed": 1010
+}

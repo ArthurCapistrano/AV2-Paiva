@@ -1,8 +1,8 @@
 PYTHON := uv run
 CONFIG := protocol.json
-SEGMENTED := artifacts/segmented
-RESULTS := artifacts/results
-SUMMARY := artifacts/summary.json
+SEGMENTED := artifacts/v1/segmented
+RESULTS := artifacts/v1/results
+SUMMARY := artifacts/v1/summary.json
 
 .PHONY: help prepare experiment analyze all
 
