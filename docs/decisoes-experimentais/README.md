@@ -14,9 +14,13 @@ registros numerados para os motivos e consequências de cada escolha.
 
 As decisões estão aceitas e foram aplicadas na V1. O piloto de épocas congelou
 o orçamento comum em 100 épocas; sua evidência está em
-`reports/epoch-pilot.json`. Os resultados agregados estão em
+`reports/epoch-pilot.json`. Os resultados agregados da V1 estão em
 `artifacts/summary.json`. O diagnóstico e os seis mapas do `seed 1001` estão em
 `reports/gradcam/seed-1001/`.
+
+A V2 reexecutou o mesmo desenho com telemetria adicional. Seus resultados estão
+em `RESULTADOS-V2.md` e o resumo local está em `artifacts/v2/summary.json`. O
+Grad-CAM da V2 cobre os 30 pares, mas os painéis e checkpoints permanecem locais.
 
 Os registros numerados preservam a justificativa anterior à execução. Quando
 uma decisão tem resultado observado, ele é acrescentado ao final do registro

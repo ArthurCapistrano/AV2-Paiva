@@ -10,6 +10,23 @@ Braço experimental cuja base MobileNetV2 começa com conhecimento transferido d
 ImageNet.
 _Evitar_: modelo melhor, modelo vencedor
 
+**MobileNetV2**:
+Arquitetura compacta de rede neural usada para classificar as folhas. Foi
+escolhida por combinar pesos ImageNet oficiais, inicialização aleatória
+equivalente, baixo custo e compatibilidade com Grad-CAM.
+
+**ImageNet**:
+Dataset usado para pré-treinar os pesos da solução principal. Não é o nome da
+arquitetura.
+
+**Alpha**:
+Multiplicador da largura da MobileNetV2, que controla a quantidade de canais
+das camadas. `alpha=1.0` mantém a largura padrão.
+
+**Cabeça classificadora**:
+Camada ou conjunto final de camadas que transforma as características extraídas
+pela base em probabilidades para as três classes do Beans.
+
 **Solução contrafactual**:
 Braço experimental cuja base MobileNetV2 começa sem conhecimento transferido e
 serve de comparação para a solução principal.
@@ -36,9 +53,14 @@ ImageNet.
 _Evitar_: fine-tuning, modelo congelado
 
 **Seed experimental**:
-Identificador de um par de treinamentos. Nesta V1, as seeds válidas são `1001` a
-`1030`.
+Identificador de um par de treinamentos. As seeds válidas são `1001` a `1030`.
+Cada seed é transformada em valores determinísticos para controlar ordem dos
+dados, aumentos, dropout, cabeça e, no ramo contrafactual, a base aleatória.
 _Evitar_: tratar a seed como um novo conjunto de teste
+
+**HSV**:
+Espaço de cores que separa matiz, saturação e valor, facilitando localizar a
+folha por limites globais de cor e brilho.
 
 **Colapso contrafactual**:
 Comportamento observado quando a solução contrafactual passa a prever uma única
@@ -50,5 +72,5 @@ previsões individuais
 **Grad-CAM**:
 Mapa qualitativo das regiões da entrada segmentada associadas à classe predita,
 calculado a partir da última camada convolucional. Na V1, os mapas existem
-somente para o `seed 1001`.
+somente para o `seed 1001`; na V2, foram gerados para os 30 pares.
 _Evitar_: tratar o mapa como prova de causalidade ou como métrica de desempenho

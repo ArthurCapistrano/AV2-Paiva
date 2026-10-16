@@ -36,3 +36,12 @@ A decisão foi aplicada aos 30 pares. Os dois ramos foram treinados fim a fim
 desde a primeira época, variando somente a inicialização da base. Os resultados
 agregados estão em `artifacts/summary.json` e são interpretados em
 `RESULTADOS-EXPERIMENTO.md`.
+
+## Implementação
+
+O código deriva uma seed determinística para cada componente do treinamento a
+partir da seed do par. `_derive_seed` e `run_experiment` ficam em
+`src/experimento_feijao/experiment.py`. A base contrafactual usa a seed `base`
+para criar pesos aleatórios; a cabeça, os dados, os aumentos e o dropout usam
+seeds próprias compartilhadas pelos dois ramos. Isso evita que a criação da
+base aleatória altere as sequências dos componentes comuns.

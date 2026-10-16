@@ -28,6 +28,19 @@ Os dois ramos usam a mesma arquitetura, as mesmas imagens, os mesmos
 hiperparâmetros e as mesmas seeds. A única diferença deliberada é a
 inicialização da base da rede.
 
+### Arquitetura e pesos
+
+MobileNetV2 é a arquitetura da rede. ImageNet é um dataset usado para
+pré-treinar pesos, não outra arquitetura. Assim, a solução principal usa uma
+MobileNetV2 que começa com pesos aprendidos no ImageNet; a solução contrafactual
+usa a mesma arquitetura começando com pesos aleatórios.
+
+A MobileNetV2 foi escolhida por ser compacta, ter pesos ImageNet oficiais e uma
+inicialização aleatória equivalente, aceitar imagens `160 x 160`, permitir
+Grad-CAM e tornar viáveis os 60 treinamentos. `alpha=1.0` significa a largura
+padrão da rede: a quantidade usual de canais em suas camadas. Isso não indica
+uma taxa de aprendizado.
+
 ## 2. A ideia em uma frase
 
 O projeto prepara as imagens uma vez, treina os dois ramos para cada uma das
@@ -175,6 +188,10 @@ Na V2, o ramo contrafactual previu uma unica classe em todos os 30 seeds. A
 classe constante foi `angular_leaf_spot` em 14 seeds e `bean_rust` em 16. Esse
 resultado confirma o colapso sob o protocolo fixado, mas nao isola sua causa.
 
+O Grad-CAM da V2 usa os três exemplos fixos da V1 para os 30 pares, nos dois
+ramos. Foram produzidos 60 diagnósticos e 180 painéis. A leitura continua
+qualitativa e não demonstra causalidade.
+
 ## 5. Como executar
 
 Instale o ambiente:
@@ -234,7 +251,13 @@ Identifica qual versão do dataset Beans deve ser usada.
 ```
 
 Define os limites usados para criar uma máscara da folha no espaço de cores
-HSV. Pixels dentro dos limites são candidatos a pertencer à folha.
+HSV. HSV separa matiz, saturação e valor: família da cor, intensidade da cor e
+brilho. Pixels dentro dos limites são candidatos a pertencer à folha.
+
+`lower=[20,20,20]` é o limite inferior de matiz, saturação e valor; `upper` é o
+limite superior. Os valores foram ajustados em uma amostra do treino para
+localizar a folha e foram congelados antes de processar validação e teste. Eles
+não são uma seleção feita olhando os resultados dos modelos.
 
 ### `segmentation.morphology`
 
@@ -254,7 +277,20 @@ Controla a limpeza da máscara:
 
 Depois disso, o código seleciona o maior componente, preenche seu contorno
 externo, mantém os pixels internos e troca apenas o exterior pelo fundo
-`(127, 127, 127)`. A imagem final é redimensionada para `160 x 160`.
+`(127, 127, 127)`. Esse cinza médio evita introduzir um fundo preto ou branco
+com uma característica forte e fica próximo de zero após a normalização da
+MobileNetV2. A imagem final é redimensionada para `160 x 160`.
+
+As imagens de validação e teste também passam por essa transformação. Isso é
+esperado: o modelo precisa receber entradas no mesmo formato em todos os
+splits. Não há data leakage porque os limites e as operações foram definidos
+usando somente imagens do treino, congelados e então aplicados sem reajuste aos
+outros splits.
+
+GrabCut não foi usado porque normalmente exige uma inicialização por imagem,
+como um retângulo ou uma máscara aproximada, e uma segmentação iterativa. Isso
+traria mais parâmetros e decisões específicas por imagem, dificultando a
+reprodução e a explicação. A segmentação HSV é mais simples e determinística.
 
 ### `training`
 
@@ -286,7 +322,12 @@ Os mesmos valores são usados pelos dois ramos.
 
 A lista contém exatamente 30 seeds. Cada seed identifica um par experimental e
 é usada para controlar componentes como ordem dos dados, aumentos, dropout e
-inicialização da cabeça classificadora.
+inicialização da cabeça classificadora. No código, a seed do par é transformada
+em seeds determinísticas separadas para `base`, `head`, `data`, `augmentation` e
+`dropout`. Os dois ramos compartilham as seeds dos componentes comuns; somente
+o ramo contrafactual usa a seed da base para criar pesos aleatórios. Isso mantém
+as condições do par comparáveis sem transformar a seed em um novo conjunto de
+teste.
 
 ## 7. Mapa dos arquivos
 
@@ -304,6 +345,7 @@ inicialização da cabeça classificadora.
 | `docs/decisoes-experimentais/GLOSSARIO.md` | Vocabulário oficial do domínio. |
 | `docs/decisoes-experimentais/0001-isolar-inicializacao-dos-pesos.md` | Decisão sobre os dois ramos. |
 | `docs/decisoes-experimentais/0002-segmentacao-hsv-da-silhueta.md` | Decisão sobre a segmentação. |
+| `docs/decisoes-experimentais/0003-protocolo-grad-cam.md` | Protocolo e aplicação do Grad-CAM na V1 e na V2. |
 | `reports/epoch-pilot.json` | Registro histórico usado para fixar o orçamento de épocas. |
 | `GUIA-ARTIGO.md` | Roteiro de leitura e uso dos resultados pelos autores. |
 | `RESULTADOS-EXPERIMENTO.md` | Resultados agregados e limites de interpretação. |
@@ -403,17 +445,17 @@ Durante a revisão, as perguntas mais importantes são:
 - O teste estatístico usa diferenças pareadas?
 - O código continua simples o suficiente para ser explicado?
 
-## 10. O que não faz parte do fluxo
+## 10. O que não faz parte do fluxo V1
 
-Os itens abaixo foram retirados do fluxo principal para evitar complexidade que
-não ajuda a responder à pergunta do trabalho:
+Os itens abaixo foram retirados do fluxo principal `make all` da V1 para evitar
+complexidade que não ajuda a responder à pergunta do trabalho:
 
 - execução pública de apenas um par;
 - Grad-CAM não faz parte do fluxo principal `make all`; a V1 possui uma análise
   qualitativa separada em `reports/gradcam/seed-1001/`;
 - inventário de GPU, CUDA e sistema operacional;
 - manifests de auditoria adicionais;
-- persistência de históricos, probabilidades e checkpoints;
+- persistência de históricos, probabilidades e checkpoints na campanha V1;
 - piloto automático de épocas;
 - retries e execução concorrente;
 - busca de hiperparâmetros;
@@ -421,3 +463,9 @@ não ajuda a responder à pergunta do trabalho:
 
 Essas ausências são intencionais. O projeto prioriza uma comparação funcional,
 reproduzível e explicável no ambiente controlado da disciplina.
+
+A V2 manteve o fluxo principal separado, mas criou uma campanha complementar
+com históricos, probabilidades, checkpoints, métricas por classe, matrizes de
+confusão e Grad-CAM para auditoria. Ela é consultada pelos comandos `v2-*` e
+pelos artefatos locais em `artifacts/v2/`; não substitui o fluxo V1 nem deve ser
+confundida com uma nova pergunta experimental.

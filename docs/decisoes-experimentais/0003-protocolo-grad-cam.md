@@ -15,9 +15,9 @@ métrica previamente definida.
 - Mostrar, para cada caso, a imagem original, a entrada segmentada e o mapa
   sobreposto à entrada segmentada.
 
-O protocolo produzirá seis mapas, três por braço. Destaques sobre a borda da
-folha serão interpretados como possível dependência da segmentação, e não como
-evidência automática de atenção a sintomas.
+Na V1, o protocolo produziu seis mapas, três por braço. Destaques sobre a borda
+da folha serão interpretados como possível dependência da segmentação, e não
+como evidência automática de atenção a sintomas.
 
 ## Aplicação na V1
 
@@ -29,3 +29,13 @@ aleatório previsto no protocolo original. Os seis painéis estão em
 métricas está em `reports/gradcam/seed-1001/diagnostic.json`.
 
 Esta aplicação não representa os outros 29 pares.
+
+## Aplicação na V2
+
+A V2 reutilizou os três exemplos fixos da V1, identificados como `test-0042`,
+`test-0085` e `test-0000`, nos 30 pares e nos dois ramos. Foram produzidos 60
+arquivos `diagnostic.json` e 180 painéis PNG em `artifacts/v2/gradcam/`.
+
+Os diagnósticos registram a classe predita e as identidades usadas. A expansão
+para todos os pares aumenta a cobertura da auditoria, mas não transforma o
+Grad-CAM em métrica de desempenho nem em explicação causal.
