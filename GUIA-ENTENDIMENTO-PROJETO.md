@@ -164,6 +164,17 @@ os outros 29 pares.
 Os mapas Grad-CAM disponíveis também se limitam ao `seed 1001`. Eles são uma
 análise qualitativa e não alteram a análise estatística dos 30 pares.
 
+## 4.2 Estado da V2
+
+A V2 reexecutou o mesmo protocolo com telemetria completa. Os 30 pares possuem
+previsoes, probabilidades, metricas por classe, matrizes de confusao,
+historicos, checkpoints locais e Grad-CAM para os tres exemplos fixos. Os
+resultados e limites de interpretacao estao em `RESULTADOS-V2.md`.
+
+Na V2, o ramo contrafactual previu uma unica classe em todos os 30 seeds. A
+classe constante foi `angular_leaf_spot` em 14 seeds e `bean_rust` em 16. Esse
+resultado confirma o colapso sob o protocolo fixado, mas nao isola sua causa.
+
 ## 5. Como executar
 
 Instale o ambiente:
@@ -298,6 +309,7 @@ inicialização da cabeça classificadora.
 | `RESULTADOS-EXPERIMENTO.md` | Resultados agregados e limites de interpretação. |
 | `LIMITACAO-COLAPSO-CONTRAFACTUAL.md` | Auditoria do colapso contrafactual no seed 1001. |
 | `reports/gradcam/seed-1001/` | Seis painéis Grad-CAM e diagnóstico do seed 1001. |
+| `RESULTADOS-V2.md` | Resultados instrumentados, Grad-CAM e interpretação final da V2. |
 
 ## 8. Funções por módulo
 

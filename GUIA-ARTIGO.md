@@ -11,19 +11,22 @@ precisam de trabalho.
 3. `GUIA-ENTENDIMENTO-PROJETO.md`: pergunta, desenho e vocabulário.
 4. `RESULTADOS-EXPERIMENTO.md`: resultados agregados dos 30 pares.
 5. `LIMITACAO-COLAPSO-CONTRAFACTUAL.md`: auditoria do ramo aleatorio.
-6. `docs/validacao-metodologia.md`: auditoria do que foi e não foi executado.
-7. `reports/epoch-pilot.json`: evidencia do orçamento de 100 epocas.
-8. `reports/gradcam/seed-1001/README.md`: análise qualitativa de Grad-CAM.
+6. `RESULTADOS-V2.md`: resultados instrumentados, Grad-CAM e interpretacao final.
+7. `docs/validacao-metodologia.md`: auditoria do que foi e não foi executado.
+8. `reports/epoch-pilot.json`: evidencia do orçamento de 100 epocas.
+9. `reports/gradcam/seed-1001/README.md`: análise qualitativa de Grad-CAM da V1.
 
 ## Estado da entrega
 
 - `main` e o snapshot estavel para consulta e para o artigo.
 - `develop` e a branch para novas auditorias e melhorias.
-- Os 30 pares e as 60 execucoes foram concluidos.
-- O sumario estatistico esta em `artifacts/summary.json`.
-- Os resultados individuais estao em `artifacts/results/`.
-- O Grad-CAM foi produzido somente para o par `seed 1001`.
-- A limitacao do colapso da solucao contrafactual esta documentada.
+- A V1 continua congelada em `artifacts/results/` e `artifacts/summary.json`.
+- A V2 concluiu os 30 pares e as 60 execucoes instrumentadas.
+- O resumo da V2 esta em `artifacts/v2/summary.json`.
+- Os resultados e checkpoints da V2 estao em `artifacts/v2/` localmente.
+- O Grad-CAM da V2 foi produzido para os 30 pares; os mapas nao sao
+  versionados.
+- A interpretacao consolidada esta em `RESULTADOS-V2.md`.
 
 ## Como consultar sem refazer os treinamentos
 
@@ -32,8 +35,16 @@ uv sync --locked
 make analyze
 ```
 
-O `make analyze` usa os 30 `result.json` versionados. Nao e necessario
-baixar o dataset para consultar os resultados.
+O `make analyze` usa os 30 `result.json` versionados da V1. Nao e necessario
+baixar o dataset para consultar esses resultados.
+
+Para consultar a analise final da V2 sem treinar novamente:
+
+```bash
+uv run experimento-feijao v2-analyze \
+  --results artifacts/v2 \
+  --output artifacts/v2/summary.json
+```
 
 Para reproduzir as entradas segmentadas localmente:
 
@@ -69,16 +80,18 @@ melhor arquitetura para o Beans.
   canonico de fine-tuning em duas fases.
 - O teste t e pareado por seed.
 - As 30 execucoes reutilizam o mesmo split de teste de 128 imagens.
-- A solucao contrafactual apresentou colapso para uma classe no diagnóstico do
-  `seed 1001` e metricas agregadas identicas nos 30 pares.
-- O Grad-CAM disponivel e exploratorio e limitado ao `seed 1001`.
+- A solucao contrafactual apresentou colapso para uma classe nos 30 seeds da V2;
+  a classe constante foi `angular_leaf_spot` em 14 seeds e `bean_rust` em 16.
+- Na V1, o Grad-CAM disponivel e exploratorio e limitado ao `seed 1001`.
+
+O Grad-CAM da V2 amplia a evidencia visual para todos os pares, mas continua
+sendo uma analise qualitativa e nao uma explicacao causal.
 
 ## Trabalho posterior em `develop`
 
-- Repetir o diagnóstico de previsoes para todas as seeds, se necessario.
-- Armazenar matrizes de confusao e metricas por classe em uma nova campanha.
-- Avaliar intervalos de confianca e graficos das diferencas pareadas.
+- Avaliar se o artigo precisa de tabelas ou figuras derivadas dos artefatos V2.
 - Decidir se uma nova campanha com outro protocolo e cientificamente desejada.
+- Simplificar a infraestrutura V2 depois de confirmar quais controles foram uteis.
 
 Esses trabalhos nao devem alterar silenciosamente os resultados da campanha
 atual.

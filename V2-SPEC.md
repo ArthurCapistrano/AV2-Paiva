@@ -61,6 +61,17 @@ contrafactual. A V2 nao altera o protocolo de treinamento na primeira rodada.
 - Preferir uma execução menor e compreensível a uma infraestrutura genérica
   para cenários que ainda não foram observados.
 
+## Estado final
+
+- Os 30 pares, dos seeds `1001` a `1030`, foram concluídos.
+- Todos os resultados possuem telemetria, previsões, probabilidades e
+  checkpoints locais.
+- O Grad-CAM foi concluído para os 30 pares, com três imagens por ramo.
+- A análise estatística foi consolidada em `artifacts/v2/summary.json`.
+- A interpretação final está em `RESULTADOS-V2.md`.
+- A V1 permanece congelada em `artifacts/results/` e `artifacts/summary.json`.
+- Os artefatos brutos da V2 permanecem locais e não devem ser versionados.
+
 ## Formato local
 
 ```text
@@ -104,3 +115,7 @@ scripts/v2-run.sh analyze
 O processo retorna imediatamente ao terminal. Fechar o terminal não encerra o
 processo destacável, mas o computador deve permanecer ligado e fora de
 suspensão.
+
+Os comandos acima foram executados com sucesso. Os achados e a interpretacao
+final estao registrados em `RESULTADOS-V2.md`; os commits documentais nao
+incluem os artefatos locais da V2.
