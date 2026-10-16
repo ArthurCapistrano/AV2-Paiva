@@ -156,6 +156,10 @@ reconsiderado antes dos experimentos confirmatórios.
 | Explicabilidade | Grad-CAM qualitativo |
 | Análise primária | Teste t pareado bilateral |
 
+Esses valores definem o protocolo comum da V1 e da V2. A V2 não alterou a
+arquitetura, o dataset, os splits, os hiperparâmetros, o orçamento de épocas ou
+as seeds; ela acrescentou telemetria e auditoria aos mesmos treinamentos.
+
 O piloto com treino e validação estabilizou a perda da solução principal na
 época 100 e a da contrafactual na época 15. O orçamento comum foi congelado em
 100 épocas. O resumo preserva o número escolhido, a seed, as configurações, a
@@ -226,6 +230,24 @@ As perguntas ficam registradas assim:
 
 A V2 reexecutou o mesmo protocolo com telemetria adicional. Ela não introduziu
 uma nova arquitetura, dataset ou divisão dos dados.
+
+### Metodologia preservada
+
+| Elemento | V1 e V2 |
+| --- | --- |
+| Arquitetura | MobileNetV2, `alpha=1.0`, sem a cabeça ImageNet original |
+| Inicializações comparadas | Pesos ImageNet contra pesos aleatórios |
+| Dataset e splits | `beans:0.1.0`, com 1034 treino, 133 validação e 128 teste |
+| Treinamento | Fim a fim, 100 épocas, batch size 32, learning rate `0.0001` |
+| Regularização | L2 `0.0001`, dropout `0.2` e os mesmos aumentos no treino |
+| Repetições | Seeds `1001` a `1030`, formando 30 pares |
+| Métrica primária | F1 macro no mesmo split de teste |
+
+O que mudou na V2 foi a observabilidade: cada ramo passou a guardar previsões,
+probabilidades, métricas por classe, matrizes de confusão, histórico por época,
+melhor época, checkpoints locais e diagnósticos Grad-CAM. A retomada por seed e
+os scripts de status permitiram concluir a campanha sem transformar a operação
+em uma nova condição experimental.
 
 - Foram concluídos 30 pares, totalizando 60 treinamentos.
 - A solução principal teve F1 macro médio `0.9380` e acurácia média `0.9385`.

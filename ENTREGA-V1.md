@@ -65,3 +65,10 @@ imagem original, a entrada segmentada e o Grad-CAM sobreposto.
 
 A coleta de previsões, métricas por classe, matrizes dos demais seeds e Grad-CAM
 adicional pertence à V2 e não faz parte desta entrega.
+
+## Atualização V2
+
+Esta entrega continua sendo o registro histórico da V1. A auditoria V2 foi
+concluída separadamente e está documentada em
+[`RESULTADOS-V2.md`](RESULTADOS-V2.md), com os artefatos brutos mantidos
+localmente em `artifacts/v2/`.

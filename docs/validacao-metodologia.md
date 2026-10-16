@@ -161,8 +161,9 @@ preserva justificativas e requisitos que não foram necessariamente coletados.
 ## Protocolo de referência e limites
 
 Esta seção preserva os detalhes técnicos que sustentaram o desenho. Ela não
-substitui a auditoria da V1 e não significa que cada artefato recomendado foi
-coletado na campanha já concluída.
+substitui as auditorias da V1 e da V2. As tabelas anteriores distinguem o que
+foi coletado em cada versão; esta seção preserva a justificativa e os requisitos
+do desenho, inclusive os que continuam sendo apenas recomendações futuras.
 
 ### 1. Dados e pré-processamento
 
@@ -388,7 +389,7 @@ tratados como possível efeito da segmentação. Sem máscara de lesão, anotaç
 especialista ou métrica espacial, a análise permanece qualitativa e não sustenta
 afirmar que uma explicação é “melhor”.
 
-## Limitações aplicáveis à V1 e a campanhas futuras
+## Limitações após a V2
 
 - **Teste pequeno:** existem somente 128 imagens no split de teste oficial
   [[1]](#ref-1); publicar incerteza e resultados por classe, evitando conclusões
@@ -417,10 +418,20 @@ afirmar que uma explicação é “melhor”.
 - **Grad-CAM:** sem referência espacial, sua leitura é qualitativa e não mede
   fidelidade clínica ou agronômica das regiões destacadas [[11]](#ref-11).
 
+## O que a V2 já acrescentou
+
+A V2 cumpriu as principais ações que estavam fora da entrega V1: coletou
+previsões, probabilidades, métricas por classe, matrizes de confusão, históricos,
+checkpoints, intervalo de confiança e Grad-CAM para todos os pares. Esses itens
+não são pendências para iniciar a V2; eles fazem parte do estado concluído da
+auditoria. O que permanece abaixo é uma lista de melhorias para uma campanha
+futura e independente.
+
 ## Checklist para uma futura campanha
 
-Os itens abaixo não são pendências para iniciar a V2 automaticamente. Eles são
-requisitos a revisar somente quando uma nova campanha for autorizada.
+Os itens abaixo não são pendências da V2. São requisitos a revisar somente quando
+uma nova campanha for autorizada, especialmente se ela mudar o dataset, os
+splits, a arquitetura ou a pergunta científica.
 
 - Fixar dataset `beans:0.1.0`, hashes/versões e contagens por classe.
 - Ajustar o HSV em 30 imagens do treino, registrar a rubrica, congelar os

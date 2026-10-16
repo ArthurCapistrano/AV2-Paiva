@@ -61,3 +61,9 @@ entrada segmentada e o mapa sobreposto à entrada segmentada.
 
 A V1 não preservou um inventário separado de versões e checksums dos artefatos.
 Essa parte do registro fica classificada como não feita na auditoria da V1.
+
+## Aplicação na V2
+
+A V2 reutilizou o mesmo procedimento de segmentação congelado da V1 nos três
+splits. A coleta adicional preservou os resultados dos modelos e os diagnósticos
+locais, mas não transformou a segmentação em uma métrica objetiva de qualidade.

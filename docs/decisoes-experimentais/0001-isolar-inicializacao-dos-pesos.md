@@ -45,3 +45,10 @@ partir da seed do par. `_derive_seed` e `run_experiment` ficam em
 para criar pesos aleatórios; a cabeça, os dados, os aumentos e o dropout usam
 seeds próprias compartilhadas pelos dois ramos. Isso evita que a criação da
 base aleatória altere as sequências dos componentes comuns.
+
+## Aplicação na V2
+
+A V2 manteve esta decisão sem alterar a arquitetura, os inicializadores ou os
+componentes pareados. Os 30 pares foram reexecutados com a mesma separação entre
+a base ImageNet e a base aleatória, acrescentando apenas telemetria e artefatos
+de auditoria.

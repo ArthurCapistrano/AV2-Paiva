@@ -192,6 +192,21 @@ O Grad-CAM da V2 usa os três exemplos fixos da V1 para os 30 pares, nos dois
 ramos. Foram produzidos 60 diagnósticos e 180 painéis. A leitura continua
 qualitativa e não demonstra causalidade.
 
+### O que entrou na V2
+
+Em relação à V1, a V2 acrescentou:
+
+- previsões e probabilidades por imagem;
+- métricas por classe e matrizes de confusão;
+- histórico de treinamento e melhor época;
+- checkpoints locais para retomada e auditoria;
+- intervalo de confiança da diferença pareada de F1;
+- Grad-CAM para todos os 30 pares;
+- scripts de execução destacável, status e análise.
+
+Esses acréscimos melhoram a observabilidade do mesmo experimento. Eles não
+mudaram a pergunta, a arquitetura, os dados ou as condições de treinamento.
+
 ## 5. Como executar
 
 Instale o ambiente:
@@ -310,15 +325,20 @@ reprodução e a explicação. A segmentação HSV é mais simples e determinís
 }
 ```
 
-- `epochs`: número de épocas de cada treinamento;
-- `batch_size`: quantidade de imagens processadas em cada lote;
-- `learning_rate`: tamanho dos passos de atualização dos pesos;
-- `l2`: regularização da camada classificadora;
-- `dropout`: proporção de ativações desligadas na cabeça classificadora;
-- `horizontal_flip`: permite espelhamento horizontal;
-- `brightness_delta`: controla a variação de brilho.
+| Parâmetro | O que faz | Por que foi usado |
+| --- | --- | --- |
+| `epochs=100` | Número de épocas de cada treinamento. | Orçamento comum definido pelo piloto; a solução principal estabilizou até a época 100 e a contrafactual antes disso. |
+| `batch_size=32` | Número de imagens processadas em cada lote. | Compromisso operacional entre memória, custo e estabilidade dos lotes; igual nos dois ramos. |
+| `learning_rate=0.0001` | Tamanho dos passos de atualização dos pesos. | Taxa pequena e fixa para atualizar a rede inteira sem favorecer um ramo. |
+| `l2=0.0001` | Penaliza pesos muito grandes na cabeça classificadora. | Ajuda a reduzir sobreajuste em um dataset pequeno. |
+| `dropout=0.2` | Desliga uma parte das ativações da cabeça durante o treino. | Reduz dependência excessiva de características específicas e funciona como regularização. |
+| `horizontal_flip=true` | Permite espelhamento horizontal das imagens de treino. | Aumenta a variedade sem alterar a classe esperada da folha. |
+| `brightness_delta=0.05` | Permite variação de brilho de até aproximadamente 5%. | Simula pequenas diferenças de iluminação sem modificar a estrutura da folha. |
 
-Os mesmos valores são usados pelos dois ramos.
+Os mesmos valores são usados pelos dois ramos. O piloto definiu o orçamento de
+épocas; os demais valores são escolhas fixas do protocolo, e não ajustes
+independentes feitos para favorecer uma das soluções. Os aumentos são aplicados
+somente às imagens de treino; validação e teste permanecem sem aumento.
 
 ### `seeds`
 
@@ -341,6 +361,7 @@ teste.
 | `src/experimento_feijao/cli.py` | Interface de linha de comando e coordenação. |
 | `src/experimento_feijao/preparation.py` | Carregamento e segmentação das imagens. |
 | `src/experimento_feijao/experiment.py` | Construção, treinamento e avaliação dos modelos. |
+| `src/experimento_feijao/v2.py` | Treinamento instrumentado, retomada, Grad-CAM e análise da V2. |
 | `src/experimento_feijao/analysis.py` | Consolidação e análise estatística. |
 | `src/experimento_feijao/__init__.py` | Identificação do pacote Python. |
 | `tests/` | Verificações da CLI e do fluxo principal. |
@@ -354,6 +375,7 @@ teste.
 | `LIMITACAO-COLAPSO-CONTRAFACTUAL.md` | Auditoria do colapso contrafactual no seed 1001. |
 | `reports/gradcam/seed-1001/` | Seis painéis Grad-CAM e diagnóstico do seed 1001. |
 | `RESULTADOS-V2.md` | Resultados instrumentados, Grad-CAM e interpretação final da V2. |
+| `scripts/v2-run.sh`, `scripts/v2-status.sh`, `scripts/v2-approve-full.sh` | Execução destacável, aprovação e acompanhamento da V2. |
 
 ## 8. Funções por módulo
 

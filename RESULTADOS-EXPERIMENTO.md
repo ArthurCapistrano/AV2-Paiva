@@ -69,3 +69,10 @@ das metricas de cada ramo.
 
 O comportamento anomalo da solucao contrafactual esta detalhado em
 `LIMITACAO-COLAPSO-CONTRAFACTUAL.md`.
+
+## Atualização V2
+
+Este arquivo preserva somente os resultados e limites da V1. A V2 reexecutou o
+mesmo protocolo com previsões, probabilidades, métricas por classe, matrizes de
+confusão, históricos, checkpoints e Grad-CAM para todos os pares. O resumo e a
+interpretação atualizados estão em [`RESULTADOS-V2.md`](RESULTADOS-V2.md).
