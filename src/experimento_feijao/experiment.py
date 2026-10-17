@@ -16,7 +16,6 @@ from sklearn.metrics import accuracy_score, f1_score  # type: ignore[import-unty
 
 from experimento_feijao.preparation import (
     BEANS_CLASSES,
-    DATASET_VERSION,
     SEEDS,
     SPLITS,
 )
@@ -31,12 +30,15 @@ COMPONENTS = ("base", "head", "data", "augmentation", "dropout")
 
 @dataclass(frozen=True)
 class SegmentedRecord:
+    """Representa uma entrada segmentada e seu rótulo numérico."""
+
     identity: str
     label: int
     path: Path
 
 
 def _derive_seed(pair_seed: int, component: str) -> int:
+    """Deriva uma seed estável para um componente do par experimental."""
     digest = hashlib.sha256(f"{pair_seed}:{component}".encode()).digest()
     return int.from_bytes(digest[:4], "big") & 0x7FFFFFFF
 
@@ -47,10 +49,10 @@ def _read_configuration(path: Path) -> dict[str, Any]:
     Args:
         path: Arquivo JSON da configuração fixa.
     Returns:
-        Configuração de treinamento validada para todos os pares.
+        Parâmetros de treinamento usados por todos os pares.
 
     Raises:
-        ValueError: Se faltarem dados essenciais ou a seed não for válida.
+        ValueError: Se o arquivo não puder ser lido ou não for um objeto JSON.
     """
     try:
         configuration = json.loads(path.read_text(encoding="utf-8"))
@@ -59,34 +61,36 @@ def _read_configuration(path: Path) -> dict[str, Any]:
     if not isinstance(configuration, dict):
         raise ValueError("a configuração deve ser um objeto")
 
-    dataset = configuration.get("dataset")
+    return _validate_training_configuration(configuration)
+
+
+def _validate_training_configuration(
+    configuration: dict[str, Any],
+) -> dict[str, Any]:
+    """Confirma as seções mínimas usadas pelo treinamento.
+
+    A validação verifica somente a estrutura necessária para executar o fluxo.
+    Valores e tipos detalhados continuam sendo definidos pelo protocolo fixo.
+    """
     training = configuration.get("training")
-    seeds = configuration.get("seeds")
-    if not isinstance(dataset, dict) or dataset.get("version") != DATASET_VERSION:
-        raise ValueError(f"a versão do dataset deve ser {DATASET_VERSION}")
     if not isinstance(training, dict):
         raise ValueError("a configuração de treinamento é obrigatória")
-    required_training = (
-        "epochs",
-        "batch_size",
-        "learning_rate",
-        "l2",
-        "dropout",
-        "augmentation",
-    )
-    missing_training = [
-        name for name in required_training if name not in training
-    ]
-    if missing_training:
-        missing = ", ".join(missing_training)
-        raise ValueError(f"os campos de treinamento são obrigatórios: {missing}")
-    augmentation = training["augmentation"]
-    if not isinstance(augmentation, dict) or not {
-        "horizontal_flip",
-        "brightness_delta",
-    }.issubset(augmentation):
-        raise ValueError("os campos de aumento do treinamento são obrigatórios")
-    if seeds != list(SEEDS):
+
+    augmentation = training.get("augmentation")
+    if not isinstance(augmentation, dict):
+        raise ValueError("a configuração de aumento é obrigatória")
+    try:
+        training["epochs"]
+        training["batch_size"]
+        training["learning_rate"]
+        training["l2"]
+        training["dropout"]
+        augmentation["horizontal_flip"]
+        augmentation["brightness_delta"]
+    except KeyError as error:
+        raise ValueError("a configuração de treinamento está incompleta") from error
+
+    if configuration.get("seeds") != list(SEEDS):
         raise ValueError("a configuração deve conter as 30 seeds fixas")
     return training
 
@@ -105,6 +109,7 @@ def _load_segmented_inputs(root: Path) -> dict[str, list[SegmentedRecord]]:
 
 
 def _images(records: list[SegmentedRecord]) -> NDArray[np.uint8]:
+    """Carrega registros segmentados como imagens RGB em memória."""
     images: list[NDArray[np.uint8]] = []
     for record in records:
         image = cv2.imread(str(record.path), cv2.IMREAD_COLOR)
@@ -168,7 +173,7 @@ def _augment_image(
     horizontal_flip: bool,
     brightness_delta: float,
 ) -> NDArray[np.float32]:
-    """Aplica os aumentos determinísticos a uma única imagem."""
+    """Aplica espelhamento e brilho determinísticos a uma única imagem."""
     local_seed = _derive_seed(augmentation_seed, f"{record.identity}:{epoch}")
     generator = np.random.default_rng(local_seed)
     augmented = image.astype(np.float32)
@@ -348,6 +353,33 @@ def _run_branch(
         keras.backend.clear_session()
 
 
+def _run_pair(
+    pair_seed: int,
+    training: dict[str, Any],
+    records: dict[str, list[SegmentedRecord]],
+) -> dict[Branch, dict[str, float]]:
+    """Executa os dois ramos usando as seeds derivadas do par."""
+    seeds = {
+        component: _derive_seed(pair_seed, component) for component in COMPONENTS
+    }
+    return {
+        branch: _run_branch(branch, seeds, training, records) for branch in BRANCHES
+    }
+
+
+def _write_pair_result(
+    pair_output: Path,
+    pair_seed: int,
+    results: dict[Branch, dict[str, float]],
+) -> None:
+    """Grava as métricas de um par sem alterar resultados anteriores."""
+    pair_output.mkdir(parents=True)
+    (pair_output / "result.json").write_text(
+        json.dumps({"seed": pair_seed, **results}, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
 def run_experiment(
     configuration_path: Path,
     segmented_root: Path,
@@ -377,19 +409,5 @@ def run_experiment(
         if pair_output.exists():
             raise ValueError(f"a saída já existe: {pair_output}")
 
-        # Os dois ramos recebem as mesmas seeds derivadas para tornar o par comparável.
-        seeds = {
-            component: _derive_seed(pair_seed, component) for component in COMPONENTS
-        }
-        results = {
-            branch: _run_branch(branch, seeds, training, records)
-            for branch in BRANCHES
-        }
-        pair_output.mkdir(parents=True)
-        (pair_output / "result.json").write_text(
-            json.dumps(
-                {"seed": pair_seed, **results}, indent=2, sort_keys=True
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+        results = _run_pair(pair_seed, training, records)
+        _write_pair_result(pair_output, pair_seed, results)

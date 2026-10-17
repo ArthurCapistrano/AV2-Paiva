@@ -90,6 +90,14 @@ def _analyze(args: argparse.Namespace) -> int:
         print(f"Não foi possível analisar os resultados: {error}", file=sys.stderr)
         return 2
 
+    _print_metric_summaries(summary)
+    _print_pairwise_differences(summary)
+    _print_paired_test(summary)
+    return 0
+
+
+def _print_metric_summaries(summary: dict[str, Any]) -> None:
+    """Apresenta média e desvio-padrão de cada métrica consolidada."""
     print(f"{summary['pair_count']} pares experimentais")
     print("F1 macro")
     for arm, values in summary["metrics"]["macro_f1"].items():
@@ -97,6 +105,10 @@ def _analyze(args: argparse.Namespace) -> int:
     print("Acurácia")
     for arm, values in summary["metrics"]["accuracy"].items():
         print(f"  {arm}: média={values['mean']:.4f}, desvio-padrão={values['std']:.4f}")
+
+
+def _print_pairwise_differences(summary: dict[str, Any]) -> None:
+    """Apresenta as médias das diferenças pareadas de F1 e acurácia."""
     print("Diferenças pareadas de F1 macro")
     differences = summary["differences"]["macro_f1"]
     print(
@@ -109,12 +121,15 @@ def _analyze(args: argparse.Namespace) -> int:
         f"  média={sum(accuracy_differences) / len(accuracy_differences):.4f}, "
         f"quantidade={len(accuracy_differences)}"
     )
+
+
+def _print_paired_test(summary: dict[str, Any]) -> None:
+    """Apresenta a estatística e o valor-p do teste t pareado."""
     test = summary["paired_t_test"]
     print(
         "Teste t pareado: "
         f"estatística={test['statistic']:.4f}, valor-p={test['p_value']:.4g}"
     )
-    return 0
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -123,15 +138,12 @@ def _parser() -> argparse.ArgumentParser:
     Returns:
         Parser com as operações de preparação, execução e análise.
     """
-    # O parser raiz define somente o nome e a descrição da aplicação.
     parser = argparse.ArgumentParser(
         prog="experimento-feijao",
         description="Experimento simples de classificação de folhas de feijão",
     )
-    # Cada subcomando registra seus argumentos e a função que o executa.
     subparsers = parser.add_subparsers(dest="operation", required=True)
 
-    # Preparação materializa as entradas compartilhadas pelos dois ramos.
     prepare_parser = subparsers.add_parser(
         "prepare", help="prepara as entradas segmentadas compartilhadas"
     )
@@ -139,7 +151,6 @@ def _parser() -> argparse.ArgumentParser:
     prepare_parser.add_argument("--output", required=True, type=Path)
     prepare_parser.set_defaults(handler=_prepare)
 
-    # Execução treina os pares usando as entradas preparadas.
     experiment_parser = subparsers.add_parser(
         "experiment", help="executa os pares experimentais configurados"
     )
@@ -148,7 +159,6 @@ def _parser() -> argparse.ArgumentParser:
     experiment_parser.add_argument("--output", required=True, type=Path)
     experiment_parser.set_defaults(handler=_experiment)
 
-    # Análise consolida os resultados e pode gravar o resumo em JSON.
     analyze_parser = subparsers.add_parser(
         "analyze", help="analisa os resultados dos pares experimentais"
     )

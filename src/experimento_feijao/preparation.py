@@ -13,7 +13,6 @@ import cv2
 import numpy as np
 from numpy.typing import NDArray
 
-DATASET_VERSION = "beans:0.1.0"
 SPLITS = ("train", "validation", "test")
 BEANS_CLASSES = ("angular_leaf_spot", "bean_rust", "healthy")
 SEEDS = tuple(range(1001, 1031))
@@ -31,33 +30,15 @@ MIRROR_ARCHIVES = {
 
 @dataclass(frozen=True)
 class ImageRecord:
+    """Representa uma imagem Beans carregada, sua identidade e sua classe."""
+
     identity: str
     label: str
     image: NDArray[np.uint8]
 
 
-def _mapping(value: object, description: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise ValueError(f"{description} deve ser um objeto")
-    return value
-
-
-def _hsv_triplet(value: object) -> NDArray[np.uint8]:
-    if not (
-        isinstance(value, list)
-        and len(value) == 3
-        and all(
-            isinstance(channel, int)
-            and not isinstance(channel, bool)
-            and 0 <= channel <= 255
-            for channel in value
-        )
-    ):
-        raise ValueError("os limites HSV são inválidos")
-    return np.array(value, dtype=np.uint8)
-
-
 def _sha256(path: Path) -> str:
+    """Calcula o SHA-256 de um arquivo em blocos."""
     digest = hashlib.sha256()
     with path.open("rb") as source:
         for chunk in iter(lambda: source.read(1024 * 1024), b""):
@@ -66,6 +47,17 @@ def _sha256(path: Path) -> str:
 
 
 def _download_mirror_archive(split: str) -> Path:
+    """Obtém um arquivo Beans do cache ou do espelho fixado.
+
+    Args:
+        split: Divisão do dataset a ser baixada.
+
+    Returns:
+        Caminho do arquivo ZIP validado.
+
+    Raises:
+        ValueError: Se o download falhar ou o checksum não conferir.
+    """
     cache_root = Path(
         os.environ.get("XDG_CACHE_HOME", str(Path.home() / ".cache"))
     )
@@ -102,6 +94,7 @@ def _download_mirror_archive(split: str) -> Path:
 
 
 def _read_archive_records(path: Path, split: str) -> list[ImageRecord]:
+    """Lê e decodifica as imagens JPG de um arquivo ZIP do Beans."""
     records: list[ImageRecord] = []
     try:
         archive = zipfile.ZipFile(path)
@@ -146,6 +139,65 @@ def _load_beans_mirror() -> dict[str, list[ImageRecord]]:
     }
 
 
+def _validate_segmentation_configuration(
+    configuration: dict[str, Any],
+) -> dict[str, Any]:
+    """Confirma que a configuração contém a seção de segmentação."""
+    segmentation = configuration.get("segmentation")
+    if not isinstance(segmentation, dict):
+        raise ValueError("a configuração de segmentação é obrigatória")
+    return segmentation
+
+
+def _validate_segmentation_parameters(
+    segmentation: dict[str, Any],
+) -> tuple[NDArray[np.uint8], NDArray[np.uint8], int, int, int]:
+    """Valida e converte os parâmetros fixos usados pela segmentação."""
+    try:
+        hsv = segmentation["hsv"]
+        morphology = segmentation["morphology"]
+        lower_values = hsv["lower"]
+        upper_values = hsv["upper"]
+        kernel_size = morphology["kernel_size"]
+        open_iterations = morphology["open_iterations"]
+        close_iterations = morphology["close_iterations"]
+        if not all(
+            isinstance(values, list)
+            and len(values) == 3
+            and all(
+                isinstance(channel, int)
+                and not isinstance(channel, bool)
+                and 0 <= channel <= 255
+                for channel in values
+            )
+            for values in (lower_values, upper_values)
+        ):
+            raise ValueError("os limites HSV são inválidos")
+        if not (
+            isinstance(kernel_size, int)
+            and kernel_size > 0
+            and kernel_size % 2 == 1
+            and isinstance(open_iterations, int)
+            and open_iterations >= 0
+            and isinstance(close_iterations, int)
+            and close_iterations >= 0
+        ):
+            raise ValueError("os parâmetros morfológicos são inválidos")
+        lower = np.asarray(lower_values, dtype=np.uint8)
+        upper = np.asarray(upper_values, dtype=np.uint8)
+    except ValueError:
+        raise
+    except (KeyError, TypeError, OverflowError) as error:
+        raise ValueError("a configuração de segmentação está incompleta") from error
+    return (
+        lower,
+        upper,
+        cast(int, kernel_size),
+        cast(int, open_iterations),
+        cast(int, close_iterations),
+    )
+
+
 def _write_segmented_image(image: NDArray[np.uint8], destination: Path) -> None:
     """Grava uma imagem segmentada convertendo-a de RGB para BGR."""
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -158,38 +210,27 @@ def _write_segmented_image(image: NDArray[np.uint8], destination: Path) -> None:
 def _leaf_mask(
     image: NDArray[np.uint8], segmentation: dict[str, Any]
 ) -> NDArray[np.uint8]:
-    """Cria a mascara da folha e limpa pequenos ruidos.
+    """Cria a máscara da folha e limpa pequenos ruídos.
 
-    Os parametros de HSV e morfologia sao os valores congelados do protocolo.
+    Os parâmetros de HSV e morfologia são os valores congelados do protocolo.
     """
-    hsv = _mapping(segmentation.get("hsv"), "segmentation.hsv")
-    morphology = _mapping(segmentation.get("morphology"), "segmentation.morphology")
-    lower = _hsv_triplet(hsv.get("lower"))
-    upper = _hsv_triplet(hsv.get("upper"))
-    kernel_size = morphology.get("kernel_size")
-    open_iterations = morphology.get("open_iterations")
-    close_iterations = morphology.get("close_iterations")
-    if not (
-        isinstance(kernel_size, int)
-        and kernel_size > 0
-        and kernel_size % 2 == 1
-        and isinstance(open_iterations, int)
-        and open_iterations >= 0
-        and isinstance(close_iterations, int)
-        and close_iterations >= 0
-    ):
-        raise ValueError("os parâmetros morfológicos são inválidos")
+    lower, upper, kernel_size, open_iterations, close_iterations = (
+        _validate_segmentation_parameters(segmentation)
+    )
 
-    mask = cv2.inRange(cv2.cvtColor(image, cv2.COLOR_RGB2HSV), lower, upper)
-    kernel = np.ones((kernel_size, kernel_size), dtype=np.uint8)
-    if open_iterations:
-        mask = cv2.morphologyEx(
-            mask, cv2.MORPH_OPEN, kernel, iterations=open_iterations
-        )
-    if close_iterations:
-        mask = cv2.morphologyEx(
-            mask, cv2.MORPH_CLOSE, kernel, iterations=close_iterations
-        )
+    try:
+        mask = cv2.inRange(cv2.cvtColor(image, cv2.COLOR_RGB2HSV), lower, upper)
+        kernel = np.ones((kernel_size, kernel_size), dtype=np.uint8)
+        if open_iterations:
+            mask = cv2.morphologyEx(
+                mask, cv2.MORPH_OPEN, kernel, iterations=open_iterations
+            )
+        if close_iterations:
+            mask = cv2.morphologyEx(
+                mask, cv2.MORPH_CLOSE, kernel, iterations=close_iterations
+            )
+    except (TypeError, ValueError, cv2.error) as error:
+        raise ValueError("os parâmetros de segmentação são inválidos") from error
     return cast(NDArray[np.uint8], mask)
 
 
@@ -213,7 +254,7 @@ def _compose_segmented_image(
     image: NDArray[np.uint8], silhouette: NDArray[np.uint8]
 ) -> NDArray[np.uint8]:
     """Substitui o fundo e redimensiona a entrada para a rede."""
-    # Mantem todas as cores da folha e troca somente o exterior pelo fundo neutro.
+    # Mantém todas as cores da folha e troca somente o exterior pelo fundo neutro.
     composed = np.full_like(image, BACKGROUND)
     composed[silhouette == 255] = image[silhouette == 255]
 
@@ -262,13 +303,7 @@ def prepare(
         ValueError: Se a configuração, o dataset ou a segmentação forem
             incompatíveis com o experimento.
     """
-    dataset = _mapping(configuration.get("dataset"), "a configuração do dataset")
-    if dataset.get("version") != DATASET_VERSION:
-        raise ValueError(f"a versão do dataset deve ser {DATASET_VERSION}")
-
-    segmentation = _mapping(
-        configuration.get("segmentation"), "a configuração de segmentação"
-    )
+    segmentation = _validate_segmentation_configuration(configuration)
     if output.exists():
         raise ValueError(f"a saída já existe: {output}")
 

@@ -31,24 +31,13 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
         raise ValueError("são necessários exatamente 30 resultados pareados")
 
     results: list[dict[str, Any]] = []
-    # Valida cada arquivo antes de misturar seus valores nas estatísticas.
     for path in paths:
         try:
-            result = json.loads(path.read_text(encoding="utf-8"))
+            document = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
             raise ValueError(f"não foi possível ler o resultado: {path}") from error
-        if not isinstance(result, dict):
-            raise ValueError(f"resultado inválido: {path}")
-        if not isinstance(result.get("seed"), int):
-            raise ValueError(f"a seed está ausente no resultado: {path}")
-        for branch in BRANCHES:
-            metrics = result.get(branch)
-            if not isinstance(metrics, dict) or any(
-                not isinstance(metrics.get(metric), (int, float))
-                for metric in METRICS
-            ):
-                raise ValueError(f"as métricas do resultado estão incompletas: {path}")
-        results.append(result)
+
+        results.append(_validate_result(document, path))
     # A ordem final segue as seeds fixas, não a ordem dos nomes dos arquivos.
     results = sorted(results, key=lambda result: result["seed"])
     if [result.get("seed") for result in results] != list(SEEDS):
@@ -56,16 +45,78 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
     return results
 
 
+def _validate_result(document: object, path: Path) -> dict[str, Any]:
+    """Valida o formato de um resultado antes da consolidação estatística.
+
+    Essa função é usada somente por :func:`_read_results`.
+    """
+    if not isinstance(document, dict):
+        raise ValueError(f"resultado inválido: {path}")
+    if not isinstance(document.get("seed"), int):
+        raise ValueError(f"a seed está ausente no resultado: {path}")
+    for branch in BRANCHES:
+        metrics = document.get(branch)
+        if not isinstance(metrics, dict) or any(
+            not isinstance(metrics.get(metric), (int, float)) for metric in METRICS
+        ):
+            raise ValueError(f"as métricas do resultado estão incompletas: {path}")
+    return document
+
+
 def _values(results: list[dict[str, Any]], branch: str, metric: str) -> np.ndarray:
+    """Extrai uma métrica de um ramo na ordem das seeds."""
     return np.asarray(
         [float(result[branch][metric]) for result in results], dtype=np.float64
     )
 
 
 def _summary(values: np.ndarray) -> dict[str, float]:
+    """Calcula a média e o desvio-padrão amostral de uma métrica."""
     return {
         "mean": float(np.mean(values)),
         "std": float(np.std(values, ddof=1)),
+    }
+
+
+def _paired_values(
+    results: list[dict[str, Any]], metric: str
+) -> tuple[np.ndarray, np.ndarray]:
+    """Extrai os valores principal e contrafactual de uma métrica."""
+    return (
+        _values(results, BRANCHES[0], metric),
+        _values(results, BRANCHES[1], metric),
+    )
+
+
+def _metric_summaries(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Consolida média e desvio-padrão para cada métrica e ramo."""
+    return {
+        metric: {
+            branch: _summary(_values(results, branch, metric))
+            for branch in BRANCHES
+        }
+        for metric in METRICS
+    }
+
+
+def _paired_differences(results: list[dict[str, Any]]) -> dict[str, list[float]]:
+    """Calcula as diferenças entre os ramos dentro de cada par experimental."""
+    differences: dict[str, list[float]] = {}
+    for metric in METRICS:
+        principal, counterfactual = _paired_values(results, metric)
+        differences[metric] = [
+            float(value) for value in principal - counterfactual
+        ]
+    return differences
+
+
+def _paired_f1_test(results: list[dict[str, Any]]) -> dict[str, float]:
+    """Calcula o teste t pareado bilateral do F1 macro."""
+    principal_f1, counterfactual_f1 = _paired_values(results, "macro_f1")
+    test = ttest_rel(principal_f1, counterfactual_f1)
+    return {
+        "statistic": float(test.statistic),
+        "p_value": float(test.pvalue),
     }
 
 
@@ -81,36 +132,12 @@ def analyze(results_root: Path) -> dict[str, Any]:
     Raises:
         ValueError: Se os resultados não formarem a campanha esperada.
     """
-    # Primeiro consolida as métricas de cada ramo separadamente.
     results = _read_results(results_root)
-    metrics = {
-        metric: {
-            branch: _summary(_values(results, branch, metric))
-            for branch in BRANCHES
-        }
-        for metric in METRICS
-    }
-    # Depois calcula a diferença dentro de cada par experimental.
-    differences = {
-        metric: [
-            float(value)
-            for value in _values(results, BRANCHES[0], metric)
-            - _values(results, BRANCHES[1], metric)
-        ]
-        for metric in METRICS
-    }
-    # O teste pareado usa somente o F1 macro, como definido no protocolo.
-    principal_f1 = _values(results, BRANCHES[0], "macro_f1")
-    counterfactual_f1 = _values(results, BRANCHES[1], "macro_f1")
-    test = ttest_rel(principal_f1, counterfactual_f1)
 
     return {
         "pair_count": len(results),
         "seeds": [int(result["seed"]) for result in results],
-        "metrics": metrics,
-        "differences": differences,
-        "paired_t_test": {
-            "statistic": float(test.statistic),
-            "p_value": float(test.pvalue),
-        },
+        "metrics": _metric_summaries(results),
+        "differences": _paired_differences(results),
+        "paired_t_test": _paired_f1_test(results),
     }
