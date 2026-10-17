@@ -139,21 +139,43 @@ def _epoch_training_data(
     Returns:
         Imagens aumentadas e seus rótulos na ordem do treinamento.
     """
+    # A ordem é sorteada uma vez por época e compartilhada pelos dois ramos.
     order = list(range(len(records)))
     random.Random(f"{data_seed}:{epoch}").shuffle(order)
     augmented: list[NDArray[np.float32]] = []
     labels: list[int] = []
     for index in order:
         record = records[index]
-        image = images[index].astype(np.float32)
-        local_seed = _derive_seed(augmentation_seed, f"{record.identity}:{epoch}")
-        generator = np.random.default_rng(local_seed)
-        if horizontal_flip and bool(generator.integers(0, 2)):
-            image = np.flip(image, axis=1)
-        delta = float(generator.uniform(-brightness_delta, brightness_delta)) * 255
-        augmented.append(np.clip(image + delta, 0, 255).astype(np.float32))
+        augmented.append(
+            _augment_image(
+                images[index],
+                record,
+                epoch,
+                augmentation_seed,
+                horizontal_flip,
+                brightness_delta,
+            )
+        )
         labels.append(record.label)
     return np.stack(augmented), np.asarray(labels, dtype=np.int64)
+
+
+def _augment_image(
+    image: NDArray[np.uint8],
+    record: SegmentedRecord,
+    epoch: int,
+    augmentation_seed: int,
+    horizontal_flip: bool,
+    brightness_delta: float,
+) -> NDArray[np.float32]:
+    """Aplica os aumentos determinísticos a uma única imagem."""
+    local_seed = _derive_seed(augmentation_seed, f"{record.identity}:{epoch}")
+    generator = np.random.default_rng(local_seed)
+    augmented = image.astype(np.float32)
+    if horizontal_flip and bool(generator.integers(0, 2)):
+        augmented = np.flip(augmented, axis=1)
+    delta = float(generator.uniform(-brightness_delta, brightness_delta)) * 255
+    return np.clip(augmented + delta, 0, 255).astype(np.float32)
 
 
 def _build_model(
@@ -239,6 +261,47 @@ def _validate_existing_result(path: Path, pair_seed: int) -> None:
             raise ValueError(f"o resultado existente está incompleto: {path}")
 
 
+def _fit_with_validation(
+    model: keras.Model,
+    train_records: list[SegmentedRecord],
+    train_images: NDArray[np.uint8],
+    validation_images: NDArray[np.float32],
+    validation_labels: NDArray[np.int64],
+    seeds: dict[str, int],
+    training: dict[str, Any],
+) -> None:
+    """Treina e mantém os pesos da época com menor perda de validação."""
+    augmentation = cast(dict[str, Any], training["augmentation"])
+    best_loss = float("inf")
+    best_weights = model.get_weights()
+    for epoch in range(int(training["epochs"])):
+        # Os dados são recriados por época, mas permanecem determinísticos.
+        epoch_images, epoch_labels = _epoch_training_data(
+            train_records,
+            train_images,
+            epoch,
+            seeds["data"],
+            seeds["augmentation"],
+            bool(augmentation["horizontal_flip"]),
+            float(augmentation["brightness_delta"]),
+        )
+        history = model.fit(
+            epoch_images,
+            epoch_labels,
+            batch_size=int(training["batch_size"]),
+            epochs=1,
+            shuffle=False,
+            validation_data=(validation_images, validation_labels),
+            verbose=0,
+        )
+        validation_loss = float(history.history["val_loss"][0])
+        if validation_loss < best_loss:
+            best_loss = validation_loss
+            best_weights = model.get_weights()
+
+    model.set_weights(best_weights)
+
+
 def _run_branch(
     branch: Branch,
     seeds: dict[str, int],
@@ -266,38 +329,17 @@ def _run_branch(
         validation_labels = np.asarray(
             [record.label for record in validation_records], dtype=np.int64
         )
-        augmentation = training["augmentation"]
-        if not isinstance(augmentation, dict):
-            raise ValueError("o aumento do treinamento é obrigatório")
-
-        best_loss = float("inf")
-        best_weights = model.get_weights()
-        for epoch in range(int(training["epochs"])):
-            epoch_images, epoch_labels = _epoch_training_data(
-                train_records,
-                train_images,
-                epoch,
-                seeds["data"],
-                seeds["augmentation"],
-                bool(augmentation["horizontal_flip"]),
-                float(augmentation["brightness_delta"]),
-            )
-            history = model.fit(
-                epoch_images,
-                epoch_labels,
-                batch_size=int(training["batch_size"]),
-                epochs=1,
-                shuffle=False,
-                validation_data=(validation_images, validation_labels),
-                verbose=0,
-            )
-            validation_loss = float(history.history["val_loss"][0])
-            if validation_loss < best_loss:
-                best_loss = validation_loss
-                best_weights = model.get_weights()
-
-        model.set_weights(best_weights)
+        _fit_with_validation(
+            model,
+            train_records,
+            train_images,
+            validation_images,
+            validation_labels,
+            seeds,
+            training,
+        )
         test_records = records["test"]
+        # A avaliação final usa o conjunto de teste apenas após selecionar os pesos.
         probabilities = model.predict(_images(test_records), verbose=0)
         predictions = np.argmax(probabilities, axis=1).tolist()
         return _metrics([record.label for record in test_records], predictions)
@@ -321,6 +363,7 @@ def run_experiment(
     Raises:
         ValueError: Se a configuração, as entradas ou o treinamento falharem.
     """
+    # A configuração e as entradas são carregadas antes de iniciar qualquer par.
     training = _read_configuration(configuration_path)
     records = _load_segmented_inputs(segmented_root)
     tf.config.experimental.enable_op_determinism()
@@ -334,6 +377,7 @@ def run_experiment(
         if pair_output.exists():
             raise ValueError(f"a saída já existe: {pair_output}")
 
+        # Os dois ramos recebem as mesmas seeds derivadas para tornar o par comparável.
         seeds = {
             component: _derive_seed(pair_seed, component) for component in COMPONENTS
         }

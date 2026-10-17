@@ -25,11 +25,13 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
     Raises:
         ValueError: Se a campanha não contiver exatamente as 30 seeds.
     """
+    # A análise só é válida quando a campanha inteira está presente.
     paths = sorted(results_root.glob("pair-*/result.json"))
     if len(paths) != 30:
         raise ValueError("são necessários exatamente 30 resultados pareados")
 
     results: list[dict[str, Any]] = []
+    # Valida cada arquivo antes de misturar seus valores nas estatísticas.
     for path in paths:
         try:
             result = json.loads(path.read_text(encoding="utf-8"))
@@ -47,6 +49,7 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
             ):
                 raise ValueError(f"as métricas do resultado estão incompletas: {path}")
         results.append(result)
+    # A ordem final segue as seeds fixas, não a ordem dos nomes dos arquivos.
     results = sorted(results, key=lambda result: result["seed"])
     if [result.get("seed") for result in results] != list(SEEDS):
         raise ValueError("os resultados devem conter as 30 seeds fixas uma única vez")
@@ -78,6 +81,7 @@ def analyze(results_root: Path) -> dict[str, Any]:
     Raises:
         ValueError: Se os resultados não formarem a campanha esperada.
     """
+    # Primeiro consolida as métricas de cada ramo separadamente.
     results = _read_results(results_root)
     metrics = {
         metric: {
@@ -86,6 +90,7 @@ def analyze(results_root: Path) -> dict[str, Any]:
         }
         for metric in METRICS
     }
+    # Depois calcula a diferença dentro de cada par experimental.
     differences = {
         metric: [
             float(value)
@@ -94,6 +99,7 @@ def analyze(results_root: Path) -> dict[str, Any]:
         ]
         for metric in METRICS
     }
+    # O teste pareado usa somente o F1 macro, como definido no protocolo.
     principal_f1 = _values(results, BRANCHES[0], "macro_f1")
     counterfactual_f1 = _values(results, BRANCHES[1], "macro_f1")
     test = ttest_rel(principal_f1, counterfactual_f1)

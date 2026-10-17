@@ -123,12 +123,15 @@ def _parser() -> argparse.ArgumentParser:
     Returns:
         Parser com as operações de preparação, execução e análise.
     """
+    # O parser raiz define somente o nome e a descrição da aplicação.
     parser = argparse.ArgumentParser(
         prog="experimento-feijao",
         description="Experimento simples de classificação de folhas de feijão",
     )
+    # Cada subcomando registra seus argumentos e a função que o executa.
     subparsers = parser.add_subparsers(dest="operation", required=True)
 
+    # Preparação materializa as entradas compartilhadas pelos dois ramos.
     prepare_parser = subparsers.add_parser(
         "prepare", help="prepara as entradas segmentadas compartilhadas"
     )
@@ -136,6 +139,7 @@ def _parser() -> argparse.ArgumentParser:
     prepare_parser.add_argument("--output", required=True, type=Path)
     prepare_parser.set_defaults(handler=_prepare)
 
+    # Execução treina os pares usando as entradas preparadas.
     experiment_parser = subparsers.add_parser(
         "experiment", help="executa os pares experimentais configurados"
     )
@@ -144,6 +148,7 @@ def _parser() -> argparse.ArgumentParser:
     experiment_parser.add_argument("--output", required=True, type=Path)
     experiment_parser.set_defaults(handler=_experiment)
 
+    # Análise consolida os resultados e pode gravar o resumo em JSON.
     analyze_parser = subparsers.add_parser(
         "analyze", help="analisa os resultados dos pares experimentais"
     )

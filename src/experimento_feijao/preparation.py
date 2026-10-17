@@ -73,12 +73,14 @@ def _download_mirror_archive(split: str) -> Path:
         cache_root / "experimento-feijao" / "beans" / "0.1.0" / f"{split}.zip"
     )
     expected_sha256 = MIRROR_ARCHIVES[split]
+    # O cache só é reutilizado depois de confirmar seu checksum.
     if destination.exists() and _sha256(destination) == expected_sha256:
         return destination
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     partial = destination.with_suffix(".zip.partial")
     url = f"{MIRROR_BASE_URL}/{split}.zip?download=true"
+    # O download parcial evita deixar um ZIP incompleto no cache final.
     try:
         with urllib.request.urlopen(url, timeout=60) as response, partial.open(
             "wb"
@@ -91,6 +93,7 @@ def _download_mirror_archive(split: str) -> Path:
             f"não foi possível baixar o arquivo Beans de {split}"
         ) from error
 
+    # Só publica o arquivo depois da validação do conteúdo baixado.
     if _sha256(partial) != expected_sha256:
         partial.unlink(missing_ok=True)
         raise ValueError(f"o checksum do arquivo Beans de {split} não confere")
@@ -106,12 +109,14 @@ def _read_archive_records(path: Path, split: str) -> list[ImageRecord]:
         raise ValueError(f"não foi possível ler o arquivo Beans de {split}") from error
 
     with archive:
+        # O espelho contém imagens JPG organizadas por classe.
         image_members = [
             member
             for member in archive.infolist()
             if not member.is_dir() and member.filename.lower().endswith(".jpg")
         ]
         for index, member in enumerate(image_members):
+            # Cada imagem é convertida para RGB antes da segmentação.
             label = Path(member.filename).parent.name
             if label not in BEANS_CLASSES:
                 raise ValueError(f"classe Beans inválida no arquivo de {split}")
@@ -139,6 +144,15 @@ def _load_beans_mirror() -> dict[str, list[ImageRecord]]:
         split: _read_archive_records(_download_mirror_archive(split), split)
         for split in SPLITS
     }
+
+
+def _write_segmented_image(image: NDArray[np.uint8], destination: Path) -> None:
+    """Grava uma imagem segmentada convertendo-a de RGB para BGR."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if not cv2.imwrite(
+        str(destination), cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    ):
+        raise ValueError(f"não foi possível gravar a imagem segmentada: {destination}")
 
 
 def _leaf_mask(
@@ -258,6 +272,7 @@ def prepare(
     if output.exists():
         raise ValueError(f"a saída já existe: {output}")
 
+    # Carrega o dataset uma vez e materializa cada split na saída.
     records = _load_beans_mirror()
     output.mkdir(parents=True)
     count = 0
@@ -267,12 +282,6 @@ def prepare(
             destination = (
                 output / "images" / split / record.label / f"{record.identity}.png"
             )
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            if not cv2.imwrite(
-                str(destination), cv2.cvtColor(segmented, cv2.COLOR_RGB2BGR)
-            ):
-                raise ValueError(
-                    f"não foi possível gravar a imagem segmentada: {destination}"
-                )
+            _write_segmented_image(segmented, destination)
             count += 1
     return {"count": count}
