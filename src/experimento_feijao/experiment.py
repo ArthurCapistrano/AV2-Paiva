@@ -5,7 +5,7 @@ import json
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 import cv2
 import keras  # type: ignore[import-untyped]
@@ -20,12 +20,19 @@ from experimento_feijao.preparation import (
     SPLITS,
 )
 
-Branch = Literal["solucao_principal", "solucao_contrafactual"]
-BRANCHES: tuple[Branch, Branch] = (
+BRANCHES: tuple[str, str] = (
     "solucao_principal",
     "solucao_contrafactual",
 )
-COMPONENTS = ("base", "head", "data", "augmentation", "dropout")
+
+# Cada componente recebe uma seed própria para manter os ramos comparáveis.
+COMPONENTS: tuple[str, ...] = (
+    "base",  # Inicialização da base MobileNetV2.
+    "head",  # Inicialização da cabeça classificadora.
+    "data",  # Ordem dos dados em cada época.
+    "augmentation",  # Espelhamento e variação de brilho.
+    "dropout",  # Sorteio do dropout.
+)
 
 
 @dataclass(frozen=True)
@@ -174,17 +181,23 @@ def _augment_image(
     brightness_delta: float,
 ) -> NDArray[np.float32]:
     """Aplica espelhamento e brilho determinísticos a uma única imagem."""
+    # O gerador local evita que uma imagem desloque a aleatoriedade das outras.
     local_seed = _derive_seed(augmentation_seed, f"{record.identity}:{epoch}")
     generator = np.random.default_rng(local_seed)
     augmented = image.astype(np.float32)
+
+    # O espelhamento só é sorteado quando o protocolo permite esse aumento.
     if horizontal_flip and bool(generator.integers(0, 2)):
         augmented = np.flip(augmented, axis=1)
+
+    # A variação é aplicada igualmente a todos os pixels da imagem.
     delta = float(generator.uniform(-brightness_delta, brightness_delta)) * 255
+
     return np.clip(augmented + delta, 0, 255).astype(np.float32)
 
 
 def _build_model(
-    branch: Branch,
+    branch: str,
     seeds: dict[str, int],
     training: dict[str, Any],
 ) -> keras.Model:
@@ -198,22 +211,32 @@ def _build_model(
     Returns:
         Modelo MobileNetV2 treinável e compilado.
     """
-    if branch == "solucao_contrafactual":
+    # A solução principal usa ImageNet; o outro ramo usa pesos aleatórios.
+    use_imagenet = branch == "solucao_principal"
+    if not use_imagenet:
         keras.utils.set_random_seed(seeds["base"])
+
+    # A base é comum aos ramos; apenas sua inicialização muda.
     base = keras.applications.MobileNetV2(
         input_shape=(160, 160, 3),
         alpha=1.0,
         include_top=False,
-        weights="imagenet" if branch == "solucao_principal" else None,
+        weights="imagenet" if use_imagenet else None,
     )
     base.trainable = True
+
+    # Cria a entrada e aplica a normalização esperada pela MobileNetV2.
     inputs = keras.Input(shape=(160, 160, 3), name="segmented_input")
     normalized = keras.layers.Lambda(
         keras.applications.mobilenet_v2.preprocess_input,
         name="mobilenet_v2_preprocessing",
     )(inputs)
+
+    # Extrai as características da base e reduz suas dimensões espaciais.
     features = base(normalized)
     pooled = keras.layers.GlobalAveragePooling2D()(features)
+
+    # Adiciona a cabeça classificadora comum aos dois ramos.
     dropped = keras.layers.Dropout(
         float(training["dropout"]), seed=seeds["dropout"]
     )(pooled)
@@ -224,11 +247,14 @@ def _build_model(
         bias_initializer="zeros",
         kernel_regularizer=keras.regularizers.l2(float(training["l2"])),
     )(dropped)
+
+    # Monta e compila o modelo que será treinado.
     model = keras.Model(inputs, outputs)
     model.compile(
         optimizer=keras.optimizers.Adam(float(training["learning_rate"])),
         loss=keras.losses.SparseCategoricalCrossentropy(),
     )
+
     return model
 
 
@@ -308,7 +334,7 @@ def _fit_with_validation(
 
 
 def _run_branch(
-    branch: Branch,
+    branch: str,
     seeds: dict[str, int],
     training: dict[str, Any],
     records: dict[str, list[SegmentedRecord]],
@@ -357,7 +383,7 @@ def _run_pair(
     pair_seed: int,
     training: dict[str, Any],
     records: dict[str, list[SegmentedRecord]],
-) -> dict[Branch, dict[str, float]]:
+) -> dict[str, dict[str, float]]:
     """Executa os dois ramos usando as seeds derivadas do par."""
     seeds = {
         component: _derive_seed(pair_seed, component) for component in COMPONENTS
@@ -370,7 +396,7 @@ def _run_pair(
 def _write_pair_result(
     pair_output: Path,
     pair_seed: int,
-    results: dict[Branch, dict[str, float]],
+    results: dict[str, dict[str, float]],
 ) -> None:
     """Grava as métricas de um par sem alterar resultados anteriores."""
     pair_output.mkdir(parents=True)
