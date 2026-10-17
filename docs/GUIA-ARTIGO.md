@@ -37,13 +37,9 @@ make analyze
 O `make analyze` usa os 30 `result.json` versionados da V1. Nao e necessario
 baixar o dataset para consultar esses resultados.
 
-Para consultar a analise final da V2 sem treinar novamente:
-
-```bash
-uv run experimento-feijao v2-analyze \
-  --results artifacts/v2 \
-  --output artifacts/v2/summary.json
-```
+Os resultados da V2 podem ser consultados diretamente em `RESULTADOS-V2.md` e
+nos artefatos publicados em `artifacts/v2/`. A V2 e uma campanha historica e nao
+possui mais comandos ativos na aplicacao.
 
 Para reproduzir as entradas segmentadas localmente:
 
@@ -90,7 +86,6 @@ sendo uma analise qualitativa e nao uma explicacao causal.
 
 - Avaliar se o artigo precisa de tabelas ou figuras derivadas dos artefatos V2.
 - Decidir se uma nova campanha com outro protocolo e cientificamente desejada.
-- Simplificar a infraestrutura V2 depois de confirmar quais controles foram uteis.
 
 Esses trabalhos nao devem alterar silenciosamente os resultados da campanha
 atual.

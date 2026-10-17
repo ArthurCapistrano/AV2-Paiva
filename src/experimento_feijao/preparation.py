@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import urllib.error
 import urllib.request
@@ -30,10 +29,6 @@ MIRROR_ARCHIVES = {
 }
 
 
-class PreparationError(ValueError):
-    """Erro ao preparar uma entrada do experimento."""
-
-
 @dataclass(frozen=True)
 class ImageRecord:
     identity: str
@@ -43,7 +38,7 @@ class ImageRecord:
 
 def _mapping(value: object, description: str) -> dict[str, Any]:
     if not isinstance(value, dict):
-        raise PreparationError(f"{description} must be an object")
+        raise ValueError(f"{description} deve ser um objeto")
     return value
 
 
@@ -58,73 +53,8 @@ def _hsv_triplet(value: object) -> NDArray[np.uint8]:
             for channel in value
         )
     ):
-        raise PreparationError("invalid HSV limits")
+        raise ValueError("os limites HSV são inválidos")
     return np.array(value, dtype=np.uint8)
-
-
-def _read_image(path: Path) -> NDArray[np.uint8]:
-    """Lê uma imagem do disco e converte seus canais para RGB.
-
-    Args:
-        path: Caminho da imagem original.
-
-    Returns:
-        Imagem RGB em uma matriz NumPy.
-
-    Raises:
-        PreparationError: Se a imagem não puder ser lida.
-    """
-    image_bgr = cv2.imread(str(path), cv2.IMREAD_COLOR)
-    if image_bgr is None:
-        raise PreparationError(f"could not read image: {path}")
-    return cast(NDArray[np.uint8], cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB))
-
-
-def _load_manifest(path: Path) -> dict[str, list[ImageRecord]]:
-    """Carrega as imagens de um manifesto local do dataset.
-
-    Args:
-        path: Manifesto da fixture local usada no ambiente controlado.
-
-    Returns:
-        Registros agrupados pelos três splits oficiais.
-
-    Raises:
-        PreparationError: Se o manifesto ou uma imagem forem incompatíveis.
-    """
-    try:
-        document = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise PreparationError(f"could not read dataset manifest: {error}") from error
-
-    root = _mapping(document, "dataset manifest")
-    if root.get("version") != DATASET_VERSION:
-        raise PreparationError(f"dataset version must be {DATASET_VERSION}")
-    if root.get("class_names") != list(BEANS_CLASSES):
-        raise PreparationError("dataset classes do not match beans:0.1.0")
-
-    source_splits = _mapping(root.get("splits"), "dataset splits")
-    records: dict[str, list[ImageRecord]] = {}
-    for split in SPLITS:
-        raw_records = source_splits.get(split)
-        if not isinstance(raw_records, list):
-            raise PreparationError(f"dataset split {split} must be a list")
-
-        records[split] = []
-        for raw_record in raw_records:
-            record = _mapping(raw_record, f"record in {split}")
-            identity = record.get("id")
-            label = record.get("label")
-            image_path = record.get("path")
-            if not isinstance(identity, str) or not isinstance(label, str):
-                raise PreparationError(f"invalid record in {split}")
-            if label not in BEANS_CLASSES or not isinstance(image_path, str):
-                raise PreparationError(f"invalid image record: {identity}")
-            path_value = Path(image_path)
-            if not path_value.is_absolute():
-                path_value = path.parent / path_value
-            records[split].append(ImageRecord(identity, label, _read_image(path_value)))
-    return records
 
 
 def _sha256(path: Path) -> str:
@@ -157,11 +87,13 @@ def _download_mirror_archive(split: str) -> Path:
                 target.write(chunk)
     except (OSError, urllib.error.URLError) as error:
         partial.unlink(missing_ok=True)
-        raise PreparationError(f"could not download Beans {split} archive") from error
+        raise ValueError(
+            f"não foi possível baixar o arquivo Beans de {split}"
+        ) from error
 
     if _sha256(partial) != expected_sha256:
         partial.unlink(missing_ok=True)
-        raise PreparationError(f"Beans {split} archive checksum mismatch")
+        raise ValueError(f"o checksum do arquivo Beans de {split} não confere")
     partial.replace(destination)
     return destination
 
@@ -171,7 +103,7 @@ def _read_archive_records(path: Path, split: str) -> list[ImageRecord]:
     try:
         archive = zipfile.ZipFile(path)
     except (OSError, zipfile.BadZipFile) as error:
-        raise PreparationError(f"could not read Beans {split} archive") from error
+        raise ValueError(f"não foi possível ler o arquivo Beans de {split}") from error
 
     with archive:
         image_members = [
@@ -182,12 +114,12 @@ def _read_archive_records(path: Path, split: str) -> list[ImageRecord]:
         for index, member in enumerate(image_members):
             label = Path(member.filename).parent.name
             if label not in BEANS_CLASSES:
-                raise PreparationError(f"invalid Beans class in {split} archive")
+                raise ValueError(f"classe Beans inválida no arquivo de {split}")
             encoded = np.frombuffer(archive.read(member), dtype=np.uint8)
             image_bgr = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
             if image_bgr is None:
-                raise PreparationError(
-                    f"could not decode Beans image: {member.filename}"
+                raise ValueError(
+                    f"não foi possível decodificar a imagem Beans: {member.filename}"
                 )
             records.append(
                 ImageRecord(
@@ -197,7 +129,7 @@ def _read_archive_records(path: Path, split: str) -> list[ImageRecord]:
                 )
             )
     if not records:
-        raise PreparationError(f"Beans {split} archive has no images")
+        raise ValueError(f"o arquivo Beans de {split} não contém imagens")
     return records
 
 
@@ -209,21 +141,12 @@ def _load_beans_mirror() -> dict[str, list[ImageRecord]]:
     }
 
 
-def _segment(
+def _leaf_mask(
     image: NDArray[np.uint8], segmentation: dict[str, Any]
 ) -> NDArray[np.uint8]:
-    """Remove o fundo e preserva o interior da folha na entrada segmentada.
+    """Cria a mascara da folha e limpa pequenos ruidos.
 
-    Args:
-        image: Imagem RGB original.
-        segmentation: Limites HSV e operações morfológicas congeladas.
-
-    Returns:
-        Imagem RGB redimensionada com o fundo substituído.
-
-    Raises:
-        PreparationError: Se os parâmetros forem inválidos ou nenhuma folha for
-            encontrada.
+    Os parametros de HSV e morfologia sao os valores congelados do protocolo.
     """
     hsv = _mapping(segmentation.get("hsv"), "segmentation.hsv")
     morphology = _mapping(segmentation.get("morphology"), "segmentation.morphology")
@@ -241,7 +164,7 @@ def _segment(
         and isinstance(close_iterations, int)
         and close_iterations >= 0
     ):
-        raise PreparationError("invalid morphology parameters")
+        raise ValueError("os parâmetros morfológicos são inválidos")
 
     mask = cv2.inRange(cv2.cvtColor(image, cv2.COLOR_RGB2HSV), lower, upper)
     kernel = np.ones((kernel_size, kernel_size), dtype=np.uint8)
@@ -253,10 +176,14 @@ def _segment(
         mask = cv2.morphologyEx(
             mask, cv2.MORPH_CLOSE, kernel, iterations=close_iterations
         )
+    return cast(NDArray[np.uint8], mask)
 
+
+def _largest_leaf_silhouette(mask: NDArray[np.uint8]) -> NDArray[np.uint8]:
+    """Seleciona a maior folha e preenche o contorno da sua silhueta."""
     component_count, labels, stats, _ = cv2.connectedComponentsWithStats(mask)
     if component_count <= 1:
-        raise PreparationError("no leaf component found")
+        raise ValueError("nenhum componente de folha foi encontrado")
 
     largest = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
     largest_mask = np.where(labels == largest, 255, 0).astype(np.uint8)
@@ -265,49 +192,73 @@ def _segment(
     )
     silhouette = np.zeros_like(largest_mask)
     cv2.drawContours(silhouette, [max(contours, key=cv2.contourArea)], -1, 255, -1)
+    return silhouette
 
+
+def _compose_segmented_image(
+    image: NDArray[np.uint8], silhouette: NDArray[np.uint8]
+) -> NDArray[np.uint8]:
+    """Substitui o fundo e redimensiona a entrada para a rede."""
+    # Mantem todas as cores da folha e troca somente o exterior pelo fundo neutro.
     composed = np.full_like(image, BACKGROUND)
     composed[silhouette == 255] = image[silhouette == 255]
+
+    # Padroniza o tamanho esperado pela MobileNetV2.
     return cast(
         NDArray[np.uint8],
         cv2.resize(composed, (160, 160), interpolation=cv2.INTER_NEAREST),
     )
 
 
+def _segment(
+    image: NDArray[np.uint8], segmentation: dict[str, Any]
+) -> NDArray[np.uint8]:
+    """Remove o fundo e preserva o interior da folha na entrada segmentada.
+
+    Args:
+        image: Imagem RGB original.
+        segmentation: Limites HSV e operações morfológicas congeladas.
+
+    Returns:
+        Imagem RGB redimensionada com o fundo substituído.
+
+    Raises:
+        ValueError: Se os parâmetros forem inválidos ou nenhuma folha for
+            encontrada.
+    """
+    mask = _leaf_mask(image, segmentation)
+    silhouette = _largest_leaf_silhouette(mask)
+    return _compose_segmented_image(image, silhouette)
+
+
 def prepare(
     configuration: dict[str, Any],
-    dataset_manifest: Path | None,
     output: Path,
 ) -> dict[str, int]:
     """Prepara todos os splits e devolve a quantidade de entradas produzidas.
 
     Args:
         configuration: Dataset e parâmetros fixos de segmentação.
-        dataset_manifest: Fonte local opcional para execução controlada.
         output: Diretório que receberá as imagens segmentadas.
 
     Returns:
         Quantidade de entradas materializadas.
 
     Raises:
-        PreparationError: Se a configuração, o dataset ou a segmentação forem
+        ValueError: Se a configuração, o dataset ou a segmentação forem
             incompatíveis com o experimento.
     """
-    dataset = _mapping(configuration.get("dataset"), "dataset configuration")
+    dataset = _mapping(configuration.get("dataset"), "a configuração do dataset")
     if dataset.get("version") != DATASET_VERSION:
-        raise PreparationError(f"dataset version must be {DATASET_VERSION}")
+        raise ValueError(f"a versão do dataset deve ser {DATASET_VERSION}")
 
     segmentation = _mapping(
-        configuration.get("segmentation"), "segmentation configuration"
+        configuration.get("segmentation"), "a configuração de segmentação"
     )
     if output.exists():
-        raise PreparationError(f"output already exists: {output}")
+        raise ValueError(f"a saída já existe: {output}")
 
-    records = (
-        _load_manifest(dataset_manifest)
-        if dataset_manifest
-        else _load_beans_mirror()
-    )
+    records = _load_beans_mirror()
     output.mkdir(parents=True)
     count = 0
     for split in SPLITS:
@@ -320,8 +271,8 @@ def prepare(
             if not cv2.imwrite(
                 str(destination), cv2.cvtColor(segmented, cv2.COLOR_RGB2BGR)
             ):
-                raise PreparationError(
-                    f"could not write segmented image: {destination}"
+                raise ValueError(
+                    f"não foi possível gravar a imagem segmentada: {destination}"
                 )
             count += 1
     return {"count": count}

@@ -30,12 +30,6 @@ Para iniciar o trabalho do artigo, consulte o
 - [Decisões experimentais](docs/decisoes-experimentais/INDICE.md)
 - [Glossário](docs/decisoes-experimentais/GLOSSARIO.md)
 
-### V2 atual
-
-- [Especificação da V2](docs/V2-SPEC.md)
-- [Resultados V2](docs/RESULTADOS-V2.md)
-- [Índice de evidências](docs/INDICE-EVIDENCIAS.md)
-
 ### Histórico V1
 
 - [Entrega V1](docs/HISTORICO-V1/ENTREGA-V1.md)
@@ -143,20 +137,8 @@ Le os 30 resultados e calcula:
 - teste t pareado bilateral sobre F1 macro;
 - valor-p.
 
-O resumo tambem e salvo em `artifacts/v1/summary.json`.
-
-## Dataset local
-
-Por padrao, a preparacao carrega os arquivos oficiais pelo espelho do Beans no
-Hugging Face e verifica seus checksums. Para uma fixture local em um ambiente
-controlado, o comando Python tambem aceita um manifesto local:
-
-```bash
-uv run experimento-feijao prepare \
-  --config protocol.json \
-  --dataset-manifest caminho/do/manifesto.json \
-  --output artifacts/v1/segmented
-```
+O resumo e salvo em `artifacts/v1/summary.json` somente quando esse arquivo ainda
+nao existe. Um resumo existente e preservado.
 
 ## Resultados publicados
 

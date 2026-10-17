@@ -224,6 +224,7 @@ __marimo__/
 /artifacts/v2/checkpoints/
 /reports/v2/
 /scripts/
+/docs/V2-SPEC.md
 
 # Generated epoch-pilot images
 /experiments/epoch-pilot/segmented-train-validation-real-*/

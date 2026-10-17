@@ -33,6 +33,6 @@ as evidencias publicadas para auditoria.
 ## Operacao local
 
 Os wrappers shell usados durante a campanha V2 permanecem somente na copia local
-do repositorio e sao ignorados pelo Git. A implementacao publica da V2 esta em
-`src/experimento_feijao/v2.py` e pode ser chamada pela CLI
-`experimento-feijao`.
+do repositorio e sao ignorados pelo Git. A implementacao da V2 nao faz parte do
+fluxo executavel atual; os resultados publicados e os checkpoints locais sao
+mantidos somente como evidencia historica.

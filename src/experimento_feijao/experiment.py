@@ -29,10 +29,6 @@ BRANCHES: tuple[Branch, Branch] = (
 COMPONENTS = ("base", "head", "data", "augmentation", "dropout")
 
 
-class ExperimentError(ValueError):
-    """Erro ao executar um par experimental."""
-
-
 @dataclass(frozen=True)
 class SegmentedRecord:
     identity: str
@@ -45,35 +41,31 @@ def _derive_seed(pair_seed: int, component: str) -> int:
     return int.from_bytes(digest[:4], "big") & 0x7FFFFFFF
 
 
-def _read_configuration(
-    path: Path, pair_seed: int
-) -> dict[str, Any]:
+def _read_configuration(path: Path) -> dict[str, Any]:
     """Lê a configuração e devolve os parâmetros de treinamento.
 
     Args:
         path: Arquivo JSON da configuração fixa.
-        pair_seed: Seed do par que será executado.
-
     Returns:
-        Configuração de treinamento validada para o par.
+        Configuração de treinamento validada para todos os pares.
 
     Raises:
-        ExperimentError: Se faltarem dados essenciais ou a seed não for válida.
+        ValueError: Se faltarem dados essenciais ou a seed não for válida.
     """
     try:
         configuration = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
-        raise ExperimentError(str(error)) from error
+        raise ValueError(str(error)) from error
     if not isinstance(configuration, dict):
-        raise ExperimentError("configuration must be an object")
+        raise ValueError("a configuração deve ser um objeto")
 
     dataset = configuration.get("dataset")
     training = configuration.get("training")
     seeds = configuration.get("seeds")
     if not isinstance(dataset, dict) or dataset.get("version") != DATASET_VERSION:
-        raise ExperimentError(f"dataset version must be {DATASET_VERSION}")
+        raise ValueError(f"a versão do dataset deve ser {DATASET_VERSION}")
     if not isinstance(training, dict):
-        raise ExperimentError("training configuration is required")
+        raise ValueError("a configuração de treinamento é obrigatória")
     required_training = (
         "epochs",
         "batch_size",
@@ -87,15 +79,15 @@ def _read_configuration(
     ]
     if missing_training:
         missing = ", ".join(missing_training)
-        raise ExperimentError(f"training fields are required: {missing}")
+        raise ValueError(f"os campos de treinamento são obrigatórios: {missing}")
     augmentation = training["augmentation"]
     if not isinstance(augmentation, dict) or not {
         "horizontal_flip",
         "brightness_delta",
     }.issubset(augmentation):
-        raise ExperimentError("training augmentation fields are required")
-    if seeds != list(SEEDS) or pair_seed not in SEEDS:
-        raise ExperimentError("configuration must contain the 30 fixed seeds")
+        raise ValueError("os campos de aumento do treinamento são obrigatórios")
+    if seeds != list(SEEDS):
+        raise ValueError("a configuração deve conter as 30 seeds fixas")
     return training
 
 
@@ -108,7 +100,7 @@ def _load_segmented_inputs(root: Path) -> dict[str, list[SegmentedRecord]]:
             for path in sorted(directory.glob("*.png")):
                 records[split].append(SegmentedRecord(path.stem, class_index, path))
         if not records[split]:
-            raise ExperimentError(f"no segmented inputs found for {split}")
+            raise ValueError(f"não foram encontradas entradas segmentadas para {split}")
     return records
 
 
@@ -117,7 +109,9 @@ def _images(records: list[SegmentedRecord]) -> NDArray[np.uint8]:
     for record in records:
         image = cv2.imread(str(record.path), cv2.IMREAD_COLOR)
         if image is None:
-            raise ExperimentError(f"could not read segmented input: {record.path}")
+            raise ValueError(
+                f"não foi possível ler a entrada segmentada: {record.path}"
+            )
         images.append(cast(NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_BGR2RGB)))
     return np.asarray(images, dtype=np.uint8)
 
@@ -166,8 +160,6 @@ def _build_model(
     branch: Branch,
     seeds: dict[str, int],
     training: dict[str, Any],
-    *,
-    include_metrics: bool = False,
 ) -> keras.Model:
     """Constrói os dois ramos com a mesma topologia e cabeça.
 
@@ -206,15 +198,10 @@ def _build_model(
         kernel_regularizer=keras.regularizers.l2(float(training["l2"])),
     )(dropped)
     model = keras.Model(inputs, outputs)
-    compile_options: dict[str, Any] = {
-        "optimizer": keras.optimizers.Adam(float(training["learning_rate"])),
-        "loss": keras.losses.SparseCategoricalCrossentropy(),
-    }
-    if include_metrics:
-        compile_options["metrics"] = [
-            keras.metrics.SparseCategoricalAccuracy(name="accuracy")
-        ]
-    model.compile(**compile_options)
+    model.compile(
+        optimizer=keras.optimizers.Adam(float(training["learning_rate"])),
+        loss=keras.losses.SparseCategoricalCrossentropy(),
+    )
     return model
 
 
@@ -232,6 +219,24 @@ def _metrics(labels: list[int], predictions: list[int]) -> dict[str, float]:
             )
         ),
     }
+
+
+def _validate_existing_result(path: Path, pair_seed: int) -> None:
+    """Confirma que uma saída existente pode ser preservada e reutilizada."""
+    try:
+        result = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"o resultado existente é inválido: {path}") from error
+
+    if not isinstance(result, dict) or result.get("seed") != pair_seed:
+        raise ValueError(f"o resultado existente pertence a outra seed: {path}")
+    for branch in BRANCHES:
+        metrics = result.get(branch)
+        if not isinstance(metrics, dict) or any(
+            not isinstance(metrics.get(metric), (int, float))
+            for metric in ("macro_f1", "accuracy")
+        ):
+            raise ValueError(f"o resultado existente está incompleto: {path}")
 
 
 def _run_branch(
@@ -263,7 +268,7 @@ def _run_branch(
         )
         augmentation = training["augmentation"]
         if not isinstance(augmentation, dict):
-            raise ExperimentError("training augmentation is required")
+            raise ValueError("o aumento do treinamento é obrigatório")
 
         best_loss = float("inf")
         best_weights = model.get_weights()
@@ -314,8 +319,9 @@ def run_experiment(
         output: Diretório dos resultados dos pares.
 
     Raises:
-        ExperimentError: Se a configuração, as entradas ou o treinamento falharem.
+        ValueError: Se a configuração, as entradas ou o treinamento falharem.
     """
+    training = _read_configuration(configuration_path)
     records = _load_segmented_inputs(segmented_root)
     tf.config.experimental.enable_op_determinism()
 
@@ -323,11 +329,11 @@ def run_experiment(
         pair_output = output / f"pair-{pair_seed}"
         result_path = pair_output / "result.json"
         if result_path.is_file():
+            _validate_existing_result(result_path, pair_seed)
             continue
         if pair_output.exists():
-            raise ExperimentError(f"output already exists: {pair_output}")
+            raise ValueError(f"a saída já existe: {pair_output}")
 
-        training = _read_configuration(configuration_path, pair_seed)
         seeds = {
             component: _derive_seed(pair_seed, component) for component in COMPONENTS
         }

@@ -149,24 +149,8 @@ As 30 repeticoes reutilizam o mesmo split de teste de 128 imagens. Elas medem
 principalmente a variacao do treinamento sob esse split, e nao a variacao entre
 30 amostras independentes de teste.
 
-## Reproducao e retomada
+## Consulta historica
 
-A infraestrutura pode ser consultada sem novo treinamento:
-
-```bash
-uv run experimento-feijao v2-analyze \
-  --results artifacts/v2 \
-  --output artifacts/v2/summary.json
-```
-
-As etapas da V2 validam resultados e checkpoints antes de reutiliza-los. Uma
-interrupcao pode exigir refazer somente o ramo que estava em execucao; os pares
-completos permanecem disponiveis.
-
-## Simplificacao futura
-
-A infraestrutura foi mantida mais instrumentada durante a auditoria. Depois de
-registrar estes resultados, revisar a implementação e remover controles que não
-tenham demonstrado valor para reprodutibilidade, auditoria ou retomada. A
-versão final deve preferir o fluxo menor que continue sustentando estas
-evidências.
+Os resultados da V2 podem ser consultados diretamente neste documento e nos
+artefatos publicados em `artifacts/v2/`. Os checkpoints permanecem locais para
+consulta, mas a V2 nao possui mais uma interface de execucao ou retomada ativa.

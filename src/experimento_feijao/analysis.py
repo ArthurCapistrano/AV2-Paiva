@@ -13,10 +13,6 @@ BRANCHES = ("solucao_principal", "solucao_contrafactual")
 METRICS = ("macro_f1", "accuracy")
 
 
-class AnalysisError(ValueError):
-    """Erro ao consolidar os resultados dos pares experimentais."""
-
-
 def _read_results(results_root: Path) -> list[dict[str, Any]]:
     """Lê os 30 resultados individuais da campanha.
 
@@ -27,33 +23,33 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
         Resultados ordenados pelas seeds do protocolo.
 
     Raises:
-        AnalysisError: Se a campanha não contiver exatamente as 30 seeds.
+        ValueError: Se a campanha não contiver exatamente as 30 seeds.
     """
     paths = sorted(results_root.glob("pair-*/result.json"))
     if len(paths) != 30:
-        raise AnalysisError("exactly 30 paired results are required")
+        raise ValueError("são necessários exatamente 30 resultados pareados")
 
     results: list[dict[str, Any]] = []
     for path in paths:
         try:
             result = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
-            raise AnalysisError(f"could not read result: {path}") from error
+            raise ValueError(f"não foi possível ler o resultado: {path}") from error
         if not isinstance(result, dict):
-            raise AnalysisError(f"invalid result: {path}")
+            raise ValueError(f"resultado inválido: {path}")
         if not isinstance(result.get("seed"), int):
-            raise AnalysisError(f"result seed is missing: {path}")
+            raise ValueError(f"a seed está ausente no resultado: {path}")
         for branch in BRANCHES:
             metrics = result.get(branch)
             if not isinstance(metrics, dict) or any(
                 not isinstance(metrics.get(metric), (int, float))
                 for metric in METRICS
             ):
-                raise AnalysisError(f"result metrics are incomplete: {path}")
+                raise ValueError(f"as métricas do resultado estão incompletas: {path}")
         results.append(result)
     results = sorted(results, key=lambda result: result["seed"])
     if [result.get("seed") for result in results] != list(SEEDS):
-        raise AnalysisError("results must contain the 30 fixed seeds exactly once")
+        raise ValueError("os resultados devem conter as 30 seeds fixas uma única vez")
     return results
 
 
@@ -80,7 +76,7 @@ def analyze(results_root: Path) -> dict[str, Any]:
         Resumo das métricas, diferenças pareadas e teste estatístico.
 
     Raises:
-        AnalysisError: Se os resultados não formarem a campanha esperada.
+        ValueError: Se os resultados não formarem a campanha esperada.
     """
     results = _read_results(results_root)
     metrics = {

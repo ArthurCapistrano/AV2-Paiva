@@ -361,10 +361,8 @@ teste.
 | `src/experimento_feijao/cli.py` | Interface de linha de comando e coordenação. |
 | `src/experimento_feijao/preparation.py` | Carregamento e segmentação das imagens. |
 | `src/experimento_feijao/experiment.py` | Construção, treinamento e avaliação dos modelos. |
-| `src/experimento_feijao/v2.py` | Treinamento instrumentado, retomada, Grad-CAM e análise da V2. |
 | `src/experimento_feijao/analysis.py` | Consolidação e análise estatística. |
 | `src/experimento_feijao/__init__.py` | Identificação do pacote Python. |
-| `tests/` | Verificações da CLI e do fluxo principal. |
 | `decisoes-experimentais/GLOSSARIO.md` | Vocabulário oficial do domínio. |
 | `decisoes-experimentais/0001-ISOLAR-INICIALIZACAO-DOS-PESOS.md` | Decisão sobre os dois ramos. |
 | `decisoes-experimentais/0002-SEGMENTACAO-HSV-DA-SILHUETA.md` | Decisão sobre a segmentação. |
@@ -403,8 +401,6 @@ Ele apenas recebe parâmetros, chama o módulo responsável e mostra mensagens.
 | --- | --- |
 | `ImageRecord` | Representa uma imagem carregada, sua identidade e sua classe. |
 | `_load_beans_mirror` | Carrega os três splits oficiais pelo espelho do Beans. |
-| `_load_manifest` | Carrega uma fixture local para execução controlada. |
-| `_read_image` | Lê uma imagem e converte BGR para RGB. |
 | `_segment` | Cria a máscara HSV, limpa a máscara e produz a entrada segmentada. |
 | `prepare` | Coordena o carregamento, a segmentação e a gravação das imagens. |
 
@@ -417,7 +413,7 @@ Ele busca a silhueta da folha para preservar sintomas internos.
 | --- | --- |
 | `SegmentedRecord` | Representa uma imagem segmentada e seu rótulo numérico. |
 | `_derive_seed` | Gera seeds determinísticas para componentes do treinamento. |
-| `_read_configuration` | Lê os hiperparâmetros e confirma a seed do par. |
+| `_read_configuration` | Lê os hiperparâmetros e confirma as 30 seeds do protocolo. |
 | `_load_segmented_inputs` | Encontra as imagens preparadas por split e classe. |
 | `_epoch_training_data` | Ordena e aplica os aumentos de uma época. |
 | `_build_model` | Cria a MobileNetV2 e sua cabeça classificadora. |
@@ -459,9 +455,8 @@ Uma pessoa nova pode revisar o projeto nesta ordem:
 5. Ler `_build_model` e `_run_branch` em `experiment.py`.
 6. Ler `run_experiment` e `_experiment` para entender a repetição das 30 seeds.
 7. Ler `analysis.py` para conferir como os resultados são comparados.
-8. Ler `v2.py` e os comandos `experimento-feijao v2-*` para entender a auditoria instrumentada.
-9. Executar `make help` e `make analyze` para consultar a V1 sem treinar.
-10. Consultar `RESULTADOS-V2.md` para interpretar a V2 sem treinar.
+8. Executar `make help` e `make analyze` para consultar a V1 sem treinar.
+9. Consultar `RESULTADOS-V2.md` para interpretar a V2 como evidência histórica.
 
 Durante a revisão, as perguntas mais importantes são:
 
@@ -493,7 +488,7 @@ reproduzível e explicável no ambiente controlado da disciplina.
 
 A V2 manteve o fluxo principal separado, mas criou uma campanha complementar
 com históricos, probabilidades, checkpoints, métricas por classe, matrizes de
-confusão e Grad-CAM para auditoria. Ela é consultada pelos comandos `v2-*` e
+confusão e Grad-CAM para auditoria. Ela é consultada por `RESULTADOS-V2.md` e
 pelos artefatos publicados em `artifacts/v2/`; apenas os checkpoints permanecem
-locais. A V2 não substitui o fluxo V1 nem deve ser confundida com uma nova
-pergunta experimental.
+locais. A V2 não possui comandos ativos, não substitui o fluxo V1 e não deve ser
+confundida com uma nova pergunta experimental.
