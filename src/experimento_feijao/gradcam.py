@@ -1,3 +1,5 @@
+"""Geração dos diagnósticos visuais Grad-CAM da campanha V2."""
+
 from __future__ import annotations
 
 import json
@@ -28,7 +30,7 @@ from experimento_feijao.preparation import (
     _read_archive_records,
 )
 
-FIXED_IDENTITIES = {
+FIXED_IDENTITIES: dict[str, str] = {
     "angular_leaf_spot": "test-0042",
     "bean_rust": "test-0085",
     "healthy": "test-0000",
@@ -36,7 +38,12 @@ FIXED_IDENTITIES = {
 
 
 def _write_json(path: Path, document: object) -> None:
-    """Grava um diagnóstico JSON no diretório de saída."""
+    """Grava um diagnóstico JSON no diretório de saída.
+
+    Args:
+        path: Caminho do artefato JSON.
+        document: Conteúdo serializável do diagnóstico.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(document, indent=2, sort_keys=True) + "\n",
@@ -49,36 +56,52 @@ def _gradcam_map(
     image: NDArray[np.uint8],
     class_index: int,
 ) -> NDArray[np.float32]:
-    """Calcula o mapa Grad-CAM para uma classe predita."""
-    base = next(layer for layer in model.layers if isinstance(layer, keras.Model))
-    preprocessing = model.get_layer("mobilenet_v2_preprocessing")
-    pooling = next(
+    """Calcula o mapa Grad-CAM para uma classe predita.
+
+    Args:
+        model: Modelo treinado que será interpretado.
+        image: Imagem segmentada em RGB e no formato usado pelo treinamento.
+        class_index: Índice da classe cujo gradiente será projetado.
+
+    Returns:
+        Mapa normalizado entre zero e um, na resolução da camada convolucional.
+    """
+    # Recupera as camadas que participam do caminho original do modelo para
+    # preservar exatamente a normalização e a cabeça usadas no treinamento.
+    feature_extractor = next(
+        layer for layer in model.layers if isinstance(layer, keras.Model)
+    )
+    preprocessing_layer = model.get_layer("mobilenet_v2_preprocessing")
+    pooling_layer = next(
         layer
         for layer in model.layers
         if isinstance(layer, keras.layers.GlobalAveragePooling2D)
     )
-    dropout = next(
+    dropout_layer = next(
         layer for layer in model.layers if isinstance(layer, keras.layers.Dropout)
     )
-    classifier = next(
+    classifier_layer = next(
         layer for layer in model.layers if isinstance(layer, keras.layers.Dense)
     )
 
-    normalized = preprocessing(model.input)
-    convolutional = base(normalized)
-    pooled = pooling(convolutional)
-    dropped = dropout(pooled, training=False)
-    predictions_output = classifier(dropped)
-    grad_model = keras.Model(model.input, [convolutional, predictions_output])
+    normalized_input = preprocessing_layer(model.input)
+    convolutional_output = feature_extractor(normalized_input)
+    pooled_output = pooling_layer(convolutional_output)
+    dropped_output = dropout_layer(pooled_output, training=False)
+    predictions_output = classifier_layer(dropped_output)
+    grad_model = keras.Model(model.input, [convolutional_output, predictions_output])
     input_tensor = tf.convert_to_tensor(image[None], dtype=tf.float32)
 
+    # Calcula o gradiente da classe alvo e agrega os pesos por canal espacial.
     with tf.GradientTape() as tape:
-        convolutional_output, predictions = grad_model(input_tensor)
+        activations, predictions = grad_model(input_tensor)
         score = predictions[:, class_index]
-    gradients = tape.gradient(score, convolutional_output)
+    gradients = tape.gradient(score, activations)
     weights = tf.reduce_mean(gradients, axis=(1, 2))
-    activation = convolutional_output[0]
+    activation = activations[0]
     cam = tf.reduce_sum(activation * weights[0][None, None, :], axis=-1)
+
+    # Remove contribuições negativas e normaliza o mapa para a visualização.
     cam = tf.maximum(cam, 0)
     maximum = tf.reduce_max(cam)
     cam = tf.where(maximum > 0, cam / maximum, cam)
@@ -90,7 +113,16 @@ def _panel(
     segmented: NDArray[np.uint8],
     cam: NDArray[np.float32],
 ) -> NDArray[np.uint8]:
-    """Monta o painel com imagem original, entrada e sobreposição."""
+    """Monta o painel com imagem original, entrada e sobreposição.
+
+    Args:
+        original: Imagem original do dataset em RGB.
+        segmented: Imagem segmentada usada pelo modelo.
+        cam: Mapa Grad-CAM normalizado.
+
+    Returns:
+        Painel RGB com as três imagens lado a lado.
+    """
     size = (segmented.shape[1], segmented.shape[0])
     heatmap_input = np.asarray(np.clip(cam * 255, 0, 255), dtype=np.uint8)
     heatmap = cv2.applyColorMap(heatmap_input, cv2.COLORMAP_JET)
@@ -104,7 +136,14 @@ def _panel(
 def _fixed_examples(
     segmented_root: Path,
 ) -> dict[str, tuple[SegmentedRecord, ImageRecord]]:
-    """Carrega os três exemplos fixos e suas imagens originais."""
+    """Carrega os três exemplos fixos e suas imagens originais.
+
+    Args:
+        segmented_root: Diretório com as entradas segmentadas preparadas.
+
+    Returns:
+        Registros segmentados e originais indexados pelo nome da classe.
+    """
     records = _load_segmented_inputs(segmented_root)
     segmented_by_identity = {
         record.identity: record for record in records["test"]
@@ -127,11 +166,23 @@ def run_gradcam(
     segmented_root: Path,
     output: Path,
 ) -> None:
-    """Gera Grad-CAM para os três exemplos fixos dos 30 pares."""
+    """Gera Grad-CAM para os três exemplos fixos dos 30 pares.
+
+    Args:
+        configuration_path: Arquivo JSON com a configuração fixa do treinamento.
+        segmented_root: Diretório com as entradas segmentadas preparadas.
+        output: Diretório raiz dos checkpoints e dos diagnósticos gerados.
+
+    Raises:
+        OSError: Se um artefato não puder ser lido ou gravado.
+        ValueError: Se faltar um checkpoint ou houver uma entrada inválida.
+    """
+    # Os mesmos exemplos são usados em todos os pares para manter a comparação
+    # visual controlada entre seeds e ramos.
     examples = _fixed_examples(segmented_root)
+    training = _read_configuration(configuration_path)
 
     for pair_seed in SEEDS:
-        training = _read_configuration(configuration_path)
         component_seeds = {
             component: _derive_seed(pair_seed, component)
             for component in COMPONENTS
@@ -156,7 +207,11 @@ def run_gradcam(
                     "target": "predicted_class",
                     "examples": {},
                 }
-                for class_name, (segmented_record, original_record) in examples.items():
+                # Cada ramo gera um painel por classe fixa e um diagnóstico JSON.
+                for class_name, (
+                    segmented_record,
+                    original_record,
+                ) in examples.items():
                     segmented = _images([segmented_record])[0]
                     probabilities = np.asarray(
                         model.predict(segmented[None], verbose=0)
@@ -172,9 +227,13 @@ def run_gradcam(
                     )
                     image_path.parent.mkdir(parents=True, exist_ok=True)
                     panel = _panel(original_record.image, segmented, cam)
-                    cv2.imwrite(
+                    written = cv2.imwrite(
                         str(image_path), cv2.cvtColor(panel, cv2.COLOR_RGB2BGR)
                     )
+                    if not written:
+                        raise OSError(
+                            f"não foi possível gravar o painel: {image_path}"
+                        )
                     metadata["examples"][class_name] = {
                         "identity": segmented_record.identity,
                         "path": str(image_path),
