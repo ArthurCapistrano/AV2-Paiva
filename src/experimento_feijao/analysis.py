@@ -28,6 +28,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def _read_results(results_root: Path) -> list[dict[str, Any]]:
     """Lê os pares V2 na ordem das seeds do protocolo."""
+    # O resumo só é válido quando todos os pares e seus dois ramos estão presentes.
     pair_paths = sorted((results_root / "results").glob("pair-*/result.json"))
     if len(pair_paths) != len(SEEDS):
         raise ValueError("são necessários exatamente 30 resultados pareados")
@@ -39,12 +40,14 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
         if not isinstance(seed, int):
             raise ValueError(f"a seed está ausente no resultado: {pair_path}")
 
+        # O arquivo do par aponta para um resultado detalhado de cada ramo.
         branches: dict[str, dict[str, Any]] = {}
         for branch in BRANCHES:
             branch_path = pair_path.parent / branch / "result.json"
             branches[branch] = _read_json(branch_path)
         results.append({"seed": seed, "branches": branches})
 
+    # A ordem final segue as seeds do protocolo, não a ordem dos nomes dos arquivos.
     results.sort(key=lambda result: result["seed"])
     if [result["seed"] for result in results] != list(SEEDS):
         raise ValueError("os resultados devem conter as 30 seeds fixas uma única vez")
@@ -63,6 +66,7 @@ def _metric_summaries(
     results: list[dict[str, Any]],
 ) -> dict[str, dict[str, dict[str, float]]]:
     """Consolida as métricas de cada ramo."""
+    # Calcula uma distribuição por métrica para cada ramo ao longo dos 30 pares.
     return {
         metric: {
             branch: _summary(
@@ -86,6 +90,7 @@ def _confidence_interval(values: list[float]) -> dict[str, float] | None:
         return None
     array = np.asarray(values, dtype=np.float64)
     mean = float(np.mean(array))
+    # Usa a distribuição t porque a média é estimada a partir das diferenças.
     standard_error = float(np.std(array, ddof=1) / np.sqrt(len(array)))
     critical = float(student_t.ppf(0.975, len(array) - 1))
     return {
@@ -108,6 +113,7 @@ def _prediction_counts(result: dict[str, Any]) -> dict[str, int]:
 def _seed_comparison(results: list[dict[str, Any]]) -> dict[str, Any]:
     """Compara o seed 1001 com os outros pares da campanha."""
     seed_result = next(result for result in results if result["seed"] == 1001)
+    # O seed 1001 é comparado com o conjunto formado pelos outros 29 pares.
     other_results = [result for result in results if result["seed"] != 1001]
     comparison: dict[str, Any] = {
         "available": True,
@@ -155,6 +161,7 @@ def analyze(results_root: Path) -> dict[str, Any]:
         ],
         dtype=np.float64,
     )
+    # A diferença é calculada dentro de cada par antes do teste estatístico.
     differences = (principal - counterfactual).tolist()
     test = ttest_rel(principal, counterfactual)
 

@@ -208,16 +208,20 @@ def run_gradcam(
                     "examples": {},
                 }
                 # Cada ramo gera um painel por classe fixa e um diagnóstico JSON.
-                for class_name, (
-                    segmented_record,
-                    original_record,
-                ) in examples.items():
+                for class_name, example in examples.items():
+                    segmented_record, original_record = example
+
+                    # Prepara a imagem e obtém a classe prevista pelo modelo.
                     segmented = _images([segmented_record])[0]
                     probabilities = np.asarray(
                         model.predict(segmented[None], verbose=0)
                     )[0]
                     predicted_index = int(np.argmax(probabilities))
+
+                    # Calcula o mapa Grad-CAM para a classe prevista.
                     cam = _gradcam_map(model, segmented, predicted_index)
+
+                    # Define o caminho do painel visual do exemplo atual.
                     image_path = (
                         output
                         / "gradcam"
@@ -226,6 +230,8 @@ def run_gradcam(
                         / f"{class_name}.png"
                     )
                     image_path.parent.mkdir(parents=True, exist_ok=True)
+
+                    # Combina a imagem original, a segmentação e o mapa de ativação.
                     panel = _panel(original_record.image, segmented, cam)
                     written = cv2.imwrite(
                         str(image_path), cv2.cvtColor(panel, cv2.COLOR_RGB2BGR)
@@ -234,6 +240,8 @@ def run_gradcam(
                         raise OSError(
                             f"não foi possível gravar o painel: {image_path}"
                         )
+
+                    # Registra os metadados usados para auditar o diagnóstico visual.
                     metadata["examples"][class_name] = {
                         "identity": segmented_record.identity,
                         "path": str(image_path),

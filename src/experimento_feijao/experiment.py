@@ -276,6 +276,7 @@ def _fit_with_validation(
     augmentation = cast(dict[str, Any], training["augmentation"])
     best_loss = float("inf")
     best_epoch = 0
+    # Mantém em memória os pesos da época com melhor perda de validação.
     best_weights = model.get_weights()
     history_rows: list[dict[str, float]] = []
     for epoch in range(int(training["epochs"])):
@@ -308,6 +309,7 @@ def _fit_with_validation(
                 },
             }
         )
+        # A seleção dos pesos usa somente a perda de validação da época atual.
         validation_loss = float(history.history["val_loss"][0])
         if validation_loss < best_loss:
             best_loss = validation_loss
@@ -325,6 +327,7 @@ def _evaluation(
     """Calcula métricas detalhadas e previsões por imagem."""
     labels = [record.label for record in records]
     predictions = np.argmax(probabilities, axis=1).tolist()
+    # Gera as métricas globais, por classe e a matriz de confusão do conjunto.
     report = classification_report(
         labels,
         predictions,
@@ -349,6 +352,7 @@ def _evaluation(
             labels=list(range(len(BEANS_CLASSES))),
         ).tolist(),
     }
+    # Mantém cada previsão vinculada à identidade e às probabilidades da imagem.
     prediction_rows = [
         {
             "identity": record.identity,
@@ -438,6 +442,7 @@ def _run_pair(
     output: Path,
 ) -> dict[str, dict[str, Any]]:
     """Executa os dois ramos usando as seeds derivadas do par."""
+    # As mesmas seeds derivadas são compartilhadas pelos dois ramos do par.
     seeds = {
         component: _derive_seed(pair_seed, component) for component in COMPONENTS
     }
@@ -489,6 +494,7 @@ def run_experiment(
 
         results = _run_pair(pair_seed, training, records, output)
         branch_paths: dict[str, str] = {}
+        # Salva cada ramo separadamente e registra seus caminhos no resultado do par.
         for branch, result in results.items():
             branch_path = pair_output / branch / "result.json"
             _write_json(branch_path, result)

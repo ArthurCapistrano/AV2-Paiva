@@ -153,6 +153,7 @@ def _validate_segmentation_parameters(
     segmentation: dict[str, Any],
 ) -> tuple[NDArray[np.uint8], NDArray[np.uint8], int, int, int]:
     """Valida e converte os parâmetros fixos usados pela segmentação."""
+    # Extrai os parâmetros antes da conversão para produzir erros claros de protocolo.
     try:
         hsv = segmentation["hsv"]
         morphology = segmentation["morphology"]
@@ -219,6 +220,7 @@ def _leaf_mask(
     )
 
     try:
+        # Primeiro identifica a folha pela faixa HSV e depois remove pequenos ruídos.
         mask = cv2.inRange(cv2.cvtColor(image, cv2.COLOR_RGB2HSV), lower, upper)
         kernel = np.ones((kernel_size, kernel_size), dtype=np.uint8)
         if open_iterations:
@@ -240,8 +242,11 @@ def _largest_leaf_silhouette(mask: NDArray[np.uint8]) -> NDArray[np.uint8]:
     if component_count <= 1:
         raise ValueError("nenhum componente de folha foi encontrado")
 
+    # Seleciona o componente conectado com maior área como a folha principal.
     largest = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
     largest_mask = np.where(labels == largest, 255, 0).astype(np.uint8)
+
+    # Preenche o contorno externo para produzir uma silhueta contínua.
     contours, _ = cv2.findContours(
         largest_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
