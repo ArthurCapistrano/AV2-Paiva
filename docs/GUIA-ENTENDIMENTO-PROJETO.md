@@ -3,11 +3,23 @@
 Este documento foi escrito para quem precisa revisar o projeto sem ter
 acompanhado sua construção. A ordem recomendada de leitura é:
 
-1. Ler a pergunta experimental abaixo.
-2. Ler o `protocol.json` e a seção correspondente neste guia.
-3. Executar `make help`.
-4. Acompanhar o fluxo `prepare -> experiment -> analyze`.
-5. Consultar o mapa de arquivos e funções quando surgir uma dúvida.
+1. Ler o estado atual da entrega e a pergunta experimental abaixo.
+2. Ler `RESULTADOS-V2.md` para conhecer a evidência principal do artigo.
+3. Ler `VALIDACAO-METODOLOGIA.md` e `INDICE-EVIDENCIAS.md`.
+4. Ler o `protocol.json` e a seção correspondente neste guia.
+5. Executar `make help` para conhecer somente o fluxo executável da V1.
+6. Consultar o mapa de arquivos e funções quando surgir uma dúvida.
+
+## Estado atual da entrega
+
+A V2 e a campanha que deve fundamentar o artigo e a entrega final. Ela
+reexecutou o mesmo protocolo da V1, acrescentou telemetria e publicou as
+evidencias necessárias para auditar os 30 pares.
+
+A V1 permanece como histórico, baseline e referência do código executável. O
+fluxo atual `prepare -> experiment -> analyze` grava e analisa artefatos em
+`artifacts/v1/`; ele nao reexecuta nem analisa a campanha V2. A V2 nao possui
+mais comandos ativos na CLI.
 
 ## 1. Pergunta do experimento
 
@@ -89,13 +101,13 @@ protocol.json
   prepare
       |
       v
-artifacts/v1/segmented/
+  artifacts/v1/segmented/ (fluxo executável atual)
       |
       v
   experiment
       |
       v
-artifacts/v1/results/pair-1001/result.json
+    artifacts/v1/results/pair-1001/result.json (referência V1)
 ...
 artifacts/v1/results/pair-1030/result.json
       |
@@ -158,7 +170,39 @@ seed, a diferença é calculada assim:
 F1 da solução principal - F1 da solução contrafactual
 ```
 
-## 4.1 Estado da entrega V1
+## 4.1 Estado da entrega V2: evidência principal
+
+A V2 reexecutou o mesmo protocolo com telemetria completa. Os 30 pares possuem
+previsoes, probabilidades, metricas por classe, matrizes de confusao,
+historicos, checkpoints locais e Grad-CAM para os tres exemplos fixos. Os
+resultados publicados e os limites de interpretacao estao em
+`RESULTADOS-V2.md`.
+
+Na V2, o ramo contrafactual previu uma unica classe em todos os 30 seeds. A
+classe constante foi `angular_leaf_spot` em 14 seeds e `bean_rust` em 16. Esse
+resultado confirma o colapso sob o protocolo fixado, mas nao isola sua causa.
+
+O Grad-CAM da V2 usa os tres exemplos fixos da V1 para os 30 pares, nos dois
+ramos. Foram produzidos 60 diagnosticos e 180 paineis. A leitura continua
+qualitativa e nao demonstra causalidade.
+
+### O que entrou na V2
+
+Em relação à V1, a V2 acrescentou:
+
+- previsões e probabilidades por imagem;
+- métricas por classe e matrizes de confusão;
+- histórico de treinamento e melhor época;
+- checkpoints locais para retomada e auditoria;
+- intervalo de confiança da diferença pareada de F1;
+- Grad-CAM para todos os 30 pares;
+- ferramentas históricas de execução, retomada e análise da campanha.
+
+Esses acréscimos melhoram a observabilidade do mesmo experimento. Eles não
+mudaram a pergunta, a arquitetura, os dados ou as condições de treinamento. As
+ferramentas da campanha V2 não fazem parte da CLI atual.
+
+## 4.2 Estado histórico da entrega V1
 
 Os 30 pares foram executados. A solução principal teve F1 macro médio de
 `0.9380` e acurácia média de `0.9385`. A solução contrafactual teve F1 macro
@@ -177,35 +221,15 @@ os outros 29 pares.
 Os mapas Grad-CAM disponíveis também se limitam ao `seed 1001`. Eles são uma
 análise qualitativa e não alteram a análise estatística dos 30 pares.
 
-## 4.2 Estado da V2
+## 4.3 Relação entre V1 e V2
 
-A V2 reexecutou o mesmo protocolo com telemetria completa. Os 30 pares possuem
-previsoes, probabilidades, metricas por classe, matrizes de confusao,
-historicos, checkpoints locais e Grad-CAM para os tres exemplos fixos. Os
-resultados e limites de interpretacao estao em `RESULTADOS-V2.md`.
+A V1 e a V2 respondem à mesma pergunta sob o mesmo protocolo. A V1 é a
+referência executável e preserva os resultados originais; a V2 é a campanha
+instrumentada concluída e fornece a evidência principal para o artigo.
 
-Na V2, o ramo contrafactual previu uma unica classe em todos os 30 seeds. A
-classe constante foi `angular_leaf_spot` em 14 seeds e `bean_rust` em 16. Esse
-resultado confirma o colapso sob o protocolo fixado, mas nao isola sua causa.
-
-O Grad-CAM da V2 usa os três exemplos fixos da V1 para os 30 pares, nos dois
-ramos. Foram produzidos 60 diagnósticos e 180 painéis. A leitura continua
-qualitativa e não demonstra causalidade.
-
-### O que entrou na V2
-
-Em relação à V1, a V2 acrescentou:
-
-- previsões e probabilidades por imagem;
-- métricas por classe e matrizes de confusão;
-- histórico de treinamento e melhor época;
-- checkpoints locais para retomada e auditoria;
-- intervalo de confiança da diferença pareada de F1;
-- Grad-CAM para todos os 30 pares;
-- comandos da CLI para execução, retomada e análise.
-
-Esses acréscimos melhoram a observabilidade do mesmo experimento. Eles não
-mudaram a pergunta, a arquitetura, os dados ou as condições de treinamento.
+Essa diferença de papel não significa que a V2 tenha criado uma nova pergunta
+ou substituído retroativamente os artefatos da V1. Significa apenas que a
+interpretação final deve usar a observabilidade ampliada da V2.
 
 ## 5. Como executar
 
@@ -456,7 +480,8 @@ Uma pessoa nova pode revisar o projeto nesta ordem:
 6. Ler `run_experiment` e `_experiment` para entender a repetição das 30 seeds.
 7. Ler `analysis.py` para conferir como os resultados são comparados.
 8. Executar `make help` e `make analyze` para consultar a V1 sem treinar.
-9. Consultar `RESULTADOS-V2.md` para interpretar a V2 como evidência histórica.
+9. Consultar `RESULTADOS-V2.md` para interpretar a V2 como evidência principal
+   do artigo, embora histórica e não executável.
 
 Durante a revisão, as perguntas mais importantes são:
 
@@ -486,9 +511,10 @@ complexidade que não ajuda a responder à pergunta do trabalho:
 Essas ausências são intencionais. O projeto prioriza uma comparação funcional,
 reproduzível e explicável no ambiente controlado da disciplina.
 
-A V2 manteve o fluxo principal separado, mas criou uma campanha complementar
-com históricos, probabilidades, checkpoints, métricas por classe, matrizes de
-confusão e Grad-CAM para auditoria. Ela é consultada por `RESULTADOS-V2.md` e
-pelos artefatos publicados em `artifacts/v2/`; apenas os checkpoints permanecem
-locais. A V2 não possui comandos ativos, não substitui o fluxo V1 e não deve ser
-confundida com uma nova pergunta experimental.
+A V2 manteve o fluxo executável separado, mas criou a campanha que fornece a
+evidência principal do artigo, com históricos, probabilidades, checkpoints,
+métricas por classe, matrizes de confusão e Grad-CAM para auditoria. Ela é
+consultada por `RESULTADOS-V2.md` e pelos artefatos publicados em
+`artifacts/v2/`; apenas os checkpoints permanecem locais. A V2 não possui
+comandos ativos, não substitui o fluxo executável V1 e não deve ser confundida
+com uma nova pergunta experimental.

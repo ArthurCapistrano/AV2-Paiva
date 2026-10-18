@@ -10,8 +10,9 @@ da base MobileNetV2:
 - `solucao_principal`: pesos ImageNet;
 - `solucao_contrafactual`: pesos aleatorios.
 
-A V2 nao substitui os resultados versionados da V1. Ela fornece evidencias
-adicionais para auditar o comportamento observado.
+A V2 nao apaga nem altera os resultados versionados da V1. Para o artigo e a
+entrega final, este documento e a fonte principal de resultados e interpretacao;
+a V1 permanece como baseline historico e referencia do fluxo executavel.
 
 ## Execucao
 

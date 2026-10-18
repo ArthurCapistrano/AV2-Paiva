@@ -4,17 +4,22 @@ Este documento e o ponto de entrada para a equipe que vai iniciar o artigo.
 Ele descreve o que ja foi feito, onde estao as evidencias e quais pontos ainda
 precisam de trabalho.
 
+A V2 e a base de evidencias do artigo e da entrega final. A V1 permanece como
+baseline historico e referencia do fluxo executavel atual; ela nao deve ser
+usada para substituir a interpretacao consolidada da V2.
+
 ## Ordem de leitura
 
-1. `HISTORICO-V1/ENTREGA-V1.md`: checklist, evidencias e caminhos das imagens.
-2. `../README.md`: comandos e fluxo geral.
-3. `GUIA-ENTENDIMENTO-PROJETO.md`: pergunta, desenho e vocabulário.
-4. `HISTORICO-V1/RESULTADOS-EXPERIMENTO.md`: resultados agregados dos 30 pares.
-5. `HISTORICO-V1/LIMITACAO-COLAPSO-CONTRAFACTUAL.md`: auditoria do ramo aleatorio.
-6. `RESULTADOS-V2.md`: resultados instrumentados, Grad-CAM e interpretacao final.
-7. `VALIDACAO-METODOLOGIA.md`: auditoria do que foi e não foi executado.
-8. `artifacts/v1/reports/epoch-pilot.json`: evidencia do orçamento de 100 epocas.
-9. `RELATORIO-GRADCAM-V1-SEED-1001.md`: análise qualitativa de Grad-CAM da V1.
+1. `../README.md`: estado atual, evidencias e fluxo executavel.
+2. `RESULTADOS-V2.md`: resultados instrumentados, Grad-CAM e interpretacao final.
+3. `VALIDACAO-METODOLOGIA.md`: auditoria do que foi e nao foi executado.
+4. `INDICE-EVIDENCIAS.md`: caminhos e status dos artefatos publicados.
+5. `GUIA-ENTENDIMENTO-PROJETO.md`: pergunta, desenho e vocabulário.
+6. `HISTORICO-V1/ENTREGA-V1.md`: checklist e proveniencia do baseline.
+7. `HISTORICO-V1/RESULTADOS-EXPERIMENTO.md`: resultados agregados da V1.
+8. `HISTORICO-V1/LIMITACAO-COLAPSO-CONTRAFACTUAL.md`: auditoria histórica da V1.
+9. `artifacts/v1/reports/epoch-pilot.json`: evidencia do orçamento de 100 epocas.
+10. `RELATORIO-GRADCAM-V1-SEED-1001.md`: análise qualitativa de Grad-CAM da V1.
 
 ## Estado da entrega
 
@@ -38,8 +43,9 @@ O `make analyze` usa os 30 `result.json` versionados da V1. Nao e necessario
 baixar o dataset para consultar esses resultados.
 
 Os resultados da V2 podem ser consultados diretamente em `RESULTADOS-V2.md` e
-nos artefatos publicados em `artifacts/v2/`. A V2 e uma campanha historica e nao
-possui mais comandos ativos na aplicacao.
+nos artefatos publicados em `artifacts/v2/`. A V2 e a evidencia principal do
+artigo, mas continua sendo uma campanha historica e nao possui mais comandos
+ativos na aplicacao.
 
 Para reproduzir as entradas segmentadas localmente:
 

@@ -1,5 +1,16 @@
 # Registro do projeto de Visão Computacional
 
+## Estado atual da documentação
+
+A V2 e a campanha que deve fundamentar o artigo e a entrega final. Ela
+reexecutou o protocolo da V1 com telemetria adicional, sem mudar a pergunta,
+arquitetura, dataset, splits, hiperparametros ou seeds.
+
+A V1 permanece como registro histórico, baseline e referência do fluxo
+executável atual. A V2 nao possui comandos ativos; seus resultados publicados
+em `artifacts/v2/` e em `RESULTADOS-V2.md` sao a fonte principal para a
+interpretação dos achados.
+
 ## 1. Objetivo e pergunta
 
 **Título:** Avaliação do impacto da inicialização ImageNet na
@@ -199,7 +210,7 @@ de cores e transparência foram iguais. A análise é qualitativa; destaques nas
 bordas são tratados como possível dependência da segmentação, não como
 evidência automática de atenção a sintomas.
 
-## 9. Resultados observados na V1
+## 9. Resultados históricos observados na V1
 
 Os resultados agregados mostram desempenho superior da inicialização ImageNet
 sob o protocolo fixado:
@@ -226,7 +237,7 @@ As perguntas ficam registradas assim:
 3. Quais regiões das entradas segmentadas aparecem nos mapas Grad-CAM? Os seis
    paineis do `seed 1001` mostram essa evidência qualitativa.
 
-## 10. Atualização da V2
+## 10. Resultados da V2: base para o artigo e a entrega
 
 A V2 reexecutou o mesmo protocolo com telemetria adicional. Ela não introduziu
 uma nova arquitetura, dataset ou divisão dos dados.
@@ -246,8 +257,9 @@ uma nova arquitetura, dataset ou divisão dos dados.
 O que mudou na V2 foi a observabilidade: cada ramo passou a guardar previsões,
 probabilidades, métricas por classe, matrizes de confusão, histórico por época,
 melhor época, checkpoints locais e diagnósticos Grad-CAM. A retomada por seed e
-os comandos de retomada e análise permitiram concluir a campanha sem transformar a operação
-em uma nova condição experimental.
+as ferramentas históricas de retomada e análise permitiram concluir a campanha
+sem transformar a operação em uma nova condição experimental. Essas ferramentas
+nao fazem parte da CLI atual.
 
 - Foram concluídos 30 pares, totalizando 60 treinamentos.
 - A solução principal teve F1 macro médio `0.9380` e acurácia média `0.9385`.
@@ -271,7 +283,7 @@ Os resultados detalhados da V2 estão em `RESULTADOS-V2.md`. Os resultados JSON,
 o resumo e os painéis Grad-CAM são publicados em `artifacts/v2/`; somente os
 checkpoints permanecem locais.
 
-## 11. Entregáveis da V1
+## 11. Entregáveis preservados da V1
 
 - código-fonte em Python com as duas soluções;
 - segmentação HSV e artefatos reproduzíveis;
@@ -283,7 +295,7 @@ checkpoints permanecem locais.
 O artigo IEEE e a apresentação não foram produzidos nesta etapa; esta entrega
 fornece a base documental para que a equipe os escreva.
 
-## 12. Critérios de conclusão da V1
+## 12. Critérios históricos de conclusão da V1
 
 - As duas soluções aplicam pelo menos três técnicas?
 - A inicialização da base é a única variável experimental deliberada?

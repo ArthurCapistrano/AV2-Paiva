@@ -66,8 +66,10 @@ folha por limites globais de cor e brilho.
 Comportamento observado quando a solução contrafactual passa a prever uma única
 classe para as entradas avaliadas. No diagnóstico direto do `seed 1001`, todas
 as 128 previsões foram `angular_leaf_spot`.
-_Evitar_: afirmar que todos os 30 pares tiveram a mesma classe prevista sem
-previsões individuais
+Na V2, as previsões individuais mostram que todos os 30 pares colapsaram para
+uma única classe; 14 escolheram `angular_leaf_spot` e 16 escolheram `bean_rust`.
+_Evitar_: aplicar a conclusão da V2 retroativamente aos artefatos incompletos da
+V1.
 
 **Grad-CAM**:
 Mapa qualitativo das regiões da entrada segmentada associadas à classe predita,
@@ -76,13 +78,15 @@ somente para o `seed 1001`; na V2, foram gerados para os 30 pares.
 _Evitar_: tratar o mapa como prova de causalidade ou como métrica de desempenho
 
 **V1**:
-Campanha experimental principal, composta pela preparação das entradas, pelos 30
-pares experimentais e pela análise estatística de F1 macro e acurácia.
+Campanha experimental original, composta pela preparação das entradas, pelos 30
+pares experimentais e pela análise estatística de F1 macro e acurácia. É o
+baseline histórico e a referência do fluxo executável atual.
 
 **V2**:
 Campanha instrumentada histórica que reexecutou o protocolo da V1 e preservou
-evidências adicionais, como previsões, históricos, checkpoints e Grad-CAM. Não é
-um novo protocolo experimental nem um fluxo executável atual.
+evidências adicionais, como previsões, históricos, checkpoints e Grad-CAM. É a
+fonte principal de evidências para o artigo e a entrega, mas não é um novo
+protocolo experimental nem um fluxo executável atual.
 
 **Teste automatizado**:
 Verificação de comportamento do código por uma ferramenta de desenvolvimento.
@@ -95,4 +99,4 @@ braços experimentais.
 
 **Resultado de teste**:
 Métrica calculada a partir das previsões feitas no split de teste. Os resultados
-da V1 estão preservados nos artefatos versionados.
+da V1 e da V2 estão preservados nos artefatos versionados correspondentes.

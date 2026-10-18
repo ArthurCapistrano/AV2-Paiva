@@ -10,6 +10,10 @@ descrita como histórico: seus limites não são substituídos retroativamente. 
 V2 reexecutou o mesmo protocolo e acrescentou artefatos para investigar os
 limites que ficaram fora da V1.
 
+Para o artigo e a entrega final, a V2 e a fonte principal de resultados e
+auditoria. As seções da V1 continuam necessárias para registrar a proveniência
+do baseline e as limitações da campanha original.
+
 ## Estado da execução V1
 
 - Dataset executado: `beans:0.1.0`.
@@ -88,21 +92,21 @@ permitem decidir.
 
 | Item metodológico | Status V2 | Evidência e limite |
 | --- | --- | --- |
-| Previsões, probabilidades, matrizes e métricas por classe | Feito | Coletados para os 30 pares em `artifacts/v2/`; os arquivos são locais. |
+| Previsões, probabilidades, matrizes e métricas por classe | Feito | Coletados para os 30 pares e publicados em `artifacts/v2/`. |
 | Históricos, melhores épocas e checkpoints | Feito | Coletados para os 30 pares; checkpoints não são versionados. |
 | Grad-CAM nos dois ramos e nos 30 pares | Feito | 60 diagnósticos e 180 painéis em `artifacts/v2/gradcam/`. |
 | Intervalo de confiança da diferença pareada | Feito | IC 95% `[0.7619, 0.7788]` no resumo da V2. |
 | Auditoria do colapso contrafactual | Feito | Todos os 30 pares colapsaram para uma classe; a causa continua inconclusiva. |
 | Independência estatística entre os testes | Limite preservado | As 30 repetições reutilizam o mesmo split de teste de 128 imagens. |
 
-## O que não deve ser inferido
+## Limites de interpretação
 
 O colapso para uma única classe é um resultado observado, não um diagnóstico da
-causa. A V1 não permite afirmar qual componente do treinamento produziu o
-comportamento. Não há evidência suficiente para atribuir a causa a uma escolha
-específica.
+causa. Nem a V1 nem a V2 permitem afirmar qual componente do treinamento
+produziu o comportamento. Não há evidência suficiente para atribuir a causa a
+uma escolha específica.
 
-Também não se deve afirmar que os outros 29 ramos contrafactuais previram a
+Na V1, não se deve afirmar que os outros 29 ramos contrafactuais previram a
 mesma classe, porque somente o `seed 1001` foi auditado diretamente.
 
 Essa última restrição era necessária para a V1. Na V2, as previsões dos 30 pares

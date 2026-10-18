@@ -9,7 +9,7 @@ nova arquitetura ou uma nova pergunta experimental.
 A V2 produziu resultados, diagnósticos, históricos, previsões, Grad-CAM e
 checkpoints que continuam úteis para interpretar os achados. Esses artefatos
 devem permanecer disponíveis sem transformar a campanha histórica no fluxo
-principal de execução.
+executável principal.
 
 ## Estado preservado
 
