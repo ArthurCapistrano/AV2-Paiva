@@ -6,10 +6,10 @@ A V2 e a campanha que deve fundamentar o artigo e a entrega final. Ela
 reexecutou o protocolo da V1 com telemetria adicional, sem mudar a pergunta,
 arquitetura, dataset, splits, hiperparametros ou seeds.
 
-A V1 permanece como registro histórico, baseline e referência do fluxo
-executável atual. A V2 nao possui comandos ativos; seus resultados publicados
-em `artifacts/v2/` e em `RESULTADOS-V2.md` sao a fonte principal para a
-interpretação dos achados.
+A V1 permanece como registro histórico e baseline. O fluxo executável atual usa
+os comandos `experiment`, `analyze` e `gradcam`, enquanto seus resultados
+publicados em `artifacts/v2/` e em `RESULTADOS-V2.md` são a fonte principal para
+a interpretação dos achados.
 
 ## 1. Objetivo e pergunta
 

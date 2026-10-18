@@ -36,6 +36,6 @@ versionadas.
 ## Operacao local
 
 Os wrappers shell usados durante a campanha V2 permanecem somente na copia local
-do repositorio e sao ignorados pelo Git. A implementacao da V2 nao faz parte do
-fluxo executavel atual; os resultados publicados sao a evidencia principal do
-artigo, enquanto os checkpoints locais permanecem somente para consulta.
+do repositorio e sao ignorados pelo Git. O fluxo atual usa a CLI e o Makefile
+com os nomes `experiment`, `analyze` e `gradcam`; os checkpoints permanecem
+locais e os demais artefatos sao publicados.

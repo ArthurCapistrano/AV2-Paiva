@@ -9,10 +9,9 @@ A V2 e a campanha que deve ser usada como base para o artigo e para a entrega
 final. Ela reexecutou o protocolo da V1 com telemetria completa e publicou os
 resultados, previsoes, metricas por classe, matrizes de confusao e Grad-CAM.
 
-A V1 permanece preservada como historico, baseline e referencia do fluxo
-executavel atual. A V2 foi concluida e nao possui mais comandos ativos na CLI.
-Portanto, `make all`, `make experiment` e `make analyze` operam sobre o fluxo
-simplificado da V1 e nao reexecutam a V2.
+A V1 permanece preservada como historico e baseline. O fluxo executavel atual
+usa os mesmos nomes de comandos, mas grava e analisa os artefatos no layout da
+V2. As entradas segmentadas continuam compartilhadas em `artifacts/v1/`.
 
 ## Ambiente
 
@@ -53,7 +52,7 @@ campanha original.
 - [Limitação contrafactual](docs/HISTORICO-V1/LIMITACAO-COLAPSO-CONTRAFACTUAL.md)
 - [Relatório Grad-CAM V1](docs/RELATORIO-GRADCAM-V1-SEED-1001.md)
 
-## Fluxo executável atual: V1 simplificado
+## Fluxo executável atual: V2
 
 O fluxo executável mantido no código atual e executado com:
 
@@ -63,12 +62,12 @@ make all
 
 Ele executa, nesta ordem:
 
-1. Prepara as imagens segmentadas da referência V1.
-2. Executa os dois modelos para as 30 seeds.
-3. Calcula e apresenta os resultados da V1.
+1. Prepara as imagens segmentadas compartilhadas.
+2. Executa os dois modelos e registra a telemetria V2.
+3. Calcula e apresenta os resultados V2.
 
-Esse fluxo nao reconstroi a campanha instrumentada da V2. Os resultados da V2
-devem ser consultados em `docs/RESULTADOS-V2.md` e em `artifacts/v2/`.
+O Grad-CAM e executado separadamente com `make gradcam`, usando os checkpoints
+V2 ja existentes.
 
 As etapas tambem podem ser executadas separadamente:
 
@@ -136,7 +135,7 @@ artifacts/v1/segmented/images/test/
 
 Os dois modelos usam essa mesma colecao de imagens.
 
-### `make experiment` (referência V1)
+### `make experiment` (V2)
 
 Para cada uma das 30 seeds, a aplicacao treina:
 
@@ -144,20 +143,20 @@ Para cada uma das 30 seeds, a aplicacao treina:
 - a solucao contrafactual, com pesos aleatorios.
 
 Os dois modelos usam a mesma arquitetura, dados e configuracao. Cada resultado
-e salvo em `artifacts/v1/results/pair-SEED/result.json`.
+e salvo em `artifacts/v2/results/pair-SEED/`, com um resultado por ramo e um
+resultado agregado do par.
 
-### `make analyze` (referência V1)
+### `make analyze` (V2)
 
 Le os 30 resultados e calcula:
 
 - media e desvio-padrao de F1 macro;
 - media e desvio-padrao de acuracia;
-- diferencas pareadas de F1 macro e acuracia;
+- diferencas pareadas de F1 macro;
 - teste t pareado bilateral sobre F1 macro;
 - valor-p.
 
-O resumo e salvo em `artifacts/v1/summary.json` somente quando esse arquivo ainda
-nao existe. Um resumo existente e preservado.
+O resumo e salvo em `artifacts/v2/summary.json`.
 
 ## Evidencias publicadas
 
@@ -169,7 +168,7 @@ da V2 permanecem locais.
 
 A V1 tambem possui 30 pares versionados em `artifacts/v1/results/`, com resumo
 em `artifacts/v1/summary.json`. Esses arquivos sao mantidos como baseline
-histórico e para consulta pelo fluxo executável atual.
+historico e nao fazem parte do fluxo V2 atual.
 
 Para consultar os resultados da V2 sem treinar novamente:
 
@@ -180,13 +179,12 @@ artifacts/v2/results/
 artifacts/v2/gradcam/
 ```
 
-Para consultar os resultados da V1 pelo fluxo executável:
+Para consultar o baseline historico da V1:
 
-```bash
-make analyze
+```text
+artifacts/v1/summary.json
+artifacts/v1/results/
 ```
 
-Nao execute `make experiment` ou `make all` durante a leitura da entrega. O
-comando `experiment` ignora pares que ja possuem resultado, mas pode iniciar
-treinamentos ausentes; nenhum deles e necessario para consultar os resultados
-publicados da V1 ou da V2.
+`make analyze` consulta os resultados V2 sem iniciar treinamento. `make
+experiment` e `make all` executam o treinamento dos pares quando chamados.

@@ -80,13 +80,14 @@ _Evitar_: tratar o mapa como prova de causalidade ou como métrica de desempenho
 **V1**:
 Campanha experimental original, composta pela preparação das entradas, pelos 30
 pares experimentais e pela análise estatística de F1 macro e acurácia. É o
-baseline histórico e a referência do fluxo executável atual.
+baseline histórico preservado nos artefatos V1.
 
 **V2**:
 Campanha instrumentada histórica que reexecutou o protocolo da V1 e preservou
 evidências adicionais, como previsões, históricos, checkpoints e Grad-CAM. É a
-fonte principal de evidências para o artigo e a entrega, mas não é um novo
-protocolo experimental nem um fluxo executável atual.
+fonte principal de evidências para o artigo e a entrega, além de dar nome ao
+fluxo atual de `experiment`, `analyze` e `gradcam`. Não é um novo protocolo
+experimental.
 
 **Teste automatizado**:
 Verificação de comportamento do código por uma ferramenta de desenvolvimento.

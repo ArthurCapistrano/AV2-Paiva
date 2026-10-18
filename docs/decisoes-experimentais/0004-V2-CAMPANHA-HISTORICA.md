@@ -8,12 +8,12 @@ nova arquitetura ou uma nova pergunta experimental.
 
 A V2 produziu resultados, diagnósticos, históricos, previsões, Grad-CAM e
 checkpoints que continuam úteis para interpretar os achados. Esses artefatos
-devem permanecer disponíveis sem transformar a campanha histórica no fluxo
-executável principal.
+devem permanecer disponíveis sem transformar a campanha histórica publicada em
+uma nova campanha.
 
 ## Estado preservado
 
 Os resultados JSON, o resumo estatístico e os diagnósticos Grad-CAM permanecem
 publicados. Os checkpoints continuam disponíveis localmente e não fazem parte do
-histórico versionado. A V2 é consultada por sua documentação e por seus
-artefatos, não por comandos ativos da aplicação.
+histórico versionado. A V2 é consultada por sua documentação, por seus
+artefatos e pelas operações atuais da aplicação.

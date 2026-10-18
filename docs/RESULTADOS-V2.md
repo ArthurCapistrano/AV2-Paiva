@@ -10,9 +10,9 @@ da base MobileNetV2:
 - `solucao_principal`: pesos ImageNet;
 - `solucao_contrafactual`: pesos aleatorios.
 
-A V2 nao apaga nem altera os resultados versionados da V1. Para o artigo e a
-entrega final, este documento e a fonte principal de resultados e interpretacao;
-a V1 permanece como baseline historico e referencia do fluxo executavel.
+A V2 nao apaga nem altera os resultados versionados da V1. Para o artigo, a
+entrega final e o fluxo executavel atual, este documento e a fonte principal de
+resultados e interpretacao; a V1 permanece como baseline historico.
 
 ## Execucao
 
@@ -154,4 +154,4 @@ principalmente a variacao do treinamento sob esse split, e nao a variacao entre
 
 Os resultados da V2 podem ser consultados diretamente neste documento e nos
 artefatos publicados em `artifacts/v2/`. Os checkpoints permanecem locais para
-consulta, mas a V2 nao possui mais uma interface de execucao ou retomada ativa.
+consulta; a interface atual oferece `experiment`, `analyze` e `gradcam`.

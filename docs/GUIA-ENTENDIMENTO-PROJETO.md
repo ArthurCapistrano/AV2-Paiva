@@ -7,7 +7,7 @@ acompanhado sua construção. A ordem recomendada de leitura é:
 2. Ler `RESULTADOS-V2.md` para conhecer a evidência principal do artigo.
 3. Ler `VALIDACAO-METODOLOGIA.md` e `INDICE-EVIDENCIAS.md`.
 4. Ler o `protocol.json` e a seção correspondente neste guia.
-5. Executar `make help` para conhecer somente o fluxo executável da V1.
+5. Executar `make help` para conhecer o fluxo executável atual da V2.
 6. Consultar o mapa de arquivos e funções quando surgir uma dúvida.
 
 ## Estado atual da entrega
@@ -16,10 +16,10 @@ A V2 e a campanha que deve fundamentar o artigo e a entrega final. Ela
 reexecutou o mesmo protocolo da V1, acrescentou telemetria e publicou as
 evidencias necessárias para auditar os 30 pares.
 
-A V1 permanece como histórico, baseline e referência do código executável. O
-fluxo atual `prepare -> experiment -> analyze` grava e analisa artefatos em
-`artifacts/v1/`; ele nao reexecuta nem analisa a campanha V2. A V2 nao possui
-mais comandos ativos na CLI.
+A V1 permanece como histórico e baseline. O fluxo atual
+`prepare -> experiment -> analyze` usa `artifacts/v1/segmented/` como entrada
+compartilhada e grava os resultados detalhados em `artifacts/v2/`. O comando
+`gradcam` usa os checkpoints V2 e gera os painéis dos três exemplos fixos.
 
 ## 1. Pergunta do experimento
 
@@ -101,21 +101,21 @@ protocol.json
   prepare
       |
       v
-  artifacts/v1/segmented/ (fluxo executável atual)
+  artifacts/v1/segmented/ (entrada compartilhada)
       |
       v
-  experiment
+  experiment (V2)
       |
       v
-    artifacts/v1/results/pair-1001/result.json (referência V1)
+    artifacts/v2/results/pair-1001/result.json
 ...
-artifacts/v1/results/pair-1030/result.json
+artifacts/v2/results/pair-1030/result.json
       |
       v
    analyze
       |
       v
-artifacts/v1/summary.json
+ artifacts/v2/summary.json
 ```
 
 ### Etapa 1: preparação
@@ -135,23 +135,29 @@ não pode ser explicada por uma preparação diferente das imagens.
 ### Etapa 2: experimento
 
 `experiment` lê as 30 seeds do `protocol.json`. A função `run_experiment` treina
-os dois ramos para cada seed e salva somente as métricas necessárias.
+os dois ramos para cada seed e salva a telemetria detalhada da V2.
 
 Cada resultado tem este formato conceitual:
 
 ```json
 {
+  "schema_version": 1,
   "seed": 1001,
-  "solucao_principal": {
+  "branch": "solucao_principal",
+  "evaluation": {
     "macro_f1": 0.80,
-    "accuracy": 0.85
+    "accuracy": 0.85,
+    "per_class": {},
+    "confusion_matrix": []
   },
-  "solucao_contrafactual": {
-    "macro_f1": 0.60,
-    "accuracy": 0.70
-  }
+  "history": [],
+  "predictions": []
 }
 ```
+
+O arquivo `results/pair-SEED/result.json` aponta para os dois resultados de
+ramo, um da solução principal e outro da solução contrafactual. Os resultados
+de ramo também registram as probabilidades e a classe verdadeira de cada imagem.
 
 ### Etapa 3: análise
 
@@ -159,7 +165,7 @@ Cada resultado tem este formato conceitual:
 
 - média e desvio-padrão de F1 macro para cada ramo;
 - média e desvio-padrão de acurácia para cada ramo;
-- diferença entre os ramos em cada seed;
+- diferença pareada de F1 macro em cada seed;
 - teste t pareado bilateral sobre as diferenças de F1 macro;
 - valor-p do teste.
 
@@ -223,9 +229,9 @@ análise qualitativa e não alteram a análise estatística dos 30 pares.
 
 ## 4.3 Relação entre V1 e V2
 
-A V1 e a V2 respondem à mesma pergunta sob o mesmo protocolo. A V1 é a
-referência executável e preserva os resultados originais; a V2 é a campanha
-instrumentada concluída e fornece a evidência principal para o artigo.
+A V1 e a V2 respondem à mesma pergunta sob o mesmo protocolo. A V1 preserva os
+resultados originais e a V2 fornece a evidência principal para o artigo e o
+fluxo executável atual.
 
 Essa diferença de papel não significa que a V2 tenha criado uma nova pergunta
 ou substituído retroativamente os artefatos da V1. Significa apenas que a
@@ -479,9 +485,8 @@ Uma pessoa nova pode revisar o projeto nesta ordem:
 5. Ler `_build_model` e `_run_branch` em `experiment.py`.
 6. Ler `run_experiment` e `_experiment` para entender a repetição das 30 seeds.
 7. Ler `analysis.py` para conferir como os resultados são comparados.
-8. Executar `make help` e `make analyze` para consultar a V1 sem treinar.
-9. Consultar `RESULTADOS-V2.md` para interpretar a V2 como evidência principal
-   do artigo, embora histórica e não executável.
+8. Executar `make help` e `make analyze` para consultar os resultados V2.
+9. Executar `make gradcam` para consultar os painéis dos exemplos fixos.
 
 Durante a revisão, as perguntas mais importantes são:
 
@@ -511,10 +516,8 @@ complexidade que não ajuda a responder à pergunta do trabalho:
 Essas ausências são intencionais. O projeto prioriza uma comparação funcional,
 reproduzível e explicável no ambiente controlado da disciplina.
 
-A V2 manteve o fluxo executável separado, mas criou a campanha que fornece a
-evidência principal do artigo, com históricos, probabilidades, checkpoints,
-métricas por classe, matrizes de confusão e Grad-CAM para auditoria. Ela é
-consultada por `RESULTADOS-V2.md` e pelos artefatos publicados em
-`artifacts/v2/`; apenas os checkpoints permanecem locais. A V2 não possui
-comandos ativos, não substitui o fluxo executável V1 e não deve ser confundida
-com uma nova pergunta experimental.
+A V2 fornece a evidência principal do artigo e o fluxo executável atual, com
+históricos, probabilidades, métricas por classe, matrizes de confusão e
+Grad-CAM para auditoria. Ela é consultada por `RESULTADOS-V2.md` e pelos
+artefatos publicados em `artifacts/v2/`; os checkpoints permanecem locais. A V2
+não deve ser confundida com uma nova pergunta experimental.

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import random
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -12,7 +13,10 @@ import keras  # type: ignore[import-untyped]
 import numpy as np
 import tensorflow as tf  # type: ignore[import-untyped]
 from numpy.typing import NDArray
-from sklearn.metrics import accuracy_score, f1_score  # type: ignore[import-untyped]
+from sklearn.metrics import (  # type: ignore[import-untyped]
+    classification_report,
+    confusion_matrix,
+)
 
 from experimento_feijao.preparation import (
     BEANS_CLASSES,
@@ -33,6 +37,7 @@ COMPONENTS: tuple[str, ...] = (
     "augmentation",  # Espelhamento e variação de brilho.
     "dropout",  # Sorteio do dropout.
 )
+V2_SCHEMA_VERSION = 1
 
 
 @dataclass(frozen=True)
@@ -258,40 +263,6 @@ def _build_model(
     return model
 
 
-def _metrics(labels: list[int], predictions: list[int]) -> dict[str, float]:
-    """Calcula somente as métricas necessárias para o experimento."""
-    return {
-        "accuracy": float(accuracy_score(labels, predictions)),
-        "macro_f1": float(
-            f1_score(
-                labels,
-                predictions,
-                labels=list(range(len(BEANS_CLASSES))),
-                average="macro",
-                zero_division=0,
-            )
-        ),
-    }
-
-
-def _validate_existing_result(path: Path, pair_seed: int) -> None:
-    """Confirma que uma saída existente pode ser preservada e reutilizada."""
-    try:
-        result = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise ValueError(f"o resultado existente é inválido: {path}") from error
-
-    if not isinstance(result, dict) or result.get("seed") != pair_seed:
-        raise ValueError(f"o resultado existente pertence a outra seed: {path}")
-    for branch in BRANCHES:
-        metrics = result.get(branch)
-        if not isinstance(metrics, dict) or any(
-            not isinstance(metrics.get(metric), (int, float))
-            for metric in ("macro_f1", "accuracy")
-        ):
-            raise ValueError(f"o resultado existente está incompleto: {path}")
-
-
 def _fit_with_validation(
     model: keras.Model,
     train_records: list[SegmentedRecord],
@@ -300,11 +271,13 @@ def _fit_with_validation(
     validation_labels: NDArray[np.int64],
     seeds: dict[str, int],
     training: dict[str, Any],
-) -> None:
-    """Treina e mantém os pesos da época com menor perda de validação."""
+) -> tuple[int, float, list[dict[str, float]]]:
+    """Treina, registra o histórico e mantém o melhor estado em memória."""
     augmentation = cast(dict[str, Any], training["augmentation"])
     best_loss = float("inf")
+    best_epoch = 0
     best_weights = model.get_weights()
+    history_rows: list[dict[str, float]] = []
     for epoch in range(int(training["epochs"])):
         # Os dados são recriados por época, mas permanecem determinísticos.
         epoch_images, epoch_labels = _epoch_training_data(
@@ -325,30 +298,96 @@ def _fit_with_validation(
             validation_data=(validation_images, validation_labels),
             verbose=0,
         )
+        history_rows.append(
+            {
+                "epoch": float(epoch + 1),
+                **{
+                    name: float(values[0])
+                    for name, values in history.history.items()
+                    if values
+                },
+            }
+        )
         validation_loss = float(history.history["val_loss"][0])
         if validation_loss < best_loss:
             best_loss = validation_loss
+            best_epoch = epoch + 1
             best_weights = model.get_weights()
 
     model.set_weights(best_weights)
+    return best_epoch, best_loss, history_rows
+
+
+def _evaluation(
+    records: list[SegmentedRecord],
+    probabilities: NDArray[np.float32],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Calcula métricas detalhadas e previsões por imagem."""
+    labels = [record.label for record in records]
+    predictions = np.argmax(probabilities, axis=1).tolist()
+    report = classification_report(
+        labels,
+        predictions,
+        labels=list(range(len(BEANS_CLASSES))),
+        target_names=list(BEANS_CLASSES),
+        output_dict=True,
+        zero_division=0,
+    )
+    evaluation = {
+        "accuracy": float(report["accuracy"]),
+        "macro_f1": float(report["macro avg"]["f1-score"]),
+        "per_class": {
+            class_name: {
+                metric: float(report[class_name][metric])
+                for metric in ("precision", "recall", "f1-score", "support")
+            }
+            for class_name in BEANS_CLASSES
+        },
+        "confusion_matrix": confusion_matrix(
+            labels,
+            predictions,
+            labels=list(range(len(BEANS_CLASSES))),
+        ).tolist(),
+    }
+    prediction_rows = [
+        {
+            "identity": record.identity,
+            "true_class": BEANS_CLASSES[record.label],
+            "predicted_class": BEANS_CLASSES[prediction],
+            "probabilities": {
+                class_name: float(probability)
+                for class_name, probability in zip(
+                    BEANS_CLASSES, row, strict=True
+                )
+            },
+        }
+        for record, prediction, row in zip(
+            records, predictions, probabilities, strict=True
+        )
+    ]
+    return evaluation, prediction_rows
 
 
 def _run_branch(
     branch: str,
+    pair_seed: int,
     seeds: dict[str, int],
     training: dict[str, Any],
     records: dict[str, list[SegmentedRecord]],
-) -> dict[str, float]:
-    """Treina um ramo e devolve seu F1 macro e sua acurácia.
+    checkpoint: Path,
+) -> dict[str, Any]:
+    """Treina um ramo e devolve a telemetria detalhada da V2.
 
     Args:
         branch: Solução principal ou solução contrafactual.
+        pair_seed: Seed do par experimental.
         seeds: Seeds derivadas para os componentes comuns do par.
         training: Hiperparâmetros fixos do treinamento.
         records: Entradas segmentadas organizadas por divisão.
+        checkpoint: Caminho compatível do checkpoint do ramo.
 
     Returns:
-        F1 macro e acurácia calculados no conjunto de teste.
+        Resultado detalhado calculado no conjunto de teste.
     """
     model: keras.Model | None = None
     try:
@@ -360,7 +399,8 @@ def _run_branch(
         validation_labels = np.asarray(
             [record.label for record in validation_records], dtype=np.int64
         )
-        _fit_with_validation(
+        started = time.perf_counter()
+        best_epoch, best_loss, history = _fit_with_validation(
             model,
             train_records,
             train_images,
@@ -369,11 +409,23 @@ def _run_branch(
             seeds,
             training,
         )
+        training_seconds = time.perf_counter() - started
         test_records = records["test"]
         # A avaliação final usa o conjunto de teste apenas após selecionar os pesos.
-        probabilities = model.predict(_images(test_records), verbose=0)
-        predictions = np.argmax(probabilities, axis=1).tolist()
-        return _metrics([record.label for record in test_records], predictions)
+        probabilities = np.asarray(model.predict(_images(test_records), verbose=0))
+        evaluation, prediction_rows = _evaluation(test_records, probabilities)
+        return {
+            "schema_version": V2_SCHEMA_VERSION,
+            "seed": pair_seed,
+            "branch": branch,
+            "best_epoch": best_epoch,
+            "best_validation_loss": best_loss,
+            "training_seconds": training_seconds,
+            "history": history,
+            "evaluation": evaluation,
+            "predictions": prediction_rows,
+            "checkpoint": str(checkpoint),
+        }
     finally:
         del model
         keras.backend.clear_session()
@@ -383,25 +435,30 @@ def _run_pair(
     pair_seed: int,
     training: dict[str, Any],
     records: dict[str, list[SegmentedRecord]],
-) -> dict[str, dict[str, float]]:
+    output: Path,
+) -> dict[str, dict[str, Any]]:
     """Executa os dois ramos usando as seeds derivadas do par."""
     seeds = {
         component: _derive_seed(pair_seed, component) for component in COMPONENTS
     }
     return {
-        branch: _run_branch(branch, seeds, training, records) for branch in BRANCHES
+        branch: _run_branch(
+            branch,
+            pair_seed,
+            seeds,
+            training,
+            records,
+            output / "checkpoints" / f"pair-{pair_seed}" / f"{branch}.weights.h5",
+        )
+        for branch in BRANCHES
     }
 
 
-def _write_pair_result(
-    pair_output: Path,
-    pair_seed: int,
-    results: dict[str, dict[str, float]],
-) -> None:
-    """Grava as métricas de um par sem alterar resultados anteriores."""
-    pair_output.mkdir(parents=True)
-    (pair_output / "result.json").write_text(
-        json.dumps({"seed": pair_seed, **results}, indent=2, sort_keys=True) + "\n",
+def _write_json(path: Path, document: object) -> None:
+    """Grava um artefato JSON em seu diretório de saída."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(document, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 
@@ -411,12 +468,12 @@ def run_experiment(
     segmented_root: Path,
     output: Path,
 ) -> None:
-    """Executa e salva os 30 pares experimentais definidos no protocolo.
+    """Executa e salva os 30 pares detalhados definidos no protocolo.
 
     Args:
         configuration_path: Configuração fixa do experimento.
         segmented_root: Diretório compartilhado de entradas segmentadas.
-        output: Diretório dos resultados dos pares.
+        output: Diretório raiz que contém resultados e artefatos V2.
 
     Raises:
         ValueError: Se a configuração, as entradas ou o treinamento falharem.
@@ -427,13 +484,20 @@ def run_experiment(
     tf.config.experimental.enable_op_determinism()
 
     for pair_seed in SEEDS:
-        pair_output = output / f"pair-{pair_seed}"
+        pair_output = output / "results" / f"pair-{pair_seed}"
         result_path = pair_output / "result.json"
-        if result_path.is_file():
-            _validate_existing_result(result_path, pair_seed)
-            continue
-        if pair_output.exists():
-            raise ValueError(f"a saída já existe: {pair_output}")
 
-        results = _run_pair(pair_seed, training, records)
-        _write_pair_result(pair_output, pair_seed, results)
+        results = _run_pair(pair_seed, training, records, output)
+        branch_paths: dict[str, str] = {}
+        for branch, result in results.items():
+            branch_path = pair_output / branch / "result.json"
+            _write_json(branch_path, result)
+            branch_paths[branch] = str(branch_path)
+        _write_json(
+            result_path,
+            {
+                "schema_version": V2_SCHEMA_VERSION,
+                "seed": pair_seed,
+                "branches": branch_paths,
+            },
+        )

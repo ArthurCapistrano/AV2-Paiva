@@ -81,7 +81,7 @@ def _analyze(args: argparse.Namespace) -> int:
 
     try:
         summary = analyze(args.results)
-        if args.output is not None and not args.output.exists():
+        if args.output is not None:
             args.output.write_text(
                 json.dumps(summary, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
@@ -91,8 +91,28 @@ def _analyze(args: argparse.Namespace) -> int:
         return 2
 
     _print_metric_summaries(summary)
-    _print_pairwise_differences(summary)
-    _print_paired_test(summary)
+    _print_paired_f1_difference(summary)
+    return 0
+
+
+def _gradcam(args: argparse.Namespace) -> int:
+    """Gera os mapas Grad-CAM dos exemplos fixos da V2.
+
+    Args:
+        args: Parâmetros da operação `gradcam`.
+
+    Returns:
+        Código zero em caso de sucesso ou dois quando a geração falha.
+    """
+    from experimento_feijao.gradcam import run_gradcam
+
+    try:
+        run_gradcam(args.config, args.segmented_inputs, args.output)
+    except (OSError, ValueError) as error:
+        print(f"Não foi possível gerar os mapas Grad-CAM: {error}", file=sys.stderr)
+        return 2
+
+    print(f"Grad-CAM gravado em {args.output / 'gradcam'}")
     return 0
 
 
@@ -107,25 +127,16 @@ def _print_metric_summaries(summary: dict[str, Any]) -> None:
         print(f"  {arm}: média={values['mean']:.4f}, desvio-padrão={values['std']:.4f}")
 
 
-def _print_pairwise_differences(summary: dict[str, Any]) -> None:
-    """Apresenta as médias das diferenças pareadas de F1 e acurácia."""
+def _print_paired_f1_difference(summary: dict[str, Any]) -> None:
+    """Apresenta a diferença pareada de F1 e seu teste estatístico."""
+    difference = summary["paired_macro_f1_difference"]
+    differences = difference["values"]
     print("Diferenças pareadas de F1 macro")
-    differences = summary["differences"]["macro_f1"]
     print(
         f"  média={sum(differences) / len(differences):.4f}, "
         f"quantidade={len(differences)}"
     )
-    accuracy_differences = summary["differences"]["accuracy"]
-    print("Diferenças pareadas de acurácia")
-    print(
-        f"  média={sum(accuracy_differences) / len(accuracy_differences):.4f}, "
-        f"quantidade={len(accuracy_differences)}"
-    )
-
-
-def _print_paired_test(summary: dict[str, Any]) -> None:
-    """Apresenta a estatística e o valor-p do teste t pareado."""
-    test = summary["paired_t_test"]
+    test = difference["t_test"]
     print(
         "Teste t pareado: "
         f"estatística={test['statistic']:.4f}, valor-p={test['p_value']:.4g}"
@@ -165,6 +176,14 @@ def _parser() -> argparse.ArgumentParser:
     analyze_parser.add_argument("--results", required=True, type=Path)
     analyze_parser.add_argument("--output", type=Path)
     analyze_parser.set_defaults(handler=_analyze)
+
+    gradcam_parser = subparsers.add_parser(
+        "gradcam", help="gera os mapas Grad-CAM dos exemplos fixos"
+    )
+    gradcam_parser.add_argument("--config", required=True, type=Path)
+    gradcam_parser.add_argument("--segmented-inputs", required=True, type=Path)
+    gradcam_parser.add_argument("--output", required=True, type=Path)
+    gradcam_parser.set_defaults(handler=_gradcam)
 
     return parser
 

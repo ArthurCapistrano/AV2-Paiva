@@ -4,9 +4,9 @@ Este documento e o ponto de entrada para a equipe que vai iniciar o artigo.
 Ele descreve o que ja foi feito, onde estao as evidencias e quais pontos ainda
 precisam de trabalho.
 
-A V2 e a base de evidencias do artigo e da entrega final. A V1 permanece como
-baseline historico e referencia do fluxo executavel atual; ela nao deve ser
-usada para substituir a interpretacao consolidada da V2.
+A V2 e a base de evidencias do artigo, da entrega final e do fluxo executavel
+atual. A V1 permanece como baseline historico e nao deve ser usada para
+substituir a interpretacao consolidada da V2.
 
 ## Ordem de leitura
 
@@ -39,15 +39,14 @@ uv sync --locked
 make analyze
 ```
 
-O `make analyze` usa os 30 `result.json` versionados da V1. Nao e necessario
-baixar o dataset para consultar esses resultados.
+O `make analyze` usa os resultados detalhados da V2. Nao e necessario baixar o
+dataset para consultar esses resultados.
 
 Os resultados da V2 podem ser consultados diretamente em `RESULTADOS-V2.md` e
 nos artefatos publicados em `artifacts/v2/`. A V2 e a evidencia principal do
-artigo, mas continua sendo uma campanha historica e nao possui mais comandos
-ativos na aplicacao.
+artigo e tambem o fluxo atual da aplicacao.
 
-Para reproduzir as entradas segmentadas localmente:
+Para preparar as entradas segmentadas compartilhadas localmente:
 
 ```bash
 make prepare
@@ -55,12 +54,11 @@ make prepare
 
 Esse comando baixa os tres arquivos oficiais do Beans pelo espelho fixado,
 confere os checksums e gera `artifacts/v1/segmented/`. As imagens geradas nao sao
-versionadas. Ele exige que `artifacts/v1/segmented/` ainda nao exista; nao o
-execute durante a leitura se as entradas ja estiverem preparadas.
+versionadas. O `make experiment` e o `make analyze` usam os resultados em
+`artifacts/v2/`.
 
-Nao executar `make experiment` novamente como parte da leitura do projeto. O
-comando ignora pares com `result.json`, mas pode iniciar treinamentos ausentes;
-a campanha completa ja esta registrada no repositorio.
+O Grad-CAM pode ser consultado ou gerado com `make gradcam`, usando os tres
+exemplos fixos e os checkpoints da V2.
 
 ## Pergunta e conclusao atual
 
