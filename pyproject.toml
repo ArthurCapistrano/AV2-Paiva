@@ -20,5 +20,10 @@ dependencies = [
 [project.scripts]
 experimento-feijao = "experimento_feijao.cli:main"
 
+[dependency-groups]
+dev = [
+  "pytest>=9.0.0",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/experimento_feijao"]

@@ -10,6 +10,7 @@ registros numerados para os motivos e consequências de cada escolha.
 - [0002 - Segmentação HSV da silhueta](0002-SEGMENTACAO-HSV-DA-SILHUETA.md)
 - [0003 - Protocolo Grad-CAM](0003-PROTOCOLO-GRAD-CAM.md)
 - [0004 - Manter a V2 como campanha histórica](0004-V2-CAMPANHA-HISTORICA.md)
+- [0005 - Campanhas reproduzíveis e análise estatística](0005-CAMPANHAS-REPRODUTIVEIS-E-ANALISE.md)
 
 ## Estado
 

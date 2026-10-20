@@ -18,6 +18,7 @@ from sklearn.metrics import (  # type: ignore[import-untyped]
     confusion_matrix,
 )
 
+from experimento_feijao.artifacts import sha256, write_json
 from experimento_feijao.preparation import (
     BEANS_CLASSES,
     SEEDS,
@@ -37,7 +38,7 @@ COMPONENTS: tuple[str, ...] = (
     "augmentation",  # Espelhamento e variação de brilho.
     "dropout",  # Sorteio do dropout.
 )
-V2_SCHEMA_VERSION = 1
+V2_SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -245,19 +246,22 @@ def _build_model(
     dropped = keras.layers.Dropout(
         float(training["dropout"]), seed=seeds["dropout"]
     )(pooled)
-    outputs = keras.layers.Dense(
+    logits = keras.layers.Dense(
         len(BEANS_CLASSES),
-        activation="softmax",
+        activation=None,
+        name="classifier_logits",
         kernel_initializer=keras.initializers.GlorotUniform(seed=seeds["head"]),
         bias_initializer="zeros",
         kernel_regularizer=keras.regularizers.l2(float(training["l2"])),
     )(dropped)
+    outputs = keras.layers.Softmax(name="classifier_probabilities")(logits)
 
     # Monta e compila o modelo que será treinado.
     model = keras.Model(inputs, outputs)
     model.compile(
         optimizer=keras.optimizers.Adam(float(training["learning_rate"])),
         loss=keras.losses.SparseCategoricalCrossentropy(),
+        metrics=["accuracy"],
     )
 
     return model
@@ -303,7 +307,7 @@ def _fit_with_validation(
             {
                 "epoch": float(epoch + 1),
                 **{
-                    name: float(values[0])
+                    name: _finite_float(values[0], f"histórico {name}")
                     for name, values in history.history.items()
                     if values
                 },
@@ -325,6 +329,8 @@ def _evaluation(
     probabilities: NDArray[np.float32],
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Calcula métricas detalhadas e previsões por imagem."""
+    if not np.isfinite(probabilities).all():
+        raise ValueError("as probabilidades do teste contêm valores não finitos")
     labels = [record.label for record in records]
     predictions = np.argmax(probabilities, axis=1).tolist()
     # Gera as métricas globais, por classe e a matriz de confusão do conjunto.
@@ -432,6 +438,7 @@ def _run_branch(
             "evaluation": evaluation,
             "predictions": prediction_rows,
             "checkpoint": str(checkpoint),
+            "checkpoint_sha256": sha256(checkpoint),
         }
     finally:
         del model
@@ -462,13 +469,12 @@ def _run_pair(
     }
 
 
-def _write_json(path: Path, document: object) -> None:
-    """Grava um artefato JSON em seu diretório de saída."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(document, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+def _finite_float(value: Any, name: str) -> float:
+    """Converte um valor numérico e rejeita NaN/Inf antes da publicação."""
+    converted = float(value)
+    if not np.isfinite(converted):
+        raise ValueError(f"{name} contém valor não finito")
+    return converted
 
 
 def run_experiment(
@@ -491,6 +497,10 @@ def run_experiment(
     if seed is not None and seed not in SEEDS:
         raise ValueError(f"seed inválida: {seed}")
     selected_seeds = SEEDS if seed is None else (seed,)
+    if output.exists() and not output.is_dir():
+        raise ValueError(f"a saída não é um diretório: {output}")
+    if output.exists() and any(output.iterdir()):
+        raise ValueError(f"a saída da campanha já existe: {output}")
     for pair_seed in selected_seeds:
         pair_output = output / "results" / f"pair-{pair_seed}"
         checkpoint_output = output / "checkpoints" / f"pair-{pair_seed}"
@@ -501,6 +511,18 @@ def run_experiment(
     training = _read_configuration(configuration_path)
     records = _load_segmented_inputs(segmented_root)
     tf.config.experimental.enable_op_determinism()
+    write_json(
+        output / "manifest.json",
+        {
+            "schema_version": V2_SCHEMA_VERSION,
+            "campaign_id": output.name,
+            "configuration": str(configuration_path),
+            "configuration_sha256": sha256(configuration_path),
+            "segmented_inputs": str(segmented_root),
+            "seeds": [int(value) for value in selected_seeds],
+            "branches": list(BRANCHES),
+        },
+    )
 
     for pair_seed in selected_seeds:
         pair_output = output / "results" / f"pair-{pair_seed}"
@@ -511,9 +533,9 @@ def run_experiment(
         # Salva cada ramo separadamente e registra seus caminhos no resultado do par.
         for branch, result in results.items():
             branch_path = pair_output / branch / "result.json"
-            _write_json(branch_path, result)
+            write_json(branch_path, result)
             branch_paths[branch] = str(branch_path)
-        _write_json(
+        write_json(
             result_path,
             {
                 "schema_version": V2_SCHEMA_VERSION,

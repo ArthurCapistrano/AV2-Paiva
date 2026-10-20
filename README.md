@@ -52,29 +52,33 @@ campanha original.
 - [Limitação contrafactual](docs/HISTORICO-V1/LIMITACAO-COLAPSO-CONTRAFACTUAL.md)
 - [Relatório Grad-CAM V1](docs/RELATORIO-GRADCAM-V1-SEED-1001.md)
 
-## Fluxo executável atual: V2
+## Fluxo executável de novas campanhas
 
-O fluxo executável mantido no código atual e executado com:
+Novas execuções usam uma pasta própria e podem ser iniciadas com:
 
 ```bash
-make all
+make all CAMPAIGN=artifacts/campaigns/campaign-01
 ```
 
-Ele executa, nesta ordem:
+O comando executa, nesta ordem:
 
 1. Prepara as imagens segmentadas compartilhadas.
-2. Executa os dois modelos e registra a telemetria V2.
-3. Calcula e apresenta os resultados V2.
+2. Reutiliza a preparação se a pasta já existir.
+3. Executa os dois modelos e registra a telemetria da campanha.
+4. Gera os mapas Grad-CAM.
+5. Calcula e apresenta os resultados estatísticos.
 
-O Grad-CAM e executado separadamente com `make gradcam`, usando os checkpoints
-V2 ja existentes.
+O `prepare` não sobrescreve uma preparação existente. As demais etapas não
+sobrescrevem uma campanha existente; escolha outro identificador para uma nova
+execução.
 
-As etapas tambem podem ser executadas separadamente:
+As etapas também podem ser executadas separadamente:
 
 ```bash
-make prepare
-make experiment
-make analyze
+make prepare CAMPAIGN=artifacts/campaigns/campaign-01
+make experiment CAMPAIGN=artifacts/campaigns/campaign-01
+make gradcam CAMPAIGN=artifacts/campaigns/campaign-01
+make analyze CAMPAIGN=artifacts/campaigns/campaign-01
 ```
 
 ## `protocol.json`
@@ -123,7 +127,7 @@ contrafactual.
 
 ## O que acontece em cada etapa
 
-### `make prepare` (referência V1)
+### `make prepare`
 
 Carrega o dataset, aplica a segmentacao de silhueta e salva as entradas em:
 
@@ -135,28 +139,28 @@ artifacts/v1/segmented/images/test/
 
 Os dois modelos usam essa mesma colecao de imagens.
 
-### `make experiment` (V2)
+### `make experiment`
 
 Para cada uma das 30 seeds, a aplicacao treina:
 
 - a solucao principal, com pesos ImageNet;
 - a solucao contrafactual, com pesos aleatorios.
 
-Os dois modelos usam a mesma arquitetura, dados e configuracao. Cada resultado
-e salvo em `artifacts/v2/results/pair-SEED/`, com um resultado por ramo e um
-resultado agregado do par.
+Os dois modelos usam a mesma arquitetura, dados e configuração. Cada resultado
+é salvo na pasta da campanha, com um resultado por ramo e um resultado
+agregado do par.
 
-### `make analyze` (V2)
+### `make analyze`
 
 Le os 30 resultados e calcula:
 
 - media e desvio-padrao de F1 macro;
 - media e desvio-padrao de acuracia;
-- diferencas pareadas de F1 macro;
-- teste t pareado bilateral sobre F1 macro;
-- valor-p.
+- diferenças pareadas de F1 macro e acurácia;
+- teste t pareado ou Wilcoxon conforme a normalidade das diferenças;
+- diagnóstico de normalidade, estatística e valor-p.
 
-O resumo e salvo em `artifacts/v2/summary.json`.
+O resumo é salvo em `<campanha>/summary.json`.
 
 ## Evidencias publicadas
 
@@ -186,5 +190,11 @@ artifacts/v1/summary.json
 artifacts/v1/results/
 ```
 
-`make analyze` consulta os resultados V2 sem iniciar treinamento. `make
-experiment` e `make all` executam o treinamento dos pares quando chamados.
+Para consultar a V2 histórica sem sobrescrever seu resumo, execute:
+
+```bash
+uv run experimento-feijao analyze --results artifacts/v2
+```
+
+Novas campanhas devem receber um identificador próprio com `CAMPAIGN`; `make
+all` executa todo o fluxo dessa campanha.

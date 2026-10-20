@@ -1,7 +1,9 @@
 PYTHON := uv run
 CONFIG := protocol.json
 SEGMENTED := artifacts/v1/segmented
-OUTPUT := artifacts/v2
+CAMPAIGN ?= artifacts/campaigns/campaign-$(shell date +%Y%m%d-%H%M%S)
+CAMPAIGN := $(CAMPAIGN)
+OUTPUT ?= $(CAMPAIGN)
 SUMMARY := $(OUTPUT)/summary.json
 
 .PHONY: help prepare experiment analyze gradcam all
@@ -14,7 +16,8 @@ help:
 		'make experiment executa os 30 pares experimentais' \
 		'make analyze    calcula e apresenta os resultados' \
 		'make gradcam    gera os mapas Grad-CAM dos exemplos fixos' \
-		'make all        executa treinamento e análise'
+		'make all        executa uma campanha completa' \
+		'CAMPAIGN=...    escolhe a pasta versionável da campanha'
 
 # Prepara uma coleção fixa de entradas segmentadas compartilhadas pelos modelos.
 # Exemplo: make prepare
@@ -23,7 +26,7 @@ prepare:
 		--config $(CONFIG) \
 		--output $(SEGMENTED)
 
-# Executa os dois modelos para todas as 30 seeds definidas no protocolo V2.
+# Executa os dois modelos para todas as 30 seeds definidas no protocolo.
 # Exemplo: make experiment
 experiment:
 	$(PYTHON) experimento-feijao experiment \
@@ -31,14 +34,14 @@ experiment:
 		--segmented-inputs $(SEGMENTED) \
 		--output $(OUTPUT)
 
-# Calcula e apresenta as métricas e a análise estatística dos pares V2.
+# Calcula e apresenta as métricas e a análise estatística dos pares.
 # Exemplo: make analyze
 analyze:
 	$(PYTHON) experimento-feijao analyze \
 		--results $(OUTPUT) \
 		--output $(SUMMARY)
 
-# Gera os mapas dos três exemplos fixos para os 30 pares V2.
+# Gera os mapas dos três exemplos fixos para os 30 pares.
 # Exemplo: make gradcam
 gradcam:
 	$(PYTHON) experimento-feijao gradcam \
@@ -46,6 +49,6 @@ gradcam:
 		--segmented-inputs $(SEGMENTED) \
 		--output $(OUTPUT)
 
-# Executa preparação, experimento e análise na ordem correta.
+# Executa a campanha completa na ordem correta.
 # Exemplo: make all
-all: prepare experiment analyze
+all: prepare experiment gradcam analyze

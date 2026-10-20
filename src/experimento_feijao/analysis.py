@@ -1,29 +1,26 @@
 from __future__ import annotations
 
-import json
+import warnings
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 from scipy.stats import t as student_t  # type: ignore[import-untyped]
-from scipy.stats import ttest_rel  # type: ignore[import-untyped]
+from scipy.stats import shapiro  # type: ignore[import-untyped]
+from scipy.stats import ttest_rel, wilcoxon  # type: ignore[import-untyped]
 
+from experimento_feijao.artifacts import read_json
 from experimento_feijao.preparation import SEEDS
 
 BRANCHES = ("solucao_principal", "solucao_contrafactual")
-V2_SCHEMA_VERSION = 1
+V2_SCHEMA_VERSION = 2
 METRICS = ("macro_f1", "accuracy")
+NORMALITY_ALPHA = 0.05
 
 
 def _read_json(path: Path) -> dict[str, Any]:
     """Lê um artefato JSON produzido pela campanha V2."""
-    try:
-        document = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise ValueError(f"não foi possível ler o resultado: {path}") from error
-    if not isinstance(document, dict):
-        raise ValueError(f"resultado inválido: {path}")
-    return document
+    return read_json(path)
 
 
 def _read_results(results_root: Path) -> list[dict[str, Any]]:
@@ -44,7 +41,16 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
         branches: dict[str, dict[str, Any]] = {}
         for branch in BRANCHES:
             branch_path = pair_path.parent / branch / "result.json"
-            branches[branch] = _read_json(branch_path)
+            branch_result = _read_json(branch_path)
+            if branch_result.get("seed") != seed:
+                raise ValueError(f"seed inconsistente no resultado: {branch_path}")
+            if branch_result.get("branch") != branch:
+                raise ValueError(f"ramo inconsistente no resultado: {branch_path}")
+            for metric in METRICS:
+                value = branch_result.get("evaluation", {}).get(metric)
+                if not isinstance(value, (int, float)) or not np.isfinite(value):
+                    raise ValueError(f"métrica inválida no resultado: {branch_path}")
+            branches[branch] = branch_result
         results.append({"seed": seed, "branches": branches})
 
     # A ordem final segue as seeds do protocolo, não a ordem dos nomes dos arquivos.
@@ -110,6 +116,96 @@ def _prediction_counts(result: dict[str, Any]) -> dict[str, int]:
     return {class_name: count for class_name, count in counts.items() if count}
 
 
+def _normality(values: np.ndarray) -> dict[str, Any]:
+    """Avalia a normalidade das diferenças pareadas por seed."""
+    if len(values) < 3:
+        return {
+            "name": "shapiro_wilk",
+            "statistic": None,
+            "p_value": None,
+            "alpha": NORMALITY_ALPHA,
+            "normal": False,
+            "reason": "amostra insuficiente",
+        }
+    if np.allclose(values, values[0]):
+        return {
+            "name": "shapiro_wilk",
+            "statistic": None,
+            "p_value": None,
+            "alpha": NORMALITY_ALPHA,
+            "normal": False,
+            "reason": "diferenças constantes",
+        }
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        statistic, p_value = shapiro(values)
+    return {
+        "name": "shapiro_wilk",
+        "statistic": float(statistic),
+        "p_value": float(p_value),
+        "alpha": NORMALITY_ALPHA,
+        "normal": bool(p_value >= NORMALITY_ALPHA),
+    }
+
+
+def _paired_test(values: np.ndarray) -> dict[str, Any]:
+    """Escolhe t pareado ou Wilcoxon com base na normalidade das diferenças."""
+    normality = _normality(values)
+    if normality["normal"]:
+        statistic, p_value = ttest_rel(values, np.zeros_like(values))
+        return {
+            "name": "paired_t",
+            "statistic": float(statistic),
+            "p_value": float(p_value),
+            "normality": normality,
+        }
+
+    nonzero = values[~np.isclose(values, 0)]
+    has_ties = len(np.unique(np.abs(nonzero))) != len(nonzero)
+    if len(nonzero) < 2:
+        return {
+            "name": "wilcoxon",
+            "statistic": 0.0,
+            "p_value": 1.0,
+            "method": "insufficient_nonzero_differences",
+            "zero_method": "wilcox",
+            "nonzero_count": int(len(nonzero)),
+            "ties": has_ties,
+            "normality": normality,
+        }
+
+    method = "approx" if has_ties or len(nonzero) > 50 else "exact"
+    statistic, p_value = wilcoxon(
+        values,
+        zero_method="wilcox",
+        alternative="two-sided",
+        method=method,
+    )
+    return {
+        "name": "wilcoxon",
+        "statistic": float(statistic),
+        "p_value": float(p_value),
+        "method": method,
+        "zero_method": "wilcox",
+        "nonzero_count": int(len(nonzero)),
+        "ties": has_ties,
+        "normality": normality,
+    }
+
+
+def _paired_difference_summary(
+    principal: np.ndarray,
+    counterfactual: np.ndarray,
+) -> dict[str, Any]:
+    """Resume uma diferença pareada e o teste escolhido para ela."""
+    values = principal - counterfactual
+    return {
+        "values": [float(value) for value in values],
+        "confidence_interval_95": _confidence_interval(values.tolist()),
+        "test": _paired_test(values),
+    }
+
+
 def _seed_comparison(results: list[dict[str, Any]]) -> dict[str, Any]:
     """Compara o seed 1001 com os outros pares da campanha."""
     seed_result = next(result for result in results if result["seed"] == 1001)
@@ -147,36 +243,32 @@ def analyze(results_root: Path) -> dict[str, Any]:
     """Consolida métricas V2 e calcula o teste t pareado bilateral."""
     results = _read_results(results_root)
     metrics = _metric_summaries(results)
-    principal = np.asarray(
-        [
-            result["branches"][BRANCHES[0]]["evaluation"]["macro_f1"]
-            for result in results
-        ],
-        dtype=np.float64,
-    )
-    counterfactual = np.asarray(
-        [
-            result["branches"][BRANCHES[1]]["evaluation"]["macro_f1"]
-            for result in results
-        ],
-        dtype=np.float64,
-    )
-    # A diferença é calculada dentro de cada par antes do teste estatístico.
-    differences = (principal - counterfactual).tolist()
-    test = ttest_rel(principal, counterfactual)
+    paired_metrics: dict[str, dict[str, Any]] = {}
+    for metric in METRICS:
+        principal = np.asarray(
+            [
+                result["branches"][BRANCHES[0]]["evaluation"][metric]
+                for result in results
+            ],
+            dtype=np.float64,
+        )
+        counterfactual = np.asarray(
+            [
+                result["branches"][BRANCHES[1]]["evaluation"][metric]
+                for result in results
+            ],
+            dtype=np.float64,
+        )
+        paired_metrics[metric] = _paired_difference_summary(
+            principal, counterfactual
+        )
 
     return {
         "schema_version": V2_SCHEMA_VERSION,
         "pair_count": len(results),
         "seeds": [int(result["seed"]) for result in results],
         "metrics": metrics,
-        "paired_macro_f1_difference": {
-            "values": [float(value) for value in differences],
-            "confidence_interval_95": _confidence_interval(differences),
-            "t_test": {
-                "statistic": float(test.statistic),
-                "p_value": float(test.pvalue),
-            },
-        },
+        "paired_macro_f1_difference": paired_metrics["macro_f1"],
+        "paired_accuracy_difference": paired_metrics["accuracy"],
         "seed_1001_comparison": _seed_comparison(results),
     }

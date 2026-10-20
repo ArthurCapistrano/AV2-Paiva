@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import os
 import urllib.error
 import urllib.request
@@ -12,6 +11,8 @@ from typing import Any, cast
 import cv2
 import numpy as np
 from numpy.typing import NDArray
+
+from experimento_feijao.artifacts import sha256 as _sha256
 
 SPLITS = ("train", "validation", "test")
 BEANS_CLASSES = ("angular_leaf_spot", "bean_rust", "healthy")
@@ -35,15 +36,6 @@ class ImageRecord:
     identity: str
     label: str
     image: NDArray[np.uint8]
-
-
-def _sha256(path: Path) -> str:
-    """Calcula o SHA-256 de um arquivo em blocos."""
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for chunk in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _download_mirror_archive(split: str) -> Path:
@@ -294,7 +286,7 @@ def _segment(
 def prepare(
     configuration: dict[str, Any],
     output: Path,
-) -> dict[str, int]:
+) -> dict[str, int | bool]:
     """Prepara todos os splits e devolve a quantidade de entradas produzidas.
 
     Args:
@@ -310,7 +302,10 @@ def prepare(
     """
     segmentation = _validate_segmentation_configuration(configuration)
     if output.exists():
-        raise ValueError(f"a saída já existe: {output}")
+        if not output.is_dir():
+            raise ValueError(f"a saída não é um diretório: {output}")
+        count = sum(1 for path in output.rglob("*.png") if path.is_file())
+        return {"count": count, "reused": True}
 
     # Carrega o dataset uma vez e materializa cada split na saída.
     records = _load_beans_mirror()
@@ -324,4 +319,4 @@ def prepare(
             )
             _write_segmented_image(segmented, destination)
             count += 1
-    return {"count": count}
+    return {"count": count, "reused": False}

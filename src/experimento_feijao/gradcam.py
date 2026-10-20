@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +21,7 @@ from experimento_feijao.experiment import (
     _load_segmented_inputs,
     _read_configuration,
 )
+from experimento_feijao.artifacts import validate_checkpoint_reference, write_json
 from experimento_feijao.preparation import (
     BEANS_CLASSES,
     ImageRecord,
@@ -35,27 +35,14 @@ FIXED_IDENTITIES: dict[str, str] = {
     "bean_rust": "test-0085",
     "healthy": "test-0000",
 }
-
-
-def _write_json(path: Path, document: object) -> None:
-    """Grava um diagnóstico JSON no diretório de saída.
-
-    Args:
-        path: Caminho do artefato JSON.
-        document: Conteúdo serializável do diagnóstico.
-    """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(document, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+GRADCAM_SCHEMA_VERSION = 2
 
 
 def _gradcam_map(
     model: keras.Model,
     image: NDArray[np.uint8],
     class_index: int,
-) -> NDArray[np.float32]:
+) -> tuple[NDArray[np.float32], float]:
     """Calcula o mapa Grad-CAM para uma classe predita.
 
     Args:
@@ -64,7 +51,7 @@ def _gradcam_map(
         class_index: Índice da classe cujo gradiente será projetado.
 
     Returns:
-        Mapa normalizado entre zero e um, na resolução da camada convolucional.
+        Mapa normalizado e o logit alvo, na resolução da camada convolucional.
     """
     # Recupera as camadas que participam do caminho original do modelo para
     # preservar exatamente a normalização e a cabeça usadas no treinamento.
@@ -80,12 +67,10 @@ def _gradcam_map(
     dropout_layer = next(
         layer for layer in model.layers if isinstance(layer, keras.layers.Dropout)
     )
-    classifier_layer = next(
-        layer for layer in model.layers if isinstance(layer, keras.layers.Dense)
-    )
+    classifier_layer = model.get_layer("classifier_logits")
 
     normalized_input = preprocessing_layer(model.input)
-    convolutional_output = feature_extractor(normalized_input)
+    convolutional_output = feature_extractor(normalized_input, training=False)
     pooled_output = pooling_layer(convolutional_output)
     dropped_output = dropout_layer(pooled_output, training=False)
     predictions_output = classifier_layer(dropped_output)
@@ -105,7 +90,7 @@ def _gradcam_map(
     cam = tf.maximum(cam, 0)
     maximum = tf.reduce_max(cam)
     cam = tf.where(maximum > 0, cam / maximum, cam)
-    return np.asarray(cam, dtype=np.float32)
+    return np.asarray(cam, dtype=np.float32), float(score.numpy()[0])
 
 
 def _panel(
@@ -204,7 +189,26 @@ def run_gradcam(
             )
             if not checkpoint.is_file():
                 raise ValueError(f"checkpoint V2 não encontrado: {checkpoint}")
+            result_path = (
+                output / "results" / f"pair-{pair_seed}" / branch / "result.json"
+            )
+            validate_checkpoint_reference(result_path, checkpoint, pair_seed, branch)
             checkpoint_paths[branch] = checkpoint
+
+        for branch in BRANCHES:
+            diagnostic_path = (
+                output / "gradcam" / f"pair-{pair_seed}" / branch / "diagnostic.json"
+            )
+            image_paths = [
+                diagnostic_path.with_name(f"{class_name}.png")
+                for class_name in FIXED_IDENTITIES
+            ]
+            existing_path = next(
+                (path for path in [diagnostic_path, *image_paths] if path.exists()),
+                None,
+            )
+            if existing_path is not None:
+                raise ValueError(f"o Grad-CAM já existe: {existing_path}")
 
         for branch in BRANCHES:
             model = _build_model(branch, component_seeds, training)
@@ -212,7 +216,7 @@ def run_gradcam(
                 checkpoint = checkpoint_paths[branch]
                 model.load_weights(checkpoint)
                 metadata: dict[str, Any] = {
-                    "schema_version": 1,
+                    "schema_version": GRADCAM_SCHEMA_VERSION,
                     "seed": pair_seed,
                     "branch": branch,
                     "target": "predicted_class",
@@ -230,7 +234,9 @@ def run_gradcam(
                     predicted_index = int(np.argmax(probabilities))
 
                     # Calcula o mapa Grad-CAM para a classe prevista.
-                    cam = _gradcam_map(model, segmented, predicted_index)
+                    cam, predicted_logit = _gradcam_map(
+                        model, segmented, predicted_index
+                    )
 
                     # Define o caminho do painel visual do exemplo atual.
                     image_path = (
@@ -257,12 +263,15 @@ def run_gradcam(
                         "identity": segmented_record.identity,
                         "path": str(image_path),
                         "predicted_class": BEANS_CLASSES[predicted_index],
+                        "predicted_probability": float(probabilities[predicted_index]),
+                        "predicted_logit": predicted_logit,
+                        "score_type": "logit",
                     }
             finally:
                 del model
                 keras.backend.clear_session()
 
-            _write_json(
+            write_json(
                 output
                 / "gradcam"
                 / f"pair-{pair_seed}"

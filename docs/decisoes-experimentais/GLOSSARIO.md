@@ -47,6 +47,24 @@ Uma execução da solução principal e uma da solução contrafactual submetida
 mesmas condições pareadas.
 _Evitar_: duas execuções independentes
 
+**Campanha**:
+Execução completa de um protocolo, com preparação compartilhada, os 30 pares,
+checkpoints, resultados, Grad-CAM e análise estatística. Cada campanha possui
+uma pasta própria e não sobrescreve outra campanha.
+
+**Logit**:
+Pontuação bruta produzida pela cabeça classificadora antes da conversão para
+probabilidades pelo softmax. É o escore usado pelo Grad-CAM das novas campanhas
+para evitar saturação da probabilidade.
+
+**Probabilidade**:
+Saída normalizada pelo softmax a partir dos logits. As probabilidades das três
+classes somam um e são usadas para a previsão e para as métricas de teste.
+
+**Checkpoint**:
+Arquivo de pesos do melhor estado de um ramo, escolhido pela menor perda de
+validação. A identidade do arquivo é registrada pelo seu caminho e SHA-256.
+
 **Inicialização ImageNet**:
 Estado inicial da base MobileNetV2 formado por pesos aprendidos previamente no
 ImageNet.

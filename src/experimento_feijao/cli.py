@@ -44,7 +44,8 @@ def _prepare(args: argparse.Namespace) -> int:
         )
         return 2
 
-    print(f"Preparadas {prepared['count']} entradas segmentadas em {args.output}")
+    action = "Reutilizadas" if prepared.get("reused") else "Preparadas"
+    print(f"{action} {prepared['count']} entradas segmentadas em {args.output}")
     return 0
 
 
@@ -81,14 +82,14 @@ def _analyze(args: argparse.Namespace) -> int:
         Código zero em caso de sucesso ou dois quando a análise falha.
     """
     from experimento_feijao.analysis import analyze
+    from experimento_feijao.artifacts import write_json
 
     try:
         summary = analyze(args.results)
         if args.output is not None:
-            args.output.write_text(
-                json.dumps(summary, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
+            if args.output.exists():
+                raise ValueError(f"o resumo já existe: {args.output}")
+            write_json(args.output, summary)
     except (OSError, ValueError) as error:
         print(f"Não foi possível analisar os resultados: {error}", file=sys.stderr)
         return 2
@@ -139,9 +140,9 @@ def _print_paired_f1_difference(summary: dict[str, Any]) -> None:
         f"  média={sum(differences) / len(differences):.4f}, "
         f"quantidade={len(differences)}"
     )
-    test = difference["t_test"]
+    test = difference["test"]
     print(
-        "Teste t pareado: "
+        f"Teste {test['name']}: "
         f"estatística={test['statistic']:.4f}, valor-p={test['p_value']:.4g}"
     )
 
