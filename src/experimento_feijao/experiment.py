@@ -39,6 +39,7 @@ COMPONENTS: tuple[str, ...] = (
     "dropout",  # Sorteio do dropout.
 )
 V2_SCHEMA_VERSION = 2
+BATCH_NORMALIZATION_MOMENTUM = 0.9
 
 
 @dataclass(frozen=True)
@@ -229,6 +230,9 @@ def _build_model(
         include_top=False,
         weights="imagenet" if use_imagenet else None,
     )
+    for layer in base.layers:
+        if isinstance(layer, keras.layers.BatchNormalization):
+            layer.momentum = BATCH_NORMALIZATION_MOMENTUM
     base.trainable = True
 
     # Cria a entrada e aplica a normalização esperada pela MobileNetV2.
@@ -267,6 +271,21 @@ def _build_model(
     return model
 
 
+def _calibrate_batch_normalization(
+    model: keras.Model,
+    images: NDArray[np.uint8],
+    batch_size: int,
+) -> None:
+    """Atualiza as estatísticas móveis da base usando somente o treino."""
+    feature_extractor = next(
+        layer for layer in model.layers if isinstance(layer, keras.Model)
+    )
+    preprocessing_layer = model.get_layer("mobilenet_v2_preprocessing")
+    for start in range(0, len(images), batch_size):
+        batch = images[start : start + batch_size].astype(np.float32)
+        feature_extractor(preprocessing_layer(batch), training=True)
+
+
 def _fit_with_validation(
     model: keras.Model,
     train_records: list[SegmentedRecord],
@@ -300,8 +319,19 @@ def _fit_with_validation(
             batch_size=int(training["batch_size"]),
             epochs=1,
             shuffle=False,
-            validation_data=(validation_images, validation_labels),
             verbose=0,
+        )
+        # A validação usa estatísticas móveis calibradas com o treino, como a
+        # inferência final, em vez das estatísticas do lote de treinamento.
+        _calibrate_batch_normalization(
+            model, train_images, int(training["batch_size"])
+        )
+        validation_metrics = model.evaluate(
+            validation_images,
+            validation_labels,
+            batch_size=int(training["batch_size"]),
+            verbose=0,
+            return_dict=True,
         )
         history_rows.append(
             {
@@ -311,10 +341,18 @@ def _fit_with_validation(
                     for name, values in history.history.items()
                     if values
                 },
+                "val_loss": _finite_float(
+                    validation_metrics["loss"], "val_loss"
+                ),
+                "val_accuracy": _finite_float(
+                    validation_metrics["accuracy"], "val_accuracy"
+                ),
             }
         )
         # A seleção dos pesos usa somente a perda de validação da época atual.
-        validation_loss = float(history.history["val_loss"][0])
+        validation_loss = _finite_float(
+            validation_metrics["loss"], "val_loss"
+        )
         if validation_loss < best_loss:
             best_loss = validation_loss
             best_epoch = epoch + 1
@@ -519,6 +557,8 @@ def run_experiment(
             "configuration": str(configuration_path),
             "configuration_sha256": sha256(configuration_path),
             "segmented_inputs": str(segmented_root),
+            "batch_normalization_momentum": BATCH_NORMALIZATION_MOMENTUM,
+            "batch_normalization_calibration": "train_only_before_validation",
             "seeds": [int(value) for value in selected_seeds],
             "branches": list(BRANCHES),
         },

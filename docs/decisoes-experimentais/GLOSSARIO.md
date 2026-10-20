@@ -65,6 +65,11 @@ classes somam um e são usadas para a previsão e para as métricas de teste.
 Arquivo de pesos do melhor estado de um ramo, escolhido pela menor perda de
 validação. A identidade do arquivo é registrada pelo seu caminho e SHA-256.
 
+**Calibração da BatchNorm**:
+Atualização das estatísticas móveis das camadas BatchNorm usando somente as
+entradas de treino antes de medir a validação ou o teste. Não atualiza pesos por
+gradiente nem usa rótulos da validação ou do teste.
+
 **Inicialização ImageNet**:
 Estado inicial da base MobileNetV2 formado por pesos aprendidos previamente no
 ImageNet.

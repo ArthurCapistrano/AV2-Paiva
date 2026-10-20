@@ -16,6 +16,11 @@ O `prepare` reutiliza uma pasta existente em ambiente controlado. Cada ramo
 registra a identidade do checkpoint e seu SHA-256. O Grad-CAM valida essa
 referência antes de ler os pesos.
 
+As duas soluções usam `momentum=0.9` nas BatchNorms. Depois de cada época, as
+estatísticas são recalibradas com as entradas de treino antes da validação e da
+seleção do melhor estado. Isso mantém as estatísticas usadas na validação e no
+teste alinhadas com o estado do checkpoint.
+
 ## Análise estatística
 
 As diferenças são calculadas por seed como:
