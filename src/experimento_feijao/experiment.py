@@ -414,6 +414,9 @@ def _run_branch(
             training,
         )
         training_seconds = time.perf_counter() - started
+        # Persiste os melhores pesos antes de liberar o modelo ao final do ramo.
+        checkpoint.parent.mkdir(parents=True, exist_ok=True)
+        model.save_weights(checkpoint)
         test_records = records["test"]
         # A avaliação final usa o conjunto de teste apenas após selecionar os pesos.
         probabilities = np.asarray(model.predict(_images(test_records), verbose=0))
@@ -472,23 +475,34 @@ def run_experiment(
     configuration_path: Path,
     segmented_root: Path,
     output: Path,
+    seed: int | None = None,
 ) -> None:
-    """Executa e salva os 30 pares detalhados definidos no protocolo.
+    """Executa e salva os pares detalhados definidos no protocolo.
 
     Args:
         configuration_path: Configuração fixa do experimento.
         segmented_root: Diretório compartilhado de entradas segmentadas.
         output: Diretório raiz que contém resultados e artefatos V2.
+        seed: Seed opcional para executar somente um par experimental.
 
     Raises:
         ValueError: Se a configuração, as entradas ou o treinamento falharem.
     """
+    if seed is not None and seed not in SEEDS:
+        raise ValueError(f"seed inválida: {seed}")
+    selected_seeds = SEEDS if seed is None else (seed,)
+    for pair_seed in selected_seeds:
+        pair_output = output / "results" / f"pair-{pair_seed}"
+        checkpoint_output = output / "checkpoints" / f"pair-{pair_seed}"
+        if pair_output.exists() or checkpoint_output.exists():
+            raise ValueError(f"a saída já existe: {pair_output}")
+
     # A configuração e as entradas são carregadas antes de iniciar qualquer par.
     training = _read_configuration(configuration_path)
     records = _load_segmented_inputs(segmented_root)
     tf.config.experimental.enable_op_determinism()
 
-    for pair_seed in SEEDS:
+    for pair_seed in selected_seeds:
         pair_output = output / "results" / f"pair-{pair_seed}"
         result_path = pair_output / "result.json"
 

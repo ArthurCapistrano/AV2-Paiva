@@ -165,28 +165,36 @@ def run_gradcam(
     configuration_path: Path,
     segmented_root: Path,
     output: Path,
+    seed: int | None = None,
 ) -> None:
-    """Gera Grad-CAM para os três exemplos fixos dos 30 pares.
+    """Gera Grad-CAM para os três exemplos fixos dos pares selecionados.
 
     Args:
         configuration_path: Arquivo JSON com a configuração fixa do treinamento.
         segmented_root: Diretório com as entradas segmentadas preparadas.
         output: Diretório raiz dos checkpoints e dos diagnósticos gerados.
+        seed: Seed opcional para gerar Grad-CAM de somente um par.
 
     Raises:
         OSError: Se um artefato não puder ser lido ou gravado.
         ValueError: Se faltar um checkpoint ou houver uma entrada inválida.
     """
+    if seed is not None and seed not in SEEDS:
+        raise ValueError(f"seed inválida: {seed}")
+    selected_seeds = SEEDS if seed is None else (seed,)
     # Os mesmos exemplos são usados em todos os pares para manter a comparação
     # visual controlada entre seeds e ramos.
     examples = _fixed_examples(segmented_root)
     training = _read_configuration(configuration_path)
 
-    for pair_seed in SEEDS:
+    for pair_seed in selected_seeds:
         component_seeds = {
             component: _derive_seed(pair_seed, component)
             for component in COMPONENTS
         }
+
+        # Valida os dois checkpoints antes de gerar qualquer painel do par.
+        checkpoint_paths: dict[str, Path] = {}
         for branch in BRANCHES:
             checkpoint = (
                 output
@@ -196,9 +204,12 @@ def run_gradcam(
             )
             if not checkpoint.is_file():
                 raise ValueError(f"checkpoint V2 não encontrado: {checkpoint}")
+            checkpoint_paths[branch] = checkpoint
 
+        for branch in BRANCHES:
             model = _build_model(branch, component_seeds, training)
             try:
+                checkpoint = checkpoint_paths[branch]
                 model.load_weights(checkpoint)
                 metadata: dict[str, Any] = {
                     "schema_version": 1,

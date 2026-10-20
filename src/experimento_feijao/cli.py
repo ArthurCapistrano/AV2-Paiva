@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+DEFAULT_SEGMENTED_OUTPUT = Path("artifacts/v1/segmented")
+
 
 def _configuration(path: Path) -> dict[str, Any]:
     """Lê a configuração simples do experimento.
@@ -59,12 +61,13 @@ def _experiment(args: argparse.Namespace) -> int:
     from experimento_feijao.preparation import SEEDS
 
     try:
-        run_experiment(args.config, args.segmented_inputs, args.output)
+        run_experiment(args.config, args.segmented_inputs, args.output, args.seed)
     except (OSError, ValueError) as error:
         print(f"Não foi possível executar o experimento: {error}", file=sys.stderr)
         return 2
 
-    print(f"Experimento com {len(SEEDS)} pares gravado em {args.output}")
+    pair_count = 1 if args.seed is not None else len(SEEDS)
+    print(f"Experimento com {pair_count} pares gravado em {args.output}")
     return 0
 
 
@@ -107,7 +110,7 @@ def _gradcam(args: argparse.Namespace) -> int:
     from experimento_feijao.gradcam import run_gradcam
 
     try:
-        run_gradcam(args.config, args.segmented_inputs, args.output)
+        run_gradcam(args.config, args.segmented_inputs, args.output, args.seed)
     except (OSError, ValueError) as error:
         print(f"Não foi possível gerar os mapas Grad-CAM: {error}", file=sys.stderr)
         return 2
@@ -159,7 +162,9 @@ def _parser() -> argparse.ArgumentParser:
         "prepare", help="prepara as entradas segmentadas compartilhadas"
     )
     prepare_parser.add_argument("--config", required=True, type=Path)
-    prepare_parser.add_argument("--output", required=True, type=Path)
+    prepare_parser.add_argument(
+        "--output", type=Path, default=DEFAULT_SEGMENTED_OUTPUT
+    )
     prepare_parser.set_defaults(handler=_prepare)
 
     experiment_parser = subparsers.add_parser(
@@ -168,6 +173,9 @@ def _parser() -> argparse.ArgumentParser:
     experiment_parser.add_argument("--config", required=True, type=Path)
     experiment_parser.add_argument("--segmented-inputs", required=True, type=Path)
     experiment_parser.add_argument("--output", required=True, type=Path)
+    experiment_parser.add_argument(
+        "--seed", type=int, help="executa somente o par experimental desta seed"
+    )
     experiment_parser.set_defaults(handler=_experiment)
 
     analyze_parser = subparsers.add_parser(
@@ -183,6 +191,9 @@ def _parser() -> argparse.ArgumentParser:
     gradcam_parser.add_argument("--config", required=True, type=Path)
     gradcam_parser.add_argument("--segmented-inputs", required=True, type=Path)
     gradcam_parser.add_argument("--output", required=True, type=Path)
+    gradcam_parser.add_argument(
+        "--seed", type=int, help="gera Grad-CAM somente para esta seed"
+    )
     gradcam_parser.set_defaults(handler=_gradcam)
 
     return parser
