@@ -51,6 +51,16 @@ class SegmentedRecord:
     path: Path
 
 
+def _reference_path(path: Path) -> str:
+    """Converte um caminho de entrada em uma referência sem dados da máquina."""
+    if path.is_absolute():
+        try:
+            path = path.relative_to(Path.cwd())
+        except ValueError:
+            path = Path(path.name)
+    return path.as_posix()
+
+
 def _derive_seed(pair_seed: int, component: str) -> int:
     """Deriva uma seed estável para um componente do par experimental."""
     digest = hashlib.sha256(f"{pair_seed}:{component}".encode()).digest()
@@ -423,8 +433,9 @@ def _run_branch(
     training: dict[str, Any],
     records: dict[str, list[SegmentedRecord]],
     checkpoint: Path,
+    campaign_root: Path,
 ) -> dict[str, Any]:
-    """Treina um ramo e devolve a telemetria detalhada da V2.
+    """Treina um ramo e devolve a telemetria detalhada da campanha.
 
     Args:
         branch: Solução principal ou solução contrafactual.
@@ -433,6 +444,7 @@ def _run_branch(
         training: Hiperparâmetros fixos do treinamento.
         records: Entradas segmentadas organizadas por divisão.
         checkpoint: Caminho compatível do checkpoint do ramo.
+        campaign_root: Diretório raiz da campanha para referências relativas.
 
     Returns:
         Resultado detalhado calculado no conjunto de teste.
@@ -475,7 +487,7 @@ def _run_branch(
             "history": history,
             "evaluation": evaluation,
             "predictions": prediction_rows,
-            "checkpoint": str(checkpoint),
+            "checkpoint": str(checkpoint.relative_to(campaign_root)),
             "checkpoint_sha256": sha256(checkpoint),
         }
     finally:
@@ -502,6 +514,7 @@ def _run_pair(
             training,
             records,
             output / "checkpoints" / f"pair-{pair_seed}" / f"{branch}.weights.h5",
+            output,
         )
         for branch in BRANCHES
     }
@@ -539,12 +552,6 @@ def run_experiment(
         raise ValueError(f"a saída não é um diretório: {output}")
     if output.exists() and any(output.iterdir()):
         raise ValueError(f"a saída da campanha já existe: {output}")
-    for pair_seed in selected_seeds:
-        pair_output = output / "results" / f"pair-{pair_seed}"
-        checkpoint_output = output / "checkpoints" / f"pair-{pair_seed}"
-        if pair_output.exists() or checkpoint_output.exists():
-            raise ValueError(f"a saída já existe: {pair_output}")
-
     # A configuração e as entradas são carregadas antes de iniciar qualquer par.
     training = _read_configuration(configuration_path)
     records = _load_segmented_inputs(segmented_root)
@@ -554,9 +561,9 @@ def run_experiment(
         {
             "schema_version": RESULT_SCHEMA_VERSION,
             "campaign_id": output.name,
-            "configuration": str(configuration_path),
+            "configuration": _reference_path(configuration_path),
             "configuration_sha256": sha256(configuration_path),
-            "segmented_inputs": str(segmented_root),
+            "segmented_inputs": _reference_path(segmented_root),
             "batch_normalization_momentum": BATCH_NORMALIZATION_MOMENTUM,
             "batch_normalization_calibration": "train_only_before_validation",
             "seeds": [int(value) for value in selected_seeds],
@@ -574,7 +581,7 @@ def run_experiment(
         for branch, result in results.items():
             branch_path = pair_output / branch / "result.json"
             write_json(branch_path, result)
-            branch_paths[branch] = str(branch_path)
+            branch_paths[branch] = str(branch_path.relative_to(output))
         write_json(
             result_path,
             {

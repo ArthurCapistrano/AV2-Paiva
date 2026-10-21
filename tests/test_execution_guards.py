@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from experimento_feijao.cli import _analyze
-from experimento_feijao.experiment import BRANCHES, run_experiment
+from experimento_feijao.experiment import BRANCHES, _reference_path, run_experiment
 from experimento_feijao import gradcam
 
 
@@ -16,8 +16,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_make_all_runs_steps_in_order():
+    campaign = "artifacts/campaigns/test-campaign"
     result = subprocess.run(
-        ["make", "-n", "all"],
+        ["make", "-n", "all", f"CAMPAIGN={campaign}"],
         cwd=ROOT,
         check=True,
         capture_output=True,
@@ -34,6 +35,13 @@ def test_make_all_runs_steps_in_order():
         "gradcam",
         "analyze",
     ]
+    assert result.stdout.count(f"--output {campaign}\n") == 2
+    assert f"--results {campaign}" in result.stdout
+    assert f"--output {campaign}/summary.json" in result.stdout
+
+
+def test_reference_path_does_not_expose_machine_root():
+    assert _reference_path(Path("/tmp/private/protocol.json")) == "protocol.json"
 
 
 def test_run_experiment_rejects_non_empty_output(tmp_path):
@@ -60,7 +68,8 @@ def test_analyze_rejects_existing_summary(tmp_path, monkeypatch):
     assert _analyze(Namespace(results=tmp_path, output=output)) == 2
 
 
-def test_gradcam_rejects_existing_diagnostic(tmp_path, monkeypatch):
+@pytest.mark.parametrize("existing_name", ["diagnostic.json", "healthy.png"])
+def test_gradcam_rejects_existing_output(tmp_path, monkeypatch, existing_name):
     output = tmp_path / "campaign"
     seed = 1001
     for branch in BRANCHES:
@@ -73,9 +82,9 @@ def test_gradcam_rejects_existing_diagnostic(tmp_path, monkeypatch):
             json.dumps({"seed": seed, "branch": branch}),
             encoding="utf-8",
         )
-        diagnostic = output / "gradcam" / f"pair-{seed}" / branch / "diagnostic.json"
-        diagnostic.parent.mkdir(parents=True, exist_ok=True)
-        diagnostic.write_text("{}", encoding="utf-8")
+        existing_path = output / "gradcam" / f"pair-{seed}" / branch / existing_name
+        existing_path.parent.mkdir(parents=True, exist_ok=True)
+        existing_path.write_text("{}", encoding="utf-8")
 
     monkeypatch.setattr(gradcam, "_fixed_examples", lambda _: {})
     monkeypatch.setattr(gradcam, "_read_configuration", lambda _: {})

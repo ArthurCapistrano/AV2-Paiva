@@ -18,11 +18,6 @@ METRICS = ("macro_f1", "accuracy")
 NORMALITY_ALPHA = 0.05
 
 
-def _read_json(path: Path) -> dict[str, Any]:
-    """Lê um artefato JSON produzido pela campanha."""
-    return read_json(path)
-
-
 def _read_results(results_root: Path) -> list[dict[str, Any]]:
     """Lê os pares na ordem das seeds do protocolo."""
     # O resumo só é válido quando todos os pares e seus dois ramos estão presentes.
@@ -32,7 +27,7 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
 
     results: list[dict[str, Any]] = []
     for pair_path in pair_paths:
-        pair = _read_json(pair_path)
+        pair = read_json(pair_path)
         seed = pair.get("seed")
         if not isinstance(seed, int):
             raise ValueError(f"a seed está ausente no resultado: {pair_path}")
@@ -41,7 +36,7 @@ def _read_results(results_root: Path) -> list[dict[str, Any]]:
         branches: dict[str, dict[str, Any]] = {}
         for branch in BRANCHES:
             branch_path = pair_path.parent / branch / "result.json"
-            branch_result = _read_json(branch_path)
+            branch_result = read_json(branch_path)
             if branch_result.get("seed") != seed:
                 raise ValueError(f"seed inconsistente no resultado: {branch_path}")
             if branch_result.get("branch") != branch:
