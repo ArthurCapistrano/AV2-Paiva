@@ -36,6 +36,8 @@ def test_make_all_runs_steps_in_order():
         "analyze",
     ]
     assert result.stdout.count(f"--output {campaign}\n") == 2
+    assert "--output artifacts/segmented" in result.stdout
+    assert result.stdout.count("--segmented-inputs artifacts/segmented") == 2
     assert f"--results {campaign}" in result.stdout
     assert f"--output {campaign}/summary.json" in result.stdout
 
