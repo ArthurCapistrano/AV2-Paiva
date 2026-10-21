@@ -67,3 +67,9 @@ Essa parte do registro fica classificada como não feita na auditoria da V1.
 A V2 reutilizou o mesmo procedimento de segmentação congelado da V1 nos três
 splits. A coleta adicional preservou os resultados dos modelos e os diagnósticos
 locais, mas não transformou a segmentação em uma métrica objetiva de qualidade.
+
+## Aplicação na V3
+
+A V3 usa as mesmas entradas segmentadas compartilhadas pelos dois ramos. Os
+parâmetros congelados e a proveniência da preparação estão registrados no
+manifesto em `artifacts/v3/manifest.json`.

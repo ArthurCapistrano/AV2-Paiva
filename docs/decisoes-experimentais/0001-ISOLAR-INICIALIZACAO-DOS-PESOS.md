@@ -52,3 +52,10 @@ A V2 manteve esta decisão sem alterar a arquitetura, os inicializadores ou os
 componentes pareados. Os 30 pares foram reexecutados com a mesma separação entre
 a base ImageNet e a base aleatória, acrescentando apenas telemetria e artefatos
 de auditoria.
+
+## Aplicação na V3
+
+A V3 mantém a mesma comparação pareada e publica os resultados detalhados dos 30
+pares em `artifacts/v3/`. A inicialização da base continua sendo a única
+diferença deliberada entre os ramos, enquanto a calibração da BatchNorm é comum
+aos dois.

@@ -39,3 +39,9 @@ arquivos `diagnostic.json` e 180 painéis PNG em `artifacts/v2/gradcam/`.
 Os diagnósticos registram a classe predita e as identidades usadas. A expansão
 para todos os pares aumenta a cobertura da auditoria, mas não transforma o
 Grad-CAM em métrica de desempenho nem em explicação causal.
+
+## Aplicação na V3
+
+A V3 mantém os três exemplos fixos e gera os diagnósticos para os dois ramos das
+30 seeds. Os 60 diagnósticos e 180 painéis estão publicados em
+`artifacts/v3/gradcam/`.

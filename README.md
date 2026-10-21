@@ -1,200 +1,113 @@
-# Experimento de classificacao de folhas de feijao
+# Experimento de classificação de folhas de feijão
 
-Aplicacao Python 3.11 para comparar uma MobileNetV2 com inicializacao ImageNet
-contra a mesma rede com inicializacao aleatoria.
+Aplicação Python 3.11 que compara uma MobileNetV2 com inicialização ImageNet
+contra a mesma arquitetura com inicialização aleatória.
 
-## Estado atual da entrega
+## Referência da entrega
 
-A V2 e a campanha que deve ser usada como base para o artigo e para a entrega
-final. Ela reexecutou o protocolo da V1 com telemetria completa e publicou os
-resultados, previsoes, metricas por classe, matrizes de confusao e Grad-CAM.
+A V3 é a única referência de metodologia, resultados e evidências para o
+artigo e para a entrega final. Seus artefatos publicados estão em
+`artifacts/v3/` e sua interpretação está em `docs/RESULTADOS-V3.md`.
 
-A V1 permanece preservada como historico e baseline. O fluxo executavel atual
-usa os mesmos nomes de comandos, mas grava e analisa os artefatos no layout da
-V2. As entradas segmentadas continuam compartilhadas em `artifacts/v1/`.
+Os registros V1 e V2 foram preservados em seus próprios artefatos e na pasta de
+histórico. Eles não devem ser usados para substituir os resultados da V3.
 
 ## Ambiente
 
-Instale as dependencias e veja os comandos disponiveis:
+Na raiz do projeto:
 
 ```bash
 uv sync --locked
 make help
 ```
 
-Para entender o projeto sem conhecimento previo, consulte o
-[Guia de entendimento do projeto](docs/GUIA-ENTENDIMENTO-PROJETO.md).
+O projeto usa TensorFlow/Keras e pode usar GPU. A campanha completa executa 60
+treinamentos e pode levar bastante tempo. O fluxo não sobrescreve uma campanha
+existente; use um identificador novo para cada execução.
 
-Para iniciar o trabalho do artigo, consulte primeiro os
-[resultados da V2](docs/RESULTADOS-V2.md), a
-[validacao da metodologia](docs/VALIDACAO-METODOLOGIA.md) e o
-[guia para o artigo](docs/GUIA-ARTIGO.md). Os documentos do
-[historico V1](docs/HISTORICO-V1/) preservam o baseline e a proveniencia da
-campanha original.
+## Consultar a V3 sem treinar
 
-## Documentação
-
-### Projeto e metodologia
-
-- [Resultados V2: base do artigo](docs/RESULTADOS-V2.md)
-- [Indice de evidencias](docs/INDICE-EVIDENCIAS.md)
-- [Guia de entendimento](docs/GUIA-ENTENDIMENTO-PROJETO.md)
-- [Guia para o artigo](docs/GUIA-ARTIGO.md)
-- [Organização do trabalho](docs/ORGANIZACAO-TRABALHO.md)
-- [Validação da metodologia](docs/VALIDACAO-METODOLOGIA.md)
-- [Decisões experimentais](docs/decisoes-experimentais/INDICE.md)
-- [Glossário](docs/decisoes-experimentais/GLOSSARIO.md)
-
-### Histórico e referência executável V1
-
-- [Entrega V1](docs/HISTORICO-V1/ENTREGA-V1.md)
-- [Resultados V1](docs/HISTORICO-V1/RESULTADOS-EXPERIMENTO.md)
-- [Limitação contrafactual](docs/HISTORICO-V1/LIMITACAO-COLAPSO-CONTRAFACTUAL.md)
-- [Relatório Grad-CAM V1](docs/RELATORIO-GRADCAM-V1-SEED-1001.md)
-
-## Fluxo executável de novas campanhas
-
-Novas execuções usam uma pasta própria e podem ser iniciadas com:
+Os resultados publicados podem ser consultados diretamente:
 
 ```bash
-make all CAMPAIGN=artifacts/campaigns/campaign-01
+uv run experimento-feijao analyze --results artifacts/v3
+```
+
+O comando lê os 30 pares e apresenta as métricas. O resumo consolidado já está
+em `artifacts/v3/summary.json`.
+
+Materiais disponíveis:
+
+```text
+artifacts/v3/manifest.json  configuração, seeds e proveniência
+artifacts/v3/summary.json   métricas agregadas e análise estatística
+artifacts/v3/results/       resultados detalhados dos 30 pares
+artifacts/v3/gradcam/       diagnósticos e painéis Grad-CAM
+```
+
+Os checkpoints e as entradas segmentadas não são publicados.
+
+## Executar uma nova campanha
+
+Para reproduzir o fluxo em uma nova pasta:
+
+```bash
+make all CAMPAIGN=artifacts/campaigns/campaign-nova
 ```
 
 O comando executa, nesta ordem:
 
-1. Prepara as imagens segmentadas compartilhadas.
-2. Reutiliza a preparação se a pasta já existir.
-3. Executa os dois modelos e registra a telemetria da campanha.
-4. Gera os mapas Grad-CAM.
-5. Calcula e apresenta os resultados estatísticos.
-
-O `prepare` não sobrescreve uma preparação existente. As demais etapas não
-sobrescrevem uma campanha existente; escolha outro identificador para uma nova
-execução.
+1. prepara ou reutiliza as entradas segmentadas;
+2. treina os dois ramos nas 30 seeds;
+3. gera os mapas Grad-CAM;
+4. calcula a análise estatística;
+5. grava o resumo em `<campanha>/summary.json`.
 
 As etapas também podem ser executadas separadamente:
 
 ```bash
-make prepare CAMPAIGN=artifacts/campaigns/campaign-01
-make experiment CAMPAIGN=artifacts/campaigns/campaign-01
-make gradcam CAMPAIGN=artifacts/campaigns/campaign-01
-make analyze CAMPAIGN=artifacts/campaigns/campaign-01
+make prepare
+make experiment CAMPAIGN=artifacts/campaigns/campaign-nova
+make gradcam CAMPAIGN=artifacts/campaigns/campaign-nova
+make analyze CAMPAIGN=artifacts/campaigns/campaign-nova
 ```
 
-## `protocol.json`
+`make prepare` gera as entradas em `artifacts/v1/segmented/`. Essa pasta é
+compartilhada pelos dois ramos e permanece local.
 
-O arquivo define os valores fixos do experimento. Ele apenas configura a
-execucao; os comandos do `Makefile` definem os caminhos de entrada e saida.
+## Protocolo V3
 
-### Dataset
+- Dataset: `beans:0.1.0`.
+- Splits: 1.034 treino, 133 validação e 128 teste.
+- Entrada: imagem RGB segmentada em `160 x 160`.
+- Arquitetura: MobileNetV2, `alpha=1.0`, sem a cabeça ImageNet original.
+- Solução principal: pesos ImageNet.
+- Solução contrafactual: pesos aleatórios.
+- Treinamento: 100 épocas, batch size 32, learning rate `0.0001`.
+- Regularização: L2 `0.0001` e dropout `0.2`.
+- Seeds: `1001` a `1030`.
+- BatchNorm: `momentum=0.9` e calibração com entradas de treino após cada época.
+- Métrica primária: F1 macro.
+- Métrica secundária: acurácia.
 
-`dataset.version` identifica o conjunto usado. O valor esperado e
-`beans:0.1.0`.
+A validação seleciona o melhor estado após a calibração da BatchNorm. O conjunto
+de teste é usado somente na avaliação final.
 
-### Segmentacao
+## Documentação
 
-`segmentation.hsv.lower` e `segmentation.hsv.upper` definem os limites usados
-para separar a folha do fundo.
+### Referência V3
 
-`segmentation.morphology.kernel_size` define o tamanho do filtro morfologico.
-`open_iterations` remove pequenos ruidos e `close_iterations` preenche pequenos
-buracos na mascara.
+- [Resultados V3](docs/RESULTADOS-V3.md)
+- [Validação da metodologia](docs/VALIDACAO-METODOLOGIA.md)
+- [Guia para o artigo](docs/GUIA-ARTIGO.md)
+- [Guia de entendimento](docs/GUIA-ENTENDIMENTO-PROJETO.md)
+- [Índice de evidências](docs/INDICE-EVIDENCIAS.md)
+- [Organização do trabalho](docs/ORGANIZACAO-TRABALHO.md)
+- [Decisões experimentais](docs/decisoes-experimentais/INDICE.md)
+- [Glossário](docs/decisoes-experimentais/GLOSSARIO.md)
 
-Depois da segmentacao, o fundo recebe a cor `(127, 127, 127)` e a imagem e
-redimensionada para `160 x 160`.
+### Histórico
 
-### Treinamento
-
-`training.epochs` define quantas epocas cada modelo executa.
-
-`training.batch_size` define quantas imagens sao processadas por vez.
-
-`training.learning_rate` define a velocidade de atualizacao dos pesos.
-
-`training.l2` define a regularizacao aplicada a camada classificadora.
-
-`training.dropout` define a proporcao de neuronios desligados durante o
-treinamento.
-
-`training.augmentation.horizontal_flip` permite espelhamento horizontal.
-`brightness_delta` define a variacao maxima do brilho.
-
-### Seeds
-
-`seeds` contem as 30 seeds fixas do protocolo. Cada seed gera um par
-experimental: uma execucao da solucao principal e uma execucao da solucao
-contrafactual.
-
-## O que acontece em cada etapa
-
-### `make prepare`
-
-Carrega o dataset, aplica a segmentacao de silhueta e salva as entradas em:
-
-```text
-artifacts/v1/segmented/images/train/
-artifacts/v1/segmented/images/validation/
-artifacts/v1/segmented/images/test/
-```
-
-Os dois modelos usam essa mesma colecao de imagens.
-
-### `make experiment`
-
-Para cada uma das 30 seeds, a aplicacao treina:
-
-- a solucao principal, com pesos ImageNet;
-- a solucao contrafactual, com pesos aleatorios.
-
-Os dois modelos usam a mesma arquitetura, dados e configuração. Cada resultado
-é salvo na pasta da campanha, com um resultado por ramo e um resultado
-agregado do par.
-
-### `make analyze`
-
-Le os 30 resultados e calcula:
-
-- media e desvio-padrao de F1 macro;
-- media e desvio-padrao de acuracia;
-- diferenças pareadas de F1 macro e acurácia;
-- teste t pareado ou Wilcoxon conforme a normalidade das diferenças;
-- diagnóstico de normalidade, estatística e valor-p.
-
-O resumo é salvo em `<campanha>/summary.json`.
-
-## Evidencias publicadas
-
-Os resultados principais para o artigo sao os 30 pares da V2. O resumo esta em
-`artifacts/v2/summary.json`, os resultados detalhados estao em
-`artifacts/v2/results/` e os diagnósticos Grad-CAM estao em
-`artifacts/v2/gradcam/`. Esses artefatos sao publicados; somente os checkpoints
-da V2 permanecem locais.
-
-A V1 tambem possui 30 pares versionados em `artifacts/v1/results/`, com resumo
-em `artifacts/v1/summary.json`. Esses arquivos sao mantidos como baseline
-historico e nao fazem parte do fluxo V2 atual.
-
-Para consultar os resultados da V2 sem treinar novamente:
-
-```text
-docs/RESULTADOS-V2.md
-artifacts/v2/summary.json
-artifacts/v2/results/
-artifacts/v2/gradcam/
-```
-
-Para consultar o baseline historico da V1:
-
-```text
-artifacts/v1/summary.json
-artifacts/v1/results/
-```
-
-Para consultar a V2 histórica sem sobrescrever seu resumo, execute:
-
-```bash
-uv run experimento-feijao analyze --results artifacts/v2
-```
-
-Novas campanhas devem receber um identificador próprio com `CAMPAIGN`; `make
-all` executa todo o fluxo dessa campanha.
+- [Histórico V1](docs/HISTORICO-V1/)
+- [Histórico V2](docs/HISTORICO-V2/)
+- [Relatório Grad-CAM V1](docs/RELATORIO-GRADCAM-V1-SEED-1001.md)

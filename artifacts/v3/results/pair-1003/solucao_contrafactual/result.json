@@ -1,0 +1,2035 @@
+{
+  "best_epoch": 15,
+  "best_validation_loss": 0.8448984622955322,
+  "branch": "solucao_contrafactual",
+  "checkpoint": "artifacts/campaigns/campaign-bn-final/checkpoints/pair-1003/solucao_contrafactual.weights.h5",
+  "checkpoint_sha256": "8ec51c1d5654a88061fe98b7f29c0603867c7157bfdbbfa782471862a3cdd65a",
+  "evaluation": {
+    "accuracy": 0.59375,
+    "confusion_matrix": [
+      [
+        31,
+        11,
+        1
+      ],
+      [
+        15,
+        23,
+        5
+      ],
+      [
+        6,
+        14,
+        22
+      ]
+    ],
+    "macro_f1": 0.5955658376711008,
+    "per_class": {
+      "angular_leaf_spot": {
+        "f1-score": 0.6526315789473685,
+        "precision": 0.5961538461538461,
+        "recall": 0.7209302325581395,
+        "support": 43.0
+      },
+      "bean_rust": {
+        "f1-score": 0.5054945054945055,
+        "precision": 0.4791666666666667,
+        "recall": 0.5348837209302325,
+        "support": 43.0
+      },
+      "healthy": {
+        "f1-score": 0.6285714285714286,
+        "precision": 0.7857142857142857,
+        "recall": 0.5238095238095238,
+        "support": 42.0
+      }
+    }
+  },
+  "history": [
+    {
+      "accuracy": 0.4719535708427429,
+      "epoch": 1.0,
+      "loss": 1.0322221517562866,
+      "val_accuracy": 0.33834585547447205,
+      "val_loss": 1.8408602476119995
+    },
+    {
+      "accuracy": 0.5261121988296509,
+      "epoch": 2.0,
+      "loss": 0.9326857924461365,
+      "val_accuracy": 0.5037593841552734,
+      "val_loss": 0.9690643548965454
+    },
+    {
+      "accuracy": 0.5502901077270508,
+      "epoch": 3.0,
+      "loss": 0.8966513872146606,
+      "val_accuracy": 0.4736842215061188,
+      "val_loss": 0.9217990040779114
+    },
+    {
+      "accuracy": 0.5725338459014893,
+      "epoch": 4.0,
+      "loss": 0.8774001598358154,
+      "val_accuracy": 0.5563910007476807,
+      "val_loss": 0.8896661996841431
+    },
+    {
+      "accuracy": 0.624758243560791,
+      "epoch": 5.0,
+      "loss": 0.8073287010192871,
+      "val_accuracy": 0.5639097690582275,
+      "val_loss": 0.888749361038208
+    },
+    {
+      "accuracy": 0.6237910985946655,
+      "epoch": 6.0,
+      "loss": 0.7776822447776794,
+      "val_accuracy": 0.5563910007476807,
+      "val_loss": 0.8908212184906006
+    },
+    {
+      "accuracy": 0.6595744490623474,
+      "epoch": 7.0,
+      "loss": 0.7668853998184204,
+      "val_accuracy": 0.5563910007476807,
+      "val_loss": 0.9010745286941528
+    },
+    {
+      "accuracy": 0.6595744490623474,
+      "epoch": 8.0,
+      "loss": 0.7366921901702881,
+      "val_accuracy": 0.5789473652839661,
+      "val_loss": 0.8698586225509644
+    },
+    {
+      "accuracy": 0.6711798906326294,
+      "epoch": 9.0,
+      "loss": 0.7113798260688782,
+      "val_accuracy": 0.5413534045219421,
+      "val_loss": 0.9031659960746765
+    },
+    {
+      "accuracy": 0.7176015377044678,
+      "epoch": 10.0,
+      "loss": 0.6285125017166138,
+      "val_accuracy": 0.6240601539611816,
+      "val_loss": 0.9283049702644348
+    },
+    {
+      "accuracy": 0.709864616394043,
+      "epoch": 11.0,
+      "loss": 0.6711102724075317,
+      "val_accuracy": 0.6240601539611816,
+      "val_loss": 0.903566837310791
+    },
+    {
+      "accuracy": 0.7369439005851746,
+      "epoch": 12.0,
+      "loss": 0.5956830978393555,
+      "val_accuracy": 0.5639097690582275,
+      "val_loss": 0.9733253717422485
+    },
+    {
+      "accuracy": 0.7562862634658813,
+      "epoch": 13.0,
+      "loss": 0.5855018496513367,
+      "val_accuracy": 0.5714285969734192,
+      "val_loss": 0.8990176320075989
+    },
+    {
+      "accuracy": 0.7727272510528564,
+      "epoch": 14.0,
+      "loss": 0.5395151376724243,
+      "val_accuracy": 0.6240601539611816,
+      "val_loss": 0.8822602033615112
+    },
+    {
+      "accuracy": 0.7775628566741943,
+      "epoch": 15.0,
+      "loss": 0.5172908902168274,
+      "val_accuracy": 0.6090225577354431,
+      "val_loss": 0.8448984622955322
+    },
+    {
+      "accuracy": 0.7775628566741943,
+      "epoch": 16.0,
+      "loss": 0.5367227792739868,
+      "val_accuracy": 0.6090225577354431,
+      "val_loss": 0.9567864537239075
+    },
+    {
+      "accuracy": 0.7843326926231384,
+      "epoch": 17.0,
+      "loss": 0.5153710246086121,
+      "val_accuracy": 0.5789473652839661,
+      "val_loss": 0.937292754650116
+    },
+    {
+      "accuracy": 0.7920696139335632,
+      "epoch": 18.0,
+      "loss": 0.5003218650817871,
+      "val_accuracy": 0.646616518497467,
+      "val_loss": 0.9793576002120972
+    },
+    {
+      "accuracy": 0.7988394498825073,
+      "epoch": 19.0,
+      "loss": 0.485065221786499,
+      "val_accuracy": 0.6090225577354431,
+      "val_loss": 1.1593211889266968
+    },
+    {
+      "accuracy": 0.8075435161590576,
+      "epoch": 20.0,
+      "loss": 0.46532249450683594,
+      "val_accuracy": 0.6240601539611816,
+      "val_loss": 1.0834498405456543
+    },
+    {
+      "accuracy": 0.844294011592865,
+      "epoch": 21.0,
+      "loss": 0.40934011340141296,
+      "val_accuracy": 0.6616541147232056,
+      "val_loss": 1.0668785572052002
+    },
+    {
+      "accuracy": 0.844294011592865,
+      "epoch": 22.0,
+      "loss": 0.3854237496852875,
+      "val_accuracy": 0.6315789222717285,
+      "val_loss": 1.139086127281189
+    },
+    {
+      "accuracy": 0.8617021441459656,
+      "epoch": 23.0,
+      "loss": 0.3593062460422516,
+      "val_accuracy": 0.6315789222717285,
+      "val_loss": 1.1191052198410034
+    },
+    {
+      "accuracy": 0.853965163230896,
+      "epoch": 24.0,
+      "loss": 0.36024677753448486,
+      "val_accuracy": 0.6390977501869202,
+      "val_loss": 1.237839937210083
+    },
+    {
+      "accuracy": 0.844294011592865,
+      "epoch": 25.0,
+      "loss": 0.3680060803890228,
+      "val_accuracy": 0.646616518497467,
+      "val_loss": 1.1740223169326782
+    },
+    {
+      "accuracy": 0.8607349991798401,
+      "epoch": 26.0,
+      "loss": 0.3895614445209503,
+      "val_accuracy": 0.6015037298202515,
+      "val_loss": 1.1180514097213745
+    },
+    {
+      "accuracy": 0.8471953868865967,
+      "epoch": 27.0,
+      "loss": 0.38574108481407166,
+      "val_accuracy": 0.6390977501869202,
+      "val_loss": 1.1108754873275757
+    },
+    {
+      "accuracy": 0.8558993935585022,
+      "epoch": 28.0,
+      "loss": 0.34885406494140625,
+      "val_accuracy": 0.5939849615097046,
+      "val_loss": 1.1338450908660889
+    },
+    {
+      "accuracy": 0.8646034598350525,
+      "epoch": 29.0,
+      "loss": 0.31481996178627014,
+      "val_accuracy": 0.61654132604599,
+      "val_loss": 1.2367721796035767
+    },
+    {
+      "accuracy": 0.8742746710777283,
+      "epoch": 30.0,
+      "loss": 0.33347058296203613,
+      "val_accuracy": 0.6842105388641357,
+      "val_loss": 1.084903359413147
+    },
+    {
+      "accuracy": 0.8684719800949097,
+      "epoch": 31.0,
+      "loss": 0.3091604709625244,
+      "val_accuracy": 0.6766917109489441,
+      "val_loss": 0.9231818914413452
+    },
+    {
+      "accuracy": 0.9003868699073792,
+      "epoch": 32.0,
+      "loss": 0.27690061926841736,
+      "val_accuracy": 0.6691729426383972,
+      "val_loss": 1.141750693321228
+    },
+    {
+      "accuracy": 0.896518349647522,
+      "epoch": 33.0,
+      "loss": 0.2909590005874634,
+      "val_accuracy": 0.5939849615097046,
+      "val_loss": 1.3363245725631714
+    },
+    {
+      "accuracy": 0.908123791217804,
+      "epoch": 34.0,
+      "loss": 0.2354736328125,
+      "val_accuracy": 0.6015037298202515,
+      "val_loss": 1.2690597772598267
+    },
+    {
+      "accuracy": 0.8926498889923096,
+      "epoch": 35.0,
+      "loss": 0.26347050070762634,
+      "val_accuracy": 0.5939849615097046,
+      "val_loss": 1.4529345035552979
+    },
+    {
+      "accuracy": 0.9071566462516785,
+      "epoch": 36.0,
+      "loss": 0.27207714319229126,
+      "val_accuracy": 0.6240601539611816,
+      "val_loss": 1.3962171077728271
+    },
+    {
+      "accuracy": 0.9013539552688599,
+      "epoch": 37.0,
+      "loss": 0.24535375833511353,
+      "val_accuracy": 0.6015037298202515,
+      "val_loss": 1.3414795398712158
+    },
+    {
+      "accuracy": 0.914893627166748,
+      "epoch": 38.0,
+      "loss": 0.22514428198337555,
+      "val_accuracy": 0.6390977501869202,
+      "val_loss": 1.258189082145691
+    },
+    {
+      "accuracy": 0.9071566462516785,
+      "epoch": 39.0,
+      "loss": 0.24616405367851257,
+      "val_accuracy": 0.5563910007476807,
+      "val_loss": 1.5805753469467163
+    },
+    {
+      "accuracy": 0.914893627166748,
+      "epoch": 40.0,
+      "loss": 0.22736014425754547,
+      "val_accuracy": 0.5939849615097046,
+      "val_loss": 1.426437497138977
+    },
+    {
+      "accuracy": 0.9061895608901978,
+      "epoch": 41.0,
+      "loss": 0.24049314856529236,
+      "val_accuracy": 0.6691729426383972,
+      "val_loss": 1.3446470499038696
+    },
+    {
+      "accuracy": 0.9110251665115356,
+      "epoch": 42.0,
+      "loss": 0.23195281624794006,
+      "val_accuracy": 0.6315789222717285,
+      "val_loss": 1.336383581161499
+    },
+    {
+      "accuracy": 0.9274661540985107,
+      "epoch": 43.0,
+      "loss": 0.2011912763118744,
+      "val_accuracy": 0.6315789222717285,
+      "val_loss": 1.5178608894348145
+    },
+    {
+      "accuracy": 0.9313346147537231,
+      "epoch": 44.0,
+      "loss": 0.19670173525810242,
+      "val_accuracy": 0.61654132604599,
+      "val_loss": 1.4460885524749756
+    },
+    {
+      "accuracy": 0.9381044507026672,
+      "epoch": 45.0,
+      "loss": 0.17343328893184662,
+      "val_accuracy": 0.61654132604599,
+      "val_loss": 1.344301462173462
+    },
+    {
+      "accuracy": 0.924564778804779,
+      "epoch": 46.0,
+      "loss": 0.1937660425901413,
+      "val_accuracy": 0.6015037298202515,
+      "val_loss": 1.5743223428726196
+    },
+    {
+      "accuracy": 0.9371373057365417,
+      "epoch": 47.0,
+      "loss": 0.1870986968278885,
+      "val_accuracy": 0.5939849615097046,
+      "val_loss": 1.5796188116073608
+    },
+    {
+      "accuracy": 0.9448742866516113,
+      "epoch": 48.0,
+      "loss": 0.16539722681045532,
+      "val_accuracy": 0.61654132604599,
+      "val_loss": 1.6267633438110352
+    },
+    {
+      "accuracy": 0.9400386810302734,
+      "epoch": 49.0,
+      "loss": 0.15322530269622803,
+      "val_accuracy": 0.5864661931991577,
+      "val_loss": 1.5324982404708862
+    },
+    {
+      "accuracy": 0.9371373057365417,
+      "epoch": 50.0,
+      "loss": 0.17611399292945862,
+      "val_accuracy": 0.6015037298202515,
+      "val_loss": 1.5210520029067993
+    },
+    {
+      "accuracy": 0.9313346147537231,
+      "epoch": 51.0,
+      "loss": 0.16874538362026215,
+      "val_accuracy": 0.6240601539611816,
+      "val_loss": 1.4821200370788574
+    },
+    {
+      "accuracy": 0.9390715956687927,
+      "epoch": 52.0,
+      "loss": 0.16107864677906036,
+      "val_accuracy": 0.6390977501869202,
+      "val_loss": 1.7616437673568726
+    },
+    {
+      "accuracy": 0.936170220375061,
+      "epoch": 53.0,
+      "loss": 0.16806723177433014,
+      "val_accuracy": 0.6015037298202515,
+      "val_loss": 1.6314266920089722
+    },
+    {
+      "accuracy": 0.945841372013092,
+      "epoch": 54.0,
+      "loss": 0.1626208871603012,
+      "val_accuracy": 0.5563910007476807,
+      "val_loss": 1.626044511795044
+    },
+    {
+      "accuracy": 0.9506769776344299,
+      "epoch": 55.0,
+      "loss": 0.12998896837234497,
+      "val_accuracy": 0.5939849615097046,
+      "val_loss": 1.8165889978408813
+    },
+    {
+      "accuracy": 0.9410058259963989,
+      "epoch": 56.0,
+      "loss": 0.1627645492553711,
+      "val_accuracy": 0.6090225577354431,
+      "val_loss": 1.7410781383514404
+    },
+    {
+      "accuracy": 0.936170220375061,
+      "epoch": 57.0,
+      "loss": 0.1665128767490387,
+      "val_accuracy": 0.6541353464126587,
+      "val_loss": 1.4952638149261475
+    },
+    {
+      "accuracy": 0.9264990091323853,
+      "epoch": 58.0,
+      "loss": 0.20053225755691528,
+      "val_accuracy": 0.6390977501869202,
+      "val_loss": 1.3915842771530151
+    },
+    {
+      "accuracy": 0.9448742866516113,
+      "epoch": 59.0,
+      "loss": 0.14166933298110962,
+      "val_accuracy": 0.61654132604599,
+      "val_loss": 1.5607800483703613
+    },
+    {
+      "accuracy": 0.9564796686172485,
+      "epoch": 60.0,
+      "loss": 0.11766961216926575,
+      "val_accuracy": 0.61654132604599,
+      "val_loss": 1.57132089138031
+    },
+    {
+      "accuracy": 0.9439071416854858,
+      "epoch": 61.0,
+      "loss": 0.14634829759597778,
+      "val_accuracy": 0.6015037298202515,
+      "val_loss": 1.7700812816619873
+    },
+    {
+      "accuracy": 0.9535783529281616,
+      "epoch": 62.0,
+      "loss": 0.14976748824119568,
+      "val_accuracy": 0.6015037298202515,
+      "val_loss": 1.8410552740097046
+    },
+    {
+      "accuracy": 0.9497098922729492,
+      "epoch": 63.0,
+      "loss": 0.1352168470621109,
+      "val_accuracy": 0.5864661931991577,
+      "val_loss": 1.8121070861816406
+    },
+    {
+      "accuracy": 0.957446813583374,
+      "epoch": 64.0,
+      "loss": 0.12315879017114639,
+      "val_accuracy": 0.6240601539611816,
+      "val_loss": 1.787310242652893
+    },
+    {
+      "accuracy": 0.957446813583374,
+      "epoch": 65.0,
+      "loss": 0.12092236429452896,
+      "val_accuracy": 0.6616541147232056,
+      "val_loss": 1.7203648090362549
+    },
+    {
+      "accuracy": 0.9680851101875305,
+      "epoch": 66.0,
+      "loss": 0.10210125893354416,
+      "val_accuracy": 0.6240601539611816,
+      "val_loss": 2.0006771087646484
+    },
+    {
+      "accuracy": 0.9603481888771057,
+      "epoch": 67.0,
+      "loss": 0.123713418841362,
+      "val_accuracy": 0.6315789222717285,
+      "val_loss": 1.7707936763763428
+    },
+    {
+      "accuracy": 0.9381044507026672,
+      "epoch": 68.0,
+      "loss": 0.15919753909111023,
+      "val_accuracy": 0.6541353464126587,
+      "val_loss": 1.863304853439331
+    },
+    {
+      "accuracy": 0.9584138989448547,
+      "epoch": 69.0,
+      "loss": 0.11460815370082855,
+      "val_accuracy": 0.6090225577354431,
+      "val_loss": 1.9819320440292358
+    },
+    {
+      "accuracy": 0.9448742866516113,
+      "epoch": 70.0,
+      "loss": 0.13060270249843597,
+      "val_accuracy": 0.646616518497467,
+      "val_loss": 1.934012532234192
+    },
+    {
+      "accuracy": 0.9516441226005554,
+      "epoch": 71.0,
+      "loss": 0.12133918702602386,
+      "val_accuracy": 0.5714285969734192,
+      "val_loss": 1.9577053785324097
+    },
+    {
+      "accuracy": 0.957446813583374,
+      "epoch": 72.0,
+      "loss": 0.115419402718544,
+      "val_accuracy": 0.6240601539611816,
+      "val_loss": 1.962539553642273
+    },
+    {
+      "accuracy": 0.9545454382896423,
+      "epoch": 73.0,
+      "loss": 0.10337711125612259,
+      "val_accuracy": 0.5939849615097046,
+      "val_loss": 1.847496509552002
+    },
+    {
+      "accuracy": 0.9400386810302734,
+      "epoch": 74.0,
+      "loss": 0.15586425364017487,
+      "val_accuracy": 0.6390977501869202,
+      "val_loss": 1.9363802671432495
+    },
+    {
+      "accuracy": 0.9622824192047119,
+      "epoch": 75.0,
+      "loss": 0.10230778902769089,
+      "val_accuracy": 0.6090225577354431,
+      "val_loss": 2.013737916946411
+    },
+    {
+      "accuracy": 0.967117965221405,
+      "epoch": 76.0,
+      "loss": 0.1007181704044342,
+      "val_accuracy": 0.6315789222717285,
+      "val_loss": 1.9524290561676025
+    },
+    {
+      "accuracy": 0.9661508798599243,
+      "epoch": 77.0,
+      "loss": 0.09584306925535202,
+      "val_accuracy": 0.5939849615097046,
+      "val_loss": 2.048823356628418
+    },
+    {
+      "accuracy": 0.9632495045661926,
+      "epoch": 78.0,
+      "loss": 0.11469472944736481,
+      "val_accuracy": 0.6390977501869202,
+      "val_loss": 1.8101660013198853
+    },
+    {
+      "accuracy": 0.9603481888771057,
+      "epoch": 79.0,
+      "loss": 0.1205206960439682,
+      "val_accuracy": 0.646616518497467,
+      "val_loss": 2.068510055541992
+    },
+    {
+      "accuracy": 0.967117965221405,
+      "epoch": 80.0,
+      "loss": 0.09786707907915115,
+      "val_accuracy": 0.6315789222717285,
+      "val_loss": 1.958855152130127
+    },
+    {
+      "accuracy": 0.9584138989448547,
+      "epoch": 81.0,
+      "loss": 0.10988310724496841,
+      "val_accuracy": 0.6015037298202515,
+      "val_loss": 1.876098871231079
+    },
+    {
+      "accuracy": 0.9748549461364746,
+      "epoch": 82.0,
+      "loss": 0.06495558470487595,
+      "val_accuracy": 0.6090225577354431,
+      "val_loss": 1.7802356481552124
+    },
+    {
+      "accuracy": 0.9661508798599243,
+      "epoch": 83.0,
+      "loss": 0.07814401388168335,
+      "val_accuracy": 0.6015037298202515,
+      "val_loss": 1.851963996887207
+    },
+    {
+      "accuracy": 0.9729207158088684,
+      "epoch": 84.0,
+      "loss": 0.07412749528884888,
+      "val_accuracy": 0.6090225577354431,
+      "val_loss": 2.0106067657470703
+    },
+    {
+      "accuracy": 0.9729207158088684,
+      "epoch": 85.0,
+      "loss": 0.08196613937616348,
+      "val_accuracy": 0.646616518497467,
+      "val_loss": 2.0784449577331543
+    },
+    {
+      "accuracy": 0.9555125832557678,
+      "epoch": 86.0,
+      "loss": 0.13724462687969208,
+      "val_accuracy": 0.6842105388641357,
+      "val_loss": 1.6903822422027588
+    },
+    {
+      "accuracy": 0.9613152742385864,
+      "epoch": 87.0,
+      "loss": 0.10300088673830032,
+      "val_accuracy": 0.6616541147232056,
+      "val_loss": 1.604522466659546
+    },
+    {
+      "accuracy": 0.9642166495323181,
+      "epoch": 88.0,
+      "loss": 0.09493309259414673,
+      "val_accuracy": 0.6766917109489441,
+      "val_loss": 1.5493720769882202
+    },
+    {
+      "accuracy": 0.9680851101875305,
+      "epoch": 89.0,
+      "loss": 0.0865614116191864,
+      "val_accuracy": 0.6766917109489441,
+      "val_loss": 1.522868275642395
+    },
+    {
+      "accuracy": 0.9642166495323181,
+      "epoch": 90.0,
+      "loss": 0.0840240865945816,
+      "val_accuracy": 0.6691729426383972,
+      "val_loss": 1.7152999639511108
+    },
+    {
+      "accuracy": 0.9709864854812622,
+      "epoch": 91.0,
+      "loss": 0.0755331963300705,
+      "val_accuracy": 0.646616518497467,
+      "val_loss": 1.7958348989486694
+    },
+    {
+      "accuracy": 0.9680851101875305,
+      "epoch": 92.0,
+      "loss": 0.09317080676555634,
+      "val_accuracy": 0.6390977501869202,
+      "val_loss": 1.731199860572815
+    },
+    {
+      "accuracy": 0.9758220314979553,
+      "epoch": 93.0,
+      "loss": 0.0762157067656517,
+      "val_accuracy": 0.6240601539611816,
+      "val_loss": 1.8683891296386719
+    },
+    {
+      "accuracy": 0.9700193405151367,
+      "epoch": 94.0,
+      "loss": 0.08092393726110458,
+      "val_accuracy": 0.6240601539611816,
+      "val_loss": 1.771407961845398
+    },
+    {
+      "accuracy": 0.9806576371192932,
+      "epoch": 95.0,
+      "loss": 0.06342188268899918,
+      "val_accuracy": 0.6090225577354431,
+      "val_loss": 1.8054354190826416
+    },
+    {
+      "accuracy": 0.9748549461364746,
+      "epoch": 96.0,
+      "loss": 0.05872494354844093,
+      "val_accuracy": 0.646616518497467,
+      "val_loss": 1.8760061264038086
+    },
+    {
+      "accuracy": 0.9680851101875305,
+      "epoch": 97.0,
+      "loss": 0.08957776427268982,
+      "val_accuracy": 0.6315789222717285,
+      "val_loss": 1.8099597692489624
+    },
+    {
+      "accuracy": 0.9680851101875305,
+      "epoch": 98.0,
+      "loss": 0.08437082916498184,
+      "val_accuracy": 0.6240601539611816,
+      "val_loss": 1.8353110551834106
+    },
+    {
+      "accuracy": 0.9613152742385864,
+      "epoch": 99.0,
+      "loss": 0.1041143462061882,
+      "val_accuracy": 0.5864661931991577,
+      "val_loss": 2.0683999061584473
+    },
+    {
+      "accuracy": 0.9719535708427429,
+      "epoch": 100.0,
+      "loss": 0.07499837875366211,
+      "val_accuracy": 0.6315789222717285,
+      "val_loss": 2.0818862915039062
+    }
+  ],
+  "predictions": [
+    {
+      "identity": "test-0042",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.429415762424469,
+        "bean_rust": 0.5406586527824402,
+        "healthy": 0.029925581067800522
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0043",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9914904236793518,
+        "bean_rust": 0.008506246842443943,
+        "healthy": 3.2805808132252423e-06
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0044",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9993281364440918,
+        "bean_rust": 0.0006170430569909513,
+        "healthy": 5.4777454352006316e-05
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0045",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.6633135676383972,
+        "bean_rust": 0.3357101380825043,
+        "healthy": 0.0009762913105078042
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0046",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.8118793964385986,
+        "bean_rust": 0.1870241016149521,
+        "healthy": 0.0010966048575937748
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0047",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.7149335145950317,
+        "bean_rust": 0.2821706235408783,
+        "healthy": 0.002895846264436841
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0048",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9647652506828308,
+        "bean_rust": 0.035077862441539764,
+        "healthy": 0.0001568596053402871
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0049",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.861666202545166,
+        "bean_rust": 0.138288676738739,
+        "healthy": 4.5213542762212455e-05
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0050",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.2871705889701843,
+        "bean_rust": 0.7084624767303467,
+        "healthy": 0.004366963170468807
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0051",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.7066595554351807,
+        "bean_rust": 0.2918797731399536,
+        "healthy": 0.0014606377808377147
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0052",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.7340501546859741,
+        "bean_rust": 0.26024290919303894,
+        "healthy": 0.00570690119639039
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0053",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9042298197746277,
+        "bean_rust": 0.07631804049015045,
+        "healthy": 0.01945214718580246
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0054",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9970257878303528,
+        "bean_rust": 0.002973525784909725,
+        "healthy": 7.090902727213688e-07
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0055",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.36040180921554565,
+        "bean_rust": 0.6206433773040771,
+        "healthy": 0.018954787403345108
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0056",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.6582989692687988,
+        "bean_rust": 0.34006842970848083,
+        "healthy": 0.001632668892852962
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0057",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9097443222999573,
+        "bean_rust": 0.09008780121803284,
+        "healthy": 0.00016791422967799008
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0058",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.29381394386291504,
+        "bean_rust": 0.6908078789710999,
+        "healthy": 0.015378158539533615
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0059",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9163796305656433,
+        "bean_rust": 0.08360554277896881,
+        "healthy": 1.482221887272317e-05
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0060",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.93825763463974,
+        "bean_rust": 0.06156592071056366,
+        "healthy": 0.00017636979464441538
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0061",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.6517642736434937,
+        "bean_rust": 0.19870321452617645,
+        "healthy": 0.14953257143497467
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0062",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.8352060914039612,
+        "bean_rust": 0.16423703730106354,
+        "healthy": 0.0005569126224145293
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0063",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.6344266533851624,
+        "bean_rust": 0.3655032813549042,
+        "healthy": 7.011674460954964e-05
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0064",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.25127148628234863,
+        "bean_rust": 0.6890855431556702,
+        "healthy": 0.059643007814884186
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0065",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.7949172258377075,
+        "bean_rust": 0.12560893595218658,
+        "healthy": 0.07947385311126709
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0066",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.6936047673225403,
+        "bean_rust": 0.29957127571105957,
+        "healthy": 0.006823898293077946
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0067",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.21469806134700775,
+        "bean_rust": 0.7613672018051147,
+        "healthy": 0.023934759199619293
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0068",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.01711331494152546,
+        "bean_rust": 0.006759174633771181,
+        "healthy": 0.976127564907074
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0069",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.7595731616020203,
+        "bean_rust": 0.11478190869092941,
+        "healthy": 0.12564492225646973
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0070",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.4819695055484772,
+        "bean_rust": 0.465858519077301,
+        "healthy": 0.05217200890183449
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0071",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9098842740058899,
+        "bean_rust": 0.08646772801876068,
+        "healthy": 0.00364794977940619
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0072",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.4756080210208893,
+        "bean_rust": 0.5173644423484802,
+        "healthy": 0.007027561776340008
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0073",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9397289752960205,
+        "bean_rust": 0.06005607545375824,
+        "healthy": 0.00021496211411431432
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0074",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.982689619064331,
+        "bean_rust": 0.016372038051486015,
+        "healthy": 0.0009383191354572773
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0075",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9943311214447021,
+        "bean_rust": 0.0011618175776675344,
+        "healthy": 0.0045069740153849125
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0076",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.7665216326713562,
+        "bean_rust": 0.22487418353557587,
+        "healthy": 0.008604150265455246
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0077",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.1013830304145813,
+        "bean_rust": 0.8834615349769592,
+        "healthy": 0.015155402012169361
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0078",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.313809871673584,
+        "bean_rust": 0.6841936707496643,
+        "healthy": 0.0019964028615504503
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0079",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.7695577144622803,
+        "bean_rust": 0.1563941091299057,
+        "healthy": 0.07404816895723343
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0080",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.3568825423717499,
+        "bean_rust": 0.5894709825515747,
+        "healthy": 0.05364648625254631
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0081",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.8811188340187073,
+        "bean_rust": 0.11571384221315384,
+        "healthy": 0.0031673391349613667
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0082",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.20991332828998566,
+        "bean_rust": 0.6999073028564453,
+        "healthy": 0.09017938375473022
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0083",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9895642995834351,
+        "bean_rust": 0.010432334616780281,
+        "healthy": 3.3317116958642146e-06
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0084",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9988073110580444,
+        "bean_rust": 0.0011925098951905966,
+        "healthy": 2.674880761333043e-07
+      },
+      "true_class": "angular_leaf_spot"
+    },
+    {
+      "identity": "test-0085",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.44700944423675537,
+        "bean_rust": 0.5434437990188599,
+        "healthy": 0.00954673532396555
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0086",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.674274742603302,
+        "bean_rust": 0.21398036181926727,
+        "healthy": 0.11174486577510834
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0087",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.0531340092420578,
+        "bean_rust": 0.9138038754463196,
+        "healthy": 0.03306213766336441
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0088",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.3721856474876404,
+        "bean_rust": 0.625633180141449,
+        "healthy": 0.0021811213809996843
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0089",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.6479945182800293,
+        "bean_rust": 0.3504195511341095,
+        "healthy": 0.0015858722617849708
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0090",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.23371514678001404,
+        "bean_rust": 0.7552778124809265,
+        "healthy": 0.011006978340446949
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0091",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9632931351661682,
+        "bean_rust": 0.02954976260662079,
+        "healthy": 0.007157125044614077
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0092",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.924072802066803,
+        "bean_rust": 0.07205875962972641,
+        "healthy": 0.003868404310196638
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0093",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.3756278455257416,
+        "bean_rust": 0.5237607955932617,
+        "healthy": 0.10061132907867432
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0094",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.4333679974079132,
+        "bean_rust": 0.3717147409915924,
+        "healthy": 0.194917231798172
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0095",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.3719010055065155,
+        "bean_rust": 0.3198530077934265,
+        "healthy": 0.308245986700058
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0096",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.0950983390212059,
+        "bean_rust": 0.7684465050697327,
+        "healthy": 0.13645519316196442
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0097",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.33848658204078674,
+        "bean_rust": 0.6187312006950378,
+        "healthy": 0.042782239615917206
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0098",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.41423311829566956,
+        "bean_rust": 0.5602539777755737,
+        "healthy": 0.025512870401144028
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0099",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.7887915968894958,
+        "bean_rust": 0.21113336086273193,
+        "healthy": 7.503237429773435e-05
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0100",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.12589183449745178,
+        "bean_rust": 0.8538171052932739,
+        "healthy": 0.020291022956371307
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0101",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9026537537574768,
+        "bean_rust": 0.09673136472702026,
+        "healthy": 0.0006148156244307756
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0102",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.049740422517061234,
+        "bean_rust": 0.031195497140288353,
+        "healthy": 0.9190641045570374
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0103",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.5106221437454224,
+        "bean_rust": 0.42485737800598145,
+        "healthy": 0.06452054530382156
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0104",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.222069650888443,
+        "bean_rust": 0.7250403761863708,
+        "healthy": 0.05289001017808914
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0105",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.27114829421043396,
+        "bean_rust": 0.2501097023487091,
+        "healthy": 0.4787420332431793
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0106",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.17862705886363983,
+        "bean_rust": 0.7357025146484375,
+        "healthy": 0.08567044138908386
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0107",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.4159562885761261,
+        "bean_rust": 0.583906888961792,
+        "healthy": 0.00013687313185073435
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0108",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.07679013162851334,
+        "bean_rust": 0.9112488627433777,
+        "healthy": 0.011960936710238457
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0109",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.3914620578289032,
+        "bean_rust": 0.12127672135829926,
+        "healthy": 0.48726126551628113
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0110",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.1809363067150116,
+        "bean_rust": 0.8170709013938904,
+        "healthy": 0.0019927199464291334
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0111",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.47664526104927063,
+        "bean_rust": 0.5193521976470947,
+        "healthy": 0.004002528730779886
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0112",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9436377286911011,
+        "bean_rust": 0.05610709637403488,
+        "healthy": 0.0002552398364059627
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0113",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.9129107594490051,
+        "bean_rust": 0.08206619322299957,
+        "healthy": 0.005023051518946886
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0114",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.8304643630981445,
+        "bean_rust": 0.16947701573371887,
+        "healthy": 5.863129990757443e-05
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0115",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.37419748306274414,
+        "bean_rust": 0.6250677108764648,
+        "healthy": 0.0007347515784204006
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0116",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.36396554112434387,
+        "bean_rust": 0.6295635104179382,
+        "healthy": 0.006471010856330395
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0117",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.18599119782447815,
+        "bean_rust": 0.8052326440811157,
+        "healthy": 0.008776064962148666
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0118",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.34211015701293945,
+        "bean_rust": 0.6572400331497192,
+        "healthy": 0.0006498211296275258
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0119",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.14148958027362823,
+        "bean_rust": 0.830146074295044,
+        "healthy": 0.028364308178424835
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0120",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.8318472504615784,
+        "bean_rust": 0.1679103672504425,
+        "healthy": 0.00024240254424512386
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0121",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.6504239439964294,
+        "bean_rust": 0.34483495354652405,
+        "healthy": 0.004741095006465912
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0122",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.4203607439994812,
+        "bean_rust": 0.5783466696739197,
+        "healthy": 0.001292591798119247
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0123",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.02690507099032402,
+        "bean_rust": 0.13796405494213104,
+        "healthy": 0.8351308703422546
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0124",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.015873393043875694,
+        "bean_rust": 0.1361343264579773,
+        "healthy": 0.8479923009872437
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0125",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.8153436183929443,
+        "bean_rust": 0.1835530698299408,
+        "healthy": 0.0011032928014174104
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0126",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.11524864286184311,
+        "bean_rust": 0.8348997235298157,
+        "healthy": 0.049851689487695694
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0127",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.2976401746273041,
+        "bean_rust": 0.6980634927749634,
+        "healthy": 0.004296347964555025
+      },
+      "true_class": "bean_rust"
+    },
+    {
+      "identity": "test-0000",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.1597067415714264,
+        "bean_rust": 0.47565361857414246,
+        "healthy": 0.3646396994590759
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0001",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.19896429777145386,
+        "bean_rust": 0.2713181972503662,
+        "healthy": 0.5297174453735352
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0002",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.07343699038028717,
+        "bean_rust": 0.8758729100227356,
+        "healthy": 0.0506901815533638
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0003",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.42769336700439453,
+        "bean_rust": 0.5562840700149536,
+        "healthy": 0.01602260023355484
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0004",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.4154314398765564,
+        "bean_rust": 0.5655402541160583,
+        "healthy": 0.019028307870030403
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0005",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.28403639793395996,
+        "bean_rust": 0.17650331556797028,
+        "healthy": 0.5394602417945862
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0006",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.33333781361579895,
+        "bean_rust": 0.6195928454399109,
+        "healthy": 0.04706937447190285
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0007",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.02251858450472355,
+        "bean_rust": 0.0030759270302951336,
+        "healthy": 0.9744054675102234
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0008",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.002216807333752513,
+        "bean_rust": 6.986622611293569e-05,
+        "healthy": 0.9977133274078369
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0009",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.26156964898109436,
+        "bean_rust": 0.04300534352660179,
+        "healthy": 0.6954250335693359
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0010",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.07165135443210602,
+        "bean_rust": 0.9021625518798828,
+        "healthy": 0.026186086237430573
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0011",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.039955105632543564,
+        "bean_rust": 0.22337213158607483,
+        "healthy": 0.7366728186607361
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0012",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.00018519496370572597,
+        "bean_rust": 0.0002462337142787874,
+        "healthy": 0.999568521976471
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0013",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.03577880933880806,
+        "bean_rust": 0.2566990554332733,
+        "healthy": 0.7075220942497253
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0014",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.10217846184968948,
+        "bean_rust": 0.03863464668393135,
+        "healthy": 0.8591869473457336
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0015",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.7065192461013794,
+        "bean_rust": 0.27683085203170776,
+        "healthy": 0.016649946570396423
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0016",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.5237360596656799,
+        "bean_rust": 0.3555620312690735,
+        "healthy": 0.12070189416408539
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0017",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.2590317726135254,
+        "bean_rust": 0.4357737600803375,
+        "healthy": 0.3051944971084595
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0018",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.06378524005413055,
+        "bean_rust": 0.2866398096084595,
+        "healthy": 0.6495749950408936
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0019",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.27145135402679443,
+        "bean_rust": 0.4726141393184662,
+        "healthy": 0.25593453645706177
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0020",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.012887859717011452,
+        "bean_rust": 0.026495378464460373,
+        "healthy": 0.9606167674064636
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0021",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.2230733036994934,
+        "bean_rust": 0.6872488260269165,
+        "healthy": 0.08967790752649307
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0022",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.22512486577033997,
+        "bean_rust": 0.49426043033599854,
+        "healthy": 0.2806147634983063
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0023",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.13490156829357147,
+        "bean_rust": 0.7939363121986389,
+        "healthy": 0.0711621567606926
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0024",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.7910482883453369,
+        "bean_rust": 0.17901907861232758,
+        "healthy": 0.029932595789432526
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0025",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.11021663248538971,
+        "bean_rust": 0.38337835669517517,
+        "healthy": 0.5064049959182739
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0026",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 1.5323995512517286e-06,
+        "bean_rust": 9.022471203934401e-06,
+        "healthy": 0.99998939037323
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0027",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.008439523167908192,
+        "bean_rust": 0.04086509719491005,
+        "healthy": 0.9506953954696655
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0028",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.7759644389152527,
+        "bean_rust": 0.21861602365970612,
+        "healthy": 0.0054195174016058445
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0029",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.3661092519760132,
+        "bean_rust": 0.6293067336082458,
+        "healthy": 0.00458407262340188
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0030",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.2848346531391144,
+        "bean_rust": 0.6554908752441406,
+        "healthy": 0.05967438593506813
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0031",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.56648850440979,
+        "bean_rust": 0.31372642517089844,
+        "healthy": 0.11978507041931152
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0032",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.06752676516771317,
+        "bean_rust": 0.04151475057005882,
+        "healthy": 0.8909585475921631
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0033",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.00019873700512107462,
+        "bean_rust": 9.978725574910641e-05,
+        "healthy": 0.9997014403343201
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0034",
+      "predicted_class": "angular_leaf_spot",
+      "probabilities": {
+        "angular_leaf_spot": 0.6865382790565491,
+        "bean_rust": 0.29580312967300415,
+        "healthy": 0.017658591270446777
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0035",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 3.880540680256672e-05,
+        "bean_rust": 3.459254003246315e-05,
+        "healthy": 0.9999265670776367
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0036",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.27729251980781555,
+        "bean_rust": 0.3476540446281433,
+        "healthy": 0.37505343556404114
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0037",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.12288325279951096,
+        "bean_rust": 0.3343842327594757,
+        "healthy": 0.5427324771881104
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0038",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.05522118881344795,
+        "bean_rust": 0.19470514357089996,
+        "healthy": 0.7500736713409424
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0039",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.003052505198866129,
+        "bean_rust": 0.001361569040454924,
+        "healthy": 0.9955859184265137
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0040",
+      "predicted_class": "bean_rust",
+      "probabilities": {
+        "angular_leaf_spot": 0.09551575779914856,
+        "bean_rust": 0.8948036432266235,
+        "healthy": 0.009680625051259995
+      },
+      "true_class": "healthy"
+    },
+    {
+      "identity": "test-0041",
+      "predicted_class": "healthy",
+      "probabilities": {
+        "angular_leaf_spot": 0.07650307565927505,
+        "bean_rust": 0.37182295322418213,
+        "healthy": 0.551673948764801
+      },
+      "true_class": "healthy"
+    }
+  ],
+  "schema_version": 2,
+  "seed": 1003,
+  "training_seconds": 1160.5335026619723
+}

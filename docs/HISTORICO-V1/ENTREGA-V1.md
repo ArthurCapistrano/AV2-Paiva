@@ -70,5 +70,5 @@ adicional pertence à V2 e não faz parte desta entrega.
 
 Esta entrega continua sendo o registro histórico da V1. A auditoria V2 foi
 concluída separadamente e está documentada em
-[`RESULTADOS-V2.md`](../RESULTADOS-V2.md), com resultados e diagnósticos
+[`RESULTADOS.md`](../HISTORICO-V2/RESULTADOS.md), com resultados e diagnósticos
 publicados em `artifacts/v2/` e checkpoints mantidos localmente.

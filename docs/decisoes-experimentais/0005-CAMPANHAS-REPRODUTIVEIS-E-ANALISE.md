@@ -2,7 +2,8 @@
 
 ## Decisão
 
-Campanhas novas são executadas em uma pasta própria sob `artifacts/campaigns/`.
+A V3 é a campanha oficial publicada em `artifacts/v3/`. Campanhas novas são
+executadas em uma pasta própria sob `artifacts/campaigns/`.
 A preparação segmentada pode ser compartilhada quando sua pasta já existe, mas
 as saídas de treinamento, Grad-CAM e análise não são sobrescritas.
 
@@ -19,7 +20,7 @@ referência antes de ler os pesos.
 As duas soluções usam `momentum=0.9` nas BatchNorms. Depois de cada época, as
 estatísticas são recalibradas com as entradas de treino antes da validação e da
 seleção do melhor estado. Isso mantém as estatísticas usadas na validação e no
-teste alinhadas com o estado do checkpoint.
+teste alinhadas com o estado do checkpoint da V3.
 
 ## Análise estatística
 

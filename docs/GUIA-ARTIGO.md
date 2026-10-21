@@ -1,95 +1,50 @@
 # Guia para o artigo
 
-Este documento e o ponto de entrada para a equipe que vai iniciar o artigo.
-Ele descreve o que ja foi feito, onde estao as evidencias e quais pontos ainda
-precisam de trabalho.
-
-A V2 e a base de evidencias do artigo, da entrega final e do fluxo executavel
-atual. A V1 permanece como baseline historico e nao deve ser usada para
-substituir a interpretacao consolidada da V2.
+Este documento orienta o consumo dos resultados da campanha V3. A V3 é a única
+fonte de metodologia, números e evidências para o artigo.
 
 ## Ordem de leitura
 
-1. `../README.md`: estado atual, evidencias e fluxo executavel.
-2. `RESULTADOS-V2.md`: resultados instrumentados, Grad-CAM e interpretacao final.
-3. `VALIDACAO-METODOLOGIA.md`: auditoria do que foi e nao foi executado.
-4. `INDICE-EVIDENCIAS.md`: caminhos e status dos artefatos publicados.
-5. `GUIA-ENTENDIMENTO-PROJETO.md`: pergunta, desenho e vocabulário.
-6. `HISTORICO-V1/ENTREGA-V1.md`: checklist e proveniencia do baseline.
-7. `HISTORICO-V1/RESULTADOS-EXPERIMENTO.md`: resultados agregados da V1.
-8. `HISTORICO-V1/LIMITACAO-COLAPSO-CONTRAFACTUAL.md`: auditoria histórica da V1.
-9. `artifacts/v1/reports/epoch-pilot.json`: evidencia do orçamento de 100 epocas.
-10. `RELATORIO-GRADCAM-V1-SEED-1001.md`: análise qualitativa de Grad-CAM da V1.
+1. `../README.md`: ambiente, comandos e localização dos artefatos.
+2. `RESULTADOS-V3.md`: resultados, Grad-CAM e interpretação.
+3. `VALIDACAO-METODOLOGIA.md`: pergunta, protocolo e limites.
+4. `INDICE-EVIDENCIAS.md`: inventário dos materiais publicados.
+5. `GUIA-ENTENDIMENTO-PROJETO.md`: vocabulário e fluxo do projeto.
+6. `../protocol.json`: parâmetros fixos do treinamento.
 
-## Estado da entrega
+Os registros históricos estão em `HISTORICO-V1/` e `HISTORICO-V2/`. Eles servem
+para proveniência e não devem substituir a análise da V3.
 
-- `main` e o snapshot estavel para consulta e para o artigo.
-- `develop` e a branch para novas auditorias e melhorias.
-- A V1 continua congelada em `artifacts/v1/results/` e `artifacts/v1/summary.json`.
-- A V2 concluiu os 30 pares e as 60 execucoes instrumentadas.
-- O resumo da V2 esta em `artifacts/v2/summary.json`.
-- Os resultados, o resumo e os mapas Grad-CAM da V2 estao em `artifacts/v2/`.
-- Os checkpoints da V2 permanecem locais em `artifacts/v2/checkpoints/`.
-- A interpretacao consolidada esta em `RESULTADOS-V2.md`.
+## Consultar os resultados
 
-## Como consultar sem refazer os treinamentos
+Os materiais já estão publicados no repositório. Para consultar as métricas sem
+treinar novamente:
 
 ```bash
 uv sync --locked
-uv run experimento-feijao analyze --results artifacts/v2
+uv run experimento-feijao analyze --results artifacts/v3
 ```
 
-O comando usa os resultados detalhados da V2 sem sobrescrever o resumo. Nao e
-necessario baixar o dataset para consultar esses resultados.
+O resumo consolidado está em `artifacts/v3/summary.json`. Os resultados por
+seed estão em `artifacts/v3/results/` e os diagnósticos visuais em
+`artifacts/v3/gradcam/`.
 
-Os resultados da V2 podem ser consultados diretamente em `RESULTADOS-V2.md` e
-nos artefatos publicados em `artifacts/v2/`. A V2 e a evidencia principal do
-artigo e tambem o fluxo atual da aplicacao.
+## Síntese da V3
 
-Para preparar as entradas segmentadas compartilhadas localmente:
+A solução principal obteve F1 macro médio `0.8375` e acurácia média `0.8378`. A
+solução contrafactual obteve F1 macro médio `0.5880` e acurácia média `0.5880`.
+O teste t pareado da diferença de F1 macro apresentou valor-p
+`8.6521e-26`.
 
-```bash
-make prepare
-```
+A conclusão deve permanecer limitada ao protocolo V3. O resultado não demonstra
+que pesos ImageNet sempre superam qualquer inicialização aleatória, nem que a
+MobileNetV2 é superior a outras arquiteturas.
 
-Esse comando baixa os tres arquivos oficiais do Beans pelo espelho fixado,
-confere os checksums e gera `artifacts/v1/segmented/`, ou reutiliza a pasta se
-ela já existir. As imagens geradas nao sao versionadas. Para uma nova campanha,
-use `make all CAMPAIGN=artifacts/campaigns/campaign-01`.
+## Pontos metodológicos
 
-Os Grad-CAMs históricos podem ser consultados em `artifacts/v2/gradcam/`. Uma
-nova campanha gera seus próprios mapas e não sobrescreve os mapas históricos.
-
-## Pergunta e conclusao atual
-
-O experimento compara a mesma MobileNetV2 treinada fim a fim com duas
-inicializacoes da base:
-
-- pesos ImageNet;
-- pesos aleatorios.
-
-Sob o protocolo fixado, a solucao principal teve desempenho muito superior. A
-interpretacao deve ser limitada a este protocolo. Ela nao prova que ImageNet
-sempre supera qualquer inicializacao aleatoria, nem que a MobileNetV2 e a
-melhor arquitetura para o Beans.
-
-## Pontos que devem aparecer no artigo
-
-- A comparacao e de inicializacao ImageNet contra aleatoria, nao de um fluxo
-  canonico de fine-tuning em duas fases.
-- O teste t e pareado por seed.
-- As 30 execucoes reutilizam o mesmo split de teste de 128 imagens.
-- A solucao contrafactual apresentou colapso para uma classe nos 30 seeds da V2;
-  a classe constante foi `angular_leaf_spot` em 14 seeds e `bean_rust` em 16.
-- Na V1, o Grad-CAM disponivel e exploratorio e limitado ao `seed 1001`.
-
-O Grad-CAM da V2 amplia a evidencia visual para todos os pares, mas continua
-sendo uma analise qualitativa e nao uma explicacao causal.
-
-## Trabalho posterior em `develop`
-
-- Avaliar se o artigo precisa de tabelas ou figuras derivadas dos artefatos V2.
-- Decidir se uma nova campanha com outro protocolo e cientificamente desejada.
-
-Esses trabalhos nao devem alterar silenciosamente os resultados da campanha
-atual.
+- A comparação é entre inicialização ImageNet e inicialização aleatória.
+- O treinamento é fim a fim desde a primeira época.
+- O teste t é pareado por seed.
+- As 30 execuções reutilizam o mesmo split de teste de 128 imagens.
+- A BatchNorm usa `momentum=0.9` e calibração com dados de treino antes da validação.
+- Grad-CAM é evidência visual complementar, não uma explicação causal.

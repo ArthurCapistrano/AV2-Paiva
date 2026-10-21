@@ -1,0 +1,32 @@
+{
+  "branch": "solucao_principal",
+  "examples": {
+    "angular_leaf_spot": {
+      "identity": "test-0042",
+      "path": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/campaigns/campaign-bn-final/gradcam/pair-1015/solucao_principal/angular_leaf_spot.png",
+      "predicted_class": "bean_rust",
+      "predicted_logit": 3.4712748527526855,
+      "predicted_probability": 0.9078417420387268,
+      "score_type": "logit"
+    },
+    "bean_rust": {
+      "identity": "test-0085",
+      "path": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/campaigns/campaign-bn-final/gradcam/pair-1015/solucao_principal/bean_rust.png",
+      "predicted_class": "bean_rust",
+      "predicted_logit": 5.294044494628906,
+      "predicted_probability": 0.9992165565490723,
+      "score_type": "logit"
+    },
+    "healthy": {
+      "identity": "test-0000",
+      "path": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/campaigns/campaign-bn-final/gradcam/pair-1015/solucao_principal/healthy.png",
+      "predicted_class": "healthy",
+      "predicted_logit": 5.435313701629639,
+      "predicted_probability": 0.9997254014015198,
+      "score_type": "logit"
+    }
+  },
+  "schema_version": 2,
+  "seed": 1015,
+  "target": "predicted_class"
+}

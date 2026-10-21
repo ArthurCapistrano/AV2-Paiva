@@ -97,7 +97,7 @@ V1.
 **Grad-CAM**:
 Mapa qualitativo das regiões da entrada segmentada associadas à classe predita,
 calculado a partir da última camada convolucional. Na V1, os mapas existem
-somente para o `seed 1001`; na V2, foram gerados para os 30 pares.
+somente para o `seed 1001`; na V2 e na V3, foram gerados para os 30 pares.
 _Evitar_: tratar o mapa como prova de causalidade ou como métrica de desempenho
 
 **V1**:
@@ -108,9 +108,12 @@ baseline histórico preservado nos artefatos V1.
 **V2**:
 Campanha instrumentada histórica que reexecutou o protocolo da V1 e preservou
 evidências adicionais, como previsões, históricos, checkpoints e Grad-CAM. É a
-fonte principal de evidências para o artigo e a entrega, além de dar nome ao
-fluxo atual de `experiment`, `analyze` e `gradcam`. Não é um novo protocolo
-experimental.
+referência histórica anterior à V3 e não participa da metodologia atual.
+
+**V3**:
+Campanha oficial que fornece a metodologia, os resultados e as evidências do
+artigo e da entrega. Possui 30 pares experimentais, resultados detalhados,
+diagnósticos Grad-CAM e resumo estatístico publicados em `artifacts/v3/`.
 
 **Teste automatizado**:
 Verificação de comportamento do código por uma ferramenta de desenvolvimento.
@@ -123,4 +126,5 @@ braços experimentais.
 
 **Resultado de teste**:
 Métrica calculada a partir das previsões feitas no split de teste. Os resultados
-da V1 e da V2 estão preservados nos artefatos versionados correspondentes.
+da V1 e da V2 estão preservados nos artefatos históricos; os resultados oficiais
+do artigo estão nos artefatos da V3.

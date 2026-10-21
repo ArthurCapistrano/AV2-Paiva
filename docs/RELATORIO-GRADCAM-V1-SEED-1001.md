@@ -45,5 +45,5 @@ explicacao e nao devem ser generalizados para os outros 29 pares.
 Este diretório continua sendo o diagnóstico exploratório da V1. A V2 reutilizou
 as mesmas três identidades nos 30 pares e nos dois ramos, produzindo 60
 diagnósticos e 180 painéis. Os resultados ampliados estão em
-[`RESULTADOS-V2.md`](RESULTADOS-V2.md); os painéis V2 permanecem
+[`RESULTADOS.md`](HISTORICO-V2/RESULTADOS.md); os painéis V2 permanecem
 locais em `artifacts/v2/gradcam/`.

@@ -1,41 +1,42 @@
-# Indice de evidencias
+# Índice de evidências
 
-Este arquivo separa os documentos explicativos dos artefatos produzidos pelas
-campanhas. Os resultados versionados sao pequenos o suficiente para serem
-consultados diretamente no GitHub; checkpoints e entradas geradas permanecem
-locais.
-
-Para o artigo e a entrega final, a V2 e a fonte principal de evidencias. A V1
-permanece como baseline historico e referencia do fluxo executavel atual.
-
-## V2: evidencia principal do artigo
+## V3: referência principal
 
 ```text
-artifacts/v2/results/                 Resultados, previsoes e historicos
-artifacts/v2/gradcam/                 180 paineis e 60 diagnosticos
-artifacts/v2/summary.json             Resumo estatistico da V2
+artifacts/v3/manifest.json  configuração e proveniência
+artifacts/v3/results/       resultados, previsões e históricos
+artifacts/v3/gradcam/       60 diagnósticos e 180 painéis
+artifacts/v3/summary.json   resumo estatístico
 ```
 
-Os resultados JSON, o resumo e os paineis Grad-CAM sao as evidencias publicadas
-para o artigo e a entrega. Os checkpoints da V2 ficam localmente em
-`artifacts/v2/checkpoints/` e nao sao versionados por causa do tamanho.
+Os resultados JSON, o resumo, o manifesto e os diagnósticos Grad-CAM são
+publicados para consulta do artigo. Os checkpoints não são versionados por
+causa do tamanho; seus hashes permanecem nos resultados detalhados.
 
-## V1: baseline historico e referencia executavel
+## Histórico
 
 ```text
-artifacts/v1/results/                 Resultados dos 30 pares
-artifacts/v1/summary.json             Resumo estatistico
-artifacts/v1/reports/epoch-pilot.json Piloto que fixou o orcamento de epocas
-artifacts/v1/reports/gradcam/         Diagnostico visual do seed 1001
+artifacts/v1/results/        resultados da V1
+artifacts/v1/summary.json    resumo da V1
+artifacts/v2/results/        resultados históricos da V2
+artifacts/v2/summary.json    resumo histórico da V2
 ```
 
-As entradas segmentadas da V1 ficam localmente em
-`artifacts/v1/segmented/`. Elas sao geradas por `make prepare` e nao sao
-versionadas.
+A documentação correspondente está em `docs/HISTORICO-V1/` e
+`docs/HISTORICO-V2/`. Esses materiais preservam a proveniência, mas não são
+usados na metodologia nem na conclusão da V3.
 
-## Operacao local
+## Operação
 
-Os wrappers shell usados durante a campanha V2 permanecem somente na copia local
-do repositorio e sao ignorados pelo Git. O fluxo atual usa a CLI e o Makefile
-com os nomes `experiment`, `analyze` e `gradcam`; os checkpoints permanecem
-locais e os demais artefatos sao publicados.
+Para consultar a V3 sem treinar novamente:
+
+```bash
+uv sync --locked
+uv run experimento-feijao analyze --results artifacts/v3
+```
+
+Para executar uma campanha nova, escolha uma pasta própria e siga o fluxo:
+
+```text
+prepare -> experiment -> gradcam -> analyze
+```
