@@ -3,7 +3,7 @@
   "examples": {
     "angular_leaf_spot": {
       "identity": "test-0042",
-      "path": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/campaigns/campaign-bn-final/gradcam/pair-1027/solucao_contrafactual/angular_leaf_spot.png",
+      "path": "artifacts/v3/gradcam/pair-1027/solucao_contrafactual/angular_leaf_spot.png",
       "predicted_class": "angular_leaf_spot",
       "predicted_logit": 1.3525398969650269,
       "predicted_probability": 0.5959661602973938,
@@ -11,7 +11,7 @@
     },
     "bean_rust": {
       "identity": "test-0085",
-      "path": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/campaigns/campaign-bn-final/gradcam/pair-1027/solucao_contrafactual/bean_rust.png",
+      "path": "artifacts/v3/gradcam/pair-1027/solucao_contrafactual/bean_rust.png",
       "predicted_class": "bean_rust",
       "predicted_logit": 1.1948591470718384,
       "predicted_probability": 0.5739285945892334,
@@ -19,7 +19,7 @@
     },
     "healthy": {
       "identity": "test-0000",
-      "path": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/campaigns/campaign-bn-final/gradcam/pair-1027/solucao_contrafactual/healthy.png",
+      "path": "artifacts/v3/gradcam/pair-1027/solucao_contrafactual/healthy.png",
       "predicted_class": "healthy",
       "predicted_logit": 0.1512930989265442,
       "predicted_probability": 0.45322924852371216,

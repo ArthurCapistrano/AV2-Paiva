@@ -46,6 +46,29 @@ def test_v3_summary_contains_the_published_results():
     assert summary["paired_macro_f1_difference"]["test"]["p_value"] == 8.652052380838855e-26
 
 
+def test_v3_metadata_points_only_to_published_paths():
+    pair_results = sorted((V3 / "results").glob("pair-*/result.json"))
+    for pair_path in pair_results:
+        pair = json.loads(pair_path.read_text(encoding="utf-8"))
+        pair_name = pair_path.parent.name
+        for branch, relative_path in pair["branches"].items():
+            expected = f"artifacts/v3/results/{pair_name}/{branch}/result.json"
+            assert relative_path == expected
+
+            result_path = ROOT / relative_path
+            result = json.loads(result_path.read_text(encoding="utf-8"))
+            assert "checkpoint" not in result
+            assert len(result["checkpoint_sha256"]) == 64
+
+    diagnostics = sorted((V3 / "gradcam").glob("pair-*/solucao_*/diagnostic.json"))
+    for diagnostic_path in diagnostics:
+        diagnostic = json.loads(diagnostic_path.read_text(encoding="utf-8"))
+        for example in diagnostic["examples"].values():
+            relative_path = Path(example["path"])
+            assert not relative_path.is_absolute()
+            assert (ROOT / relative_path).is_file()
+
+
 def test_active_documentation_uses_v3_as_the_primary_reference():
     for path in ACTIVE_DOCS:
         content = path.read_text(encoding="utf-8")

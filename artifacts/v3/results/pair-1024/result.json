@@ -1,7 +1,7 @@
 {
   "branches": {
-    "solucao_contrafactual": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/campaigns/campaign-bn-final/results/pair-1024/solucao_contrafactual/result.json",
-    "solucao_principal": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/campaigns/campaign-bn-final/results/pair-1024/solucao_principal/result.json"
+    "solucao_contrafactual": "artifacts/v3/results/pair-1024/solucao_contrafactual/result.json",
+    "solucao_principal": "artifacts/v3/results/pair-1024/solucao_principal/result.json"
   },
   "schema_version": 2,
   "seed": 1024

@@ -2,7 +2,6 @@
   "best_epoch": 56,
   "best_validation_loss": 0.4450809359550476,
   "branch": "solucao_principal",
-  "checkpoint": "/home/arthur/Faculdade/7_periodo/PAIVA/AV2/AV2-Paiva/artifacts/campaigns/campaign-bn-final/checkpoints/pair-1020/solucao_principal.weights.h5",
   "checkpoint_sha256": "622a4ceddf7075701af2daec6252d6e7d5664870aeeebc29153a5c4976e7abe7",
   "evaluation": {
     "accuracy": 0.8671875,

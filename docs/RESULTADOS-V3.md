@@ -44,8 +44,9 @@ tempo, probabilidades, previsões, métricas por classe e matriz de confusão.
 O Grad-CAM contém 60 diagnósticos e 180 painéis PNG, usando os três exemplos
 fixos para os dois ramos de cada seed.
 
-Os checkpoints não são publicados. Seus caminhos e hashes permanecem registrados
-nos resultados para auditoria local.
+Os checkpoints não são publicados. Seus hashes permanecem registrados nos
+resultados para auditoria local, sem referências a caminhos da máquina que
+produziu a campanha.
 
 ## Resultados agregados
 

@@ -15,5 +15,5 @@ uma nova campanha.
 
 Os resultados JSON, o resumo estatístico e os diagnósticos Grad-CAM permanecem
 publicados. Os checkpoints continuam disponíveis localmente e não fazem parte do
-histórico versionado. A V2 é consultada por sua documentação, por seus
-artefatos e pelas operações atuais da aplicação.
+histórico versionado. A V2 é consultada somente por sua documentação e por seus
+artefatos históricos.

@@ -11,8 +11,8 @@ da base MobileNetV2:
 - `solucao_contrafactual`: pesos aleatorios.
 
 A V2 nao apaga nem altera os resultados versionados da V1. Para o artigo, a
-entrega final e o fluxo executavel atual, este documento e a fonte principal de
-resultados e interpretacao; a V1 permanece como baseline historico.
+entrega final e o fluxo executavel atual, a V3 e a fonte principal de resultados
+e interpretacao; este documento permanece somente como registro historico.
 
 ## Execucao
 

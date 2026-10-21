@@ -2,7 +2,6 @@
   "best_epoch": 4,
   "best_validation_loss": 0.9411484003067017,
   "branch": "solucao_contrafactual",
-  "checkpoint": "artifacts/campaigns/campaign-bn-final/checkpoints/pair-1005/solucao_contrafactual.weights.h5",
   "checkpoint_sha256": "39efff7edcf5aa991d4c8f303e18891f293924ce2f33639eb13a9d0ef71e8ccf",
   "evaluation": {
     "accuracy": 0.5546875,

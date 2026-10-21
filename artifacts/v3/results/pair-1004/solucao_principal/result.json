@@ -2,7 +2,6 @@
   "best_epoch": 5,
   "best_validation_loss": 0.3881751000881195,
   "branch": "solucao_principal",
-  "checkpoint": "artifacts/campaigns/campaign-bn-final/checkpoints/pair-1004/solucao_principal.weights.h5",
   "checkpoint_sha256": "72ae153ea206441eee51c3df62107f95a8e964774c7552a1c7d61ec7a5fd6ab6",
   "evaluation": {
     "accuracy": 0.8125,
