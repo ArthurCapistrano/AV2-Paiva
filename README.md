@@ -72,7 +72,7 @@ make gradcam CAMPAIGN=artifacts/campaigns/campaign-nova
 make analyze CAMPAIGN=artifacts/campaigns/campaign-nova
 ```
 
-`make prepare` gera as entradas em `artifacts/v1/segmented/`. Essa pasta é
+`make prepare` gera as entradas em `artifacts/segmented/`. Essa pasta é
 compartilhada pelos dois ramos e permanece local.
 
 ## Protocolo V3

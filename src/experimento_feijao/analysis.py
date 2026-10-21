@@ -235,7 +235,7 @@ def _seed_comparison(results: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def analyze(results_root: Path) -> dict[str, Any]:
-    """Consolida métricas V2 e calcula o teste t pareado bilateral."""
+    """Consolida métricas da campanha e calcula os testes pareados bilaterais."""
     results = _read_results(results_root)
     metrics = _metric_summaries(results)
     paired_metrics: dict[str, dict[str, Any]] = {}

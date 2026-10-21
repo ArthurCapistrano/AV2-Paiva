@@ -70,3 +70,27 @@ def test_new_result_requires_checkpoint_hash(tmp_path):
         validate_checkpoint_reference(
             result, checkpoint, 1001, "solucao_principal"
         )
+
+
+def test_relative_checkpoint_reference_is_resolved_from_result_directory(tmp_path):
+    root = tmp_path / "campaign"
+    checkpoint = root / "checkpoints" / "pair-1001" / "solucao_principal.weights.h5"
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_bytes(b"weights")
+    result = root / "results" / "pair-1001" / "solucao_principal" / "result.json"
+    result.parent.mkdir(parents=True)
+    result.write_text(
+        json.dumps(
+            {
+                "seed": 1001,
+                "branch": "solucao_principal",
+                "checkpoint": "../../../checkpoints/pair-1001/solucao_principal.weights.h5",
+                "checkpoint_sha256": sha256(checkpoint),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    validate_checkpoint_reference(
+        result, checkpoint, 1001, "solucao_principal"
+    )

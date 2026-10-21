@@ -221,6 +221,7 @@ __marimo__/
 
 # Generated experiment inputs and large model artifacts
 /artifacts/v1/segmented/
+/artifacts/segmented/
 /artifacts/v2/checkpoints/
 /artifacts/v3/checkpoints/
 /artifacts/campaigns/*/checkpoints/

@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-DEFAULT_SEGMENTED_OUTPUT = Path("artifacts/v1/segmented")
+DEFAULT_SEGMENTED_OUTPUT = Path("artifacts/segmented")
 
 
 def _configuration(path: Path) -> dict[str, Any]:

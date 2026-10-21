@@ -261,7 +261,7 @@ def run_gradcam(
                     # Registra os metadados usados para auditar o diagnóstico visual.
                     metadata["examples"][class_name] = {
                         "identity": segmented_record.identity,
-                        "path": str(image_path),
+                        "path": str(image_path.relative_to(output)),
                         "predicted_class": BEANS_CLASSES[predicted_index],
                         "predicted_probability": float(probabilities[predicted_index]),
                         "predicted_logit": predicted_logit,

@@ -77,7 +77,10 @@ def validate_checkpoint_reference(
     recorded_checkpoint = result.get("checkpoint")
     if not isinstance(recorded_checkpoint, str):
         raise ValueError(f"checkpoint ausente no resultado: {result_path}")
-    if Path(recorded_checkpoint).resolve() != checkpoint.resolve():
+    recorded_path = Path(recorded_checkpoint)
+    if not recorded_path.is_absolute():
+        recorded_path = result_path.parent / recorded_path
+    if recorded_path.resolve() != checkpoint.resolve():
         raise ValueError(f"resultado aponta para outro checkpoint: {result_path}")
 
     recorded_hash = result.get("checkpoint_sha256")

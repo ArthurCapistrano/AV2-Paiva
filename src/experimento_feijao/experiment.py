@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import random
 import time
 from dataclasses import dataclass
@@ -433,7 +434,7 @@ def _run_branch(
     training: dict[str, Any],
     records: dict[str, list[SegmentedRecord]],
     checkpoint: Path,
-    campaign_root: Path,
+    result_path: Path,
 ) -> dict[str, Any]:
     """Treina um ramo e devolve a telemetria detalhada da campanha.
 
@@ -444,7 +445,7 @@ def _run_branch(
         training: Hiperparâmetros fixos do treinamento.
         records: Entradas segmentadas organizadas por divisão.
         checkpoint: Caminho compatível do checkpoint do ramo.
-        campaign_root: Diretório raiz da campanha para referências relativas.
+        result_path: Resultado do ramo para referências relativas.
 
     Returns:
         Resultado detalhado calculado no conjunto de teste.
@@ -487,7 +488,9 @@ def _run_branch(
             "history": history,
             "evaluation": evaluation,
             "predictions": prediction_rows,
-            "checkpoint": str(checkpoint.relative_to(campaign_root)),
+            "checkpoint": Path(
+                os.path.relpath(checkpoint, result_path.parent)
+            ).as_posix(),
             "checkpoint_sha256": sha256(checkpoint),
         }
     finally:
@@ -514,7 +517,7 @@ def _run_pair(
             training,
             records,
             output / "checkpoints" / f"pair-{pair_seed}" / f"{branch}.weights.h5",
-            output,
+            output / "results" / f"pair-{pair_seed}" / branch / "result.json",
         )
         for branch in BRANCHES
     }

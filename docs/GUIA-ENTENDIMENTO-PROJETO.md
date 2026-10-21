@@ -40,7 +40,7 @@ protocol.json
    prepare
       |
       v
-artifacts/v1/segmented/
+artifacts/segmented/
       |
       v
   experiment

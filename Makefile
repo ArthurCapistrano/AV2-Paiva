@@ -1,6 +1,6 @@
 PYTHON := uv run
 CONFIG := protocol.json
-SEGMENTED := artifacts/v1/segmented
+SEGMENTED := artifacts/segmented
 CAMPAIGN ?= artifacts/campaigns/campaign-$(shell date +%Y%m%d-%H%M%S)
 CAMPAIGN := $(CAMPAIGN)
 OUTPUT ?= $(CAMPAIGN)
