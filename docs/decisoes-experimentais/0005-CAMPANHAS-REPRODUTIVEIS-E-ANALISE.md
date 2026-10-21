@@ -14,8 +14,9 @@ prepare -> experiment -> gradcam -> analyze
 ```
 
 O `prepare` reutiliza uma pasta existente em ambiente controlado. Cada ramo
-registra a identidade do checkpoint e seu SHA-256. O Grad-CAM valida essa
-referência antes de ler os pesos.
+registra a identidade do checkpoint local e seu SHA-256. O Grad-CAM valida essa
+referência antes de ler os pesos; os artefatos publicados preservam somente o
+hash.
 
 As duas soluções usam `momentum=0.9` nas BatchNorms. Depois de cada época, as
 estatísticas são recalibradas com as entradas de treino antes da validação e da

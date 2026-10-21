@@ -41,5 +41,5 @@
     1029,
     1030
   ],
-  "segmented_inputs": "artifacts/v1/segmented"
+  "segmented_inputs": "not published; regenerate with experimento-feijao prepare --config protocol.json"
 }

@@ -13,18 +13,18 @@ from experimento_feijao.artifacts import read_json
 from experimento_feijao.preparation import SEEDS
 
 BRANCHES = ("solucao_principal", "solucao_contrafactual")
-V2_SCHEMA_VERSION = 2
+RESULT_SCHEMA_VERSION = 2
 METRICS = ("macro_f1", "accuracy")
 NORMALITY_ALPHA = 0.05
 
 
 def _read_json(path: Path) -> dict[str, Any]:
-    """Lê um artefato JSON produzido pela campanha V2."""
+    """Lê um artefato JSON produzido pela campanha."""
     return read_json(path)
 
 
 def _read_results(results_root: Path) -> list[dict[str, Any]]:
-    """Lê os pares V2 na ordem das seeds do protocolo."""
+    """Lê os pares na ordem das seeds do protocolo."""
     # O resumo só é válido quando todos os pares e seus dois ramos estão presentes.
     pair_paths = sorted((results_root / "results").glob("pair-*/result.json"))
     if len(pair_paths) != len(SEEDS):
@@ -264,7 +264,7 @@ def analyze(results_root: Path) -> dict[str, Any]:
         )
 
     return {
-        "schema_version": V2_SCHEMA_VERSION,
+        "schema_version": RESULT_SCHEMA_VERSION,
         "pair_count": len(results),
         "seeds": [int(result["seed"]) for result in results],
         "metrics": metrics,

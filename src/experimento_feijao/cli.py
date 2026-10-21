@@ -100,7 +100,7 @@ def _analyze(args: argparse.Namespace) -> int:
 
 
 def _gradcam(args: argparse.Namespace) -> int:
-    """Gera os mapas Grad-CAM dos exemplos fixos da V2.
+    """Gera os mapas Grad-CAM dos exemplos fixos da campanha.
 
     Args:
         args: Parâmetros da operação `gradcam`.

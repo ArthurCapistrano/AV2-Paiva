@@ -79,8 +79,9 @@ calibração não atualiza pesos por gradiente nem usa validação ou teste.
 ## Evidências
 
 Cada resultado de ramo contém a avaliação final, métricas por classe, matriz de
-confusão, previsões, probabilidades, histórico, melhor época e referência do
-checkpoint. O Grad-CAM possui três exemplos fixos por ramo e por seed.
+confusão, previsões, probabilidades, histórico, melhor época e o SHA-256 do
+checkpoint local. O caminho completo do checkpoint existe somente nas campanhas
+locais; o Grad-CAM publicado possui três exemplos fixos por ramo e por seed.
 
 Para consultar sem executar novos treinamentos:
 

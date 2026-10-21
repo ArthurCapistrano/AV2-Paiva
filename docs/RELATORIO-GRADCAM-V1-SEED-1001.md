@@ -46,4 +46,4 @@ Este diretório continua sendo o diagnóstico exploratório da V1. A V2 reutiliz
 as mesmas três identidades nos 30 pares e nos dois ramos, produzindo 60
 diagnósticos e 180 painéis. Os resultados ampliados estão em
 [`RESULTADOS.md`](HISTORICO-V2/RESULTADOS.md); os painéis V2 permanecem
-locais em `artifacts/v2/gradcam/`.
+publicados em `artifacts/v2/gradcam/`.

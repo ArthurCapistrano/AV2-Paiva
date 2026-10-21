@@ -1,4 +1,4 @@
-"""Geração dos diagnósticos visuais Grad-CAM da campanha V2."""
+"""Geração dos diagnósticos visuais Grad-CAM da campanha."""
 
 from __future__ import annotations
 
@@ -188,7 +188,7 @@ def run_gradcam(
                 / f"{branch}.weights.h5"
             )
             if not checkpoint.is_file():
-                raise ValueError(f"checkpoint V2 não encontrado: {checkpoint}")
+                raise ValueError(f"checkpoint não encontrado: {checkpoint}")
             result_path = (
                 output / "results" / f"pair-{pair_seed}" / branch / "result.json"
             )

@@ -1,13 +1,39 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from argparse import Namespace
+from pathlib import Path
 
 import pytest
 
 from experimento_feijao.cli import _analyze
 from experimento_feijao.experiment import BRANCHES, run_experiment
 from experimento_feijao import gradcam
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_make_all_runs_steps_in_order():
+    result = subprocess.run(
+        ["make", "-n", "all"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    commands = [
+        line
+        for line in result.stdout.splitlines()
+        if "experimento-feijao" in line
+    ]
+    assert [command.split()[3] for command in commands] == [
+        "prepare",
+        "experiment",
+        "gradcam",
+        "analyze",
+    ]
 
 
 def test_run_experiment_rejects_non_empty_output(tmp_path):

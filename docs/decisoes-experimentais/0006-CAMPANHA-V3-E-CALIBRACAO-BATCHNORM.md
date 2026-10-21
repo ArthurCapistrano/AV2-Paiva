@@ -28,9 +28,8 @@ métricas por classe, matrizes de confusão, históricos e Grad-CAM para os trê
 exemplos fixos de cada par. O resumo consolidado está em
 `artifacts/v3/summary.json`.
 
-Os checkpoints permanecem locais. Os resultados publicados registram o caminho
-e o SHA-256 de cada checkpoint para auditoria quando os arquivos estiverem
-disponíveis no ambiente de execução.
+Os checkpoints permanecem locais. Os resultados publicados registram o SHA-256
+de cada checkpoint; o caminho completo existe somente no ambiente de execução.
 
 ## Limites
 

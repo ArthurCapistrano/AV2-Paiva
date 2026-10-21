@@ -38,7 +38,7 @@ COMPONENTS: tuple[str, ...] = (
     "augmentation",  # Espelhamento e variação de brilho.
     "dropout",  # Sorteio do dropout.
 )
-V2_SCHEMA_VERSION = 2
+RESULT_SCHEMA_VERSION = 2
 BATCH_NORMALIZATION_MOMENTUM = 0.9
 
 
@@ -466,7 +466,7 @@ def _run_branch(
         probabilities = np.asarray(model.predict(_images(test_records), verbose=0))
         evaluation, prediction_rows = _evaluation(test_records, probabilities)
         return {
-            "schema_version": V2_SCHEMA_VERSION,
+            "schema_version": RESULT_SCHEMA_VERSION,
             "seed": pair_seed,
             "branch": branch,
             "best_epoch": best_epoch,
@@ -526,7 +526,7 @@ def run_experiment(
     Args:
         configuration_path: Configuração fixa do experimento.
         segmented_root: Diretório compartilhado de entradas segmentadas.
-        output: Diretório raiz que contém resultados e artefatos V2.
+        output: Diretório raiz que contém resultados e artefatos da campanha.
         seed: Seed opcional para executar somente um par experimental.
 
     Raises:
@@ -552,7 +552,7 @@ def run_experiment(
     write_json(
         output / "manifest.json",
         {
-            "schema_version": V2_SCHEMA_VERSION,
+            "schema_version": RESULT_SCHEMA_VERSION,
             "campaign_id": output.name,
             "configuration": str(configuration_path),
             "configuration_sha256": sha256(configuration_path),
@@ -578,7 +578,7 @@ def run_experiment(
         write_json(
             result_path,
             {
-                "schema_version": V2_SCHEMA_VERSION,
+                "schema_version": RESULT_SCHEMA_VERSION,
                 "seed": pair_seed,
                 "branches": branch_paths,
             },

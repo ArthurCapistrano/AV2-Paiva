@@ -24,6 +24,7 @@ def test_v3_publishes_all_compact_evidence_without_checkpoints():
     assert manifest["campaign_id"] == "campaign-bn-final"
     assert manifest["seeds"] == list(range(1001, 1031))
     assert manifest["batch_normalization_momentum"] == 0.9
+    assert manifest["segmented_inputs"].startswith("not published;")
     assert summary["pair_count"] == 30
     assert not (V3 / "checkpoints").exists()
 
