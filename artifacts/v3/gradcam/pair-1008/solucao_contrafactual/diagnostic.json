@@ -1,0 +1,32 @@
+{
+  "branch": "solucao_contrafactual",
+  "examples": {
+    "angular_leaf_spot": {
+      "identity": "test-0042",
+      "path": "artifacts/v3/gradcam/pair-1008/solucao_contrafactual/angular_leaf_spot.png",
+      "predicted_class": "angular_leaf_spot",
+      "predicted_logit": 3.0101449489593506,
+      "predicted_probability": 0.9527639150619507,
+      "score_type": "logit"
+    },
+    "bean_rust": {
+      "identity": "test-0085",
+      "path": "artifacts/v3/gradcam/pair-1008/solucao_contrafactual/bean_rust.png",
+      "predicted_class": "angular_leaf_spot",
+      "predicted_logit": 0.9694006443023682,
+      "predicted_probability": 0.5189401507377625,
+      "score_type": "logit"
+    },
+    "healthy": {
+      "identity": "test-0000",
+      "path": "artifacts/v3/gradcam/pair-1008/solucao_contrafactual/healthy.png",
+      "predicted_class": "healthy",
+      "predicted_logit": 2.3702800273895264,
+      "predicted_probability": 0.9417508244514465,
+      "score_type": "logit"
+    }
+  },
+  "schema_version": 2,
+  "seed": 1008,
+  "target": "predicted_class"
+}

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any
+
+DEFAULT_SEGMENTED_OUTPUT = Path("artifacts/segmented")
 
 
 def _configuration(path: Path) -> dict[str, Any]:
@@ -23,7 +24,7 @@ def _configuration(path: Path) -> dict[str, Any]:
     """
     document = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(document, dict):
-        raise ValueError("configuration must be an object")
+        raise ValueError("a configuração deve ser um objeto")
     return document
 
 
@@ -34,14 +35,17 @@ def _prepare(args: argparse.Namespace) -> int:
     try:
         prepared = prepare(
             _configuration(args.config),
-            args.dataset_manifest,
             args.output,
         )
-    except (OSError, json.JSONDecodeError, ValueError) as error:
-        print(f"Could not prepare segmented inputs: {error}", file=sys.stderr)
+    except (OSError, ValueError) as error:
+        print(
+            f"Não foi possível preparar as entradas segmentadas: {error}",
+            file=sys.stderr,
+        )
         return 2
 
-    print(f"Prepared {prepared['count']} segmented inputs in {args.output}")
+    action = "Reutilizadas" if prepared.get("reused") else "Preparadas"
+    print(f"{action} {prepared['count']} entradas segmentadas em {args.output}")
     return 0
 
 
@@ -58,16 +62,13 @@ def _experiment(args: argparse.Namespace) -> int:
     from experimento_feijao.preparation import SEEDS
 
     try:
-        configuration = _configuration(args.config)
-        seeds = configuration.get("seeds")
-        if seeds != list(SEEDS):
-            raise ValueError("configuration must contain the 30 fixed seeds")
-        run_experiment(args.config, args.segmented_inputs, args.output)
-    except (OSError, json.JSONDecodeError, ValueError) as error:
-        print(f"Could not run experiment: {error}", file=sys.stderr)
+        run_experiment(args.config, args.segmented_inputs, args.output, args.seed)
+    except (OSError, ValueError) as error:
+        print(f"Não foi possível executar o experimento: {error}", file=sys.stderr)
         return 2
 
-    print(f"Experiment with {len(seeds)} pairs written to {args.output}")
+    pair_count = 1 if args.seed is not None else len(SEEDS)
+    print(f"Experimento com {pair_count} pares gravado em {args.output}")
     return 0
 
 
@@ -81,18 +82,46 @@ def _analyze(args: argparse.Namespace) -> int:
         Código zero em caso de sucesso ou dois quando a análise falha.
     """
     from experimento_feijao.analysis import analyze
+    from experimento_feijao.artifacts import write_json
 
     try:
         summary = analyze(args.results)
         if args.output is not None:
-            args.output.write_text(
-                json.dumps(summary, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
-    except (OSError, json.JSONDecodeError, ValueError) as error:
-        print(f"Could not analyze experimental results: {error}", file=sys.stderr)
+            if args.output.exists():
+                raise ValueError(f"o resumo já existe: {args.output}")
+            write_json(args.output, summary)
+    except (OSError, ValueError) as error:
+        print(f"Não foi possível analisar os resultados: {error}", file=sys.stderr)
         return 2
 
+    _print_metric_summaries(summary)
+    _print_paired_f1_difference(summary)
+    return 0
+
+
+def _gradcam(args: argparse.Namespace) -> int:
+    """Gera os mapas Grad-CAM dos exemplos fixos da campanha.
+
+    Args:
+        args: Parâmetros da operação `gradcam`.
+
+    Returns:
+        Código zero em caso de sucesso ou dois quando a geração falha.
+    """
+    from experimento_feijao.gradcam import run_gradcam
+
+    try:
+        run_gradcam(args.config, args.segmented_inputs, args.output, args.seed)
+    except (OSError, ValueError) as error:
+        print(f"Não foi possível gerar os mapas Grad-CAM: {error}", file=sys.stderr)
+        return 2
+
+    print(f"Grad-CAM gravado em {args.output / 'gradcam'}")
+    return 0
+
+
+def _print_metric_summaries(summary: dict[str, Any]) -> None:
+    """Apresenta média e desvio-padrão de cada métrica consolidada."""
     print(f"{summary['pair_count']} pares experimentais")
     print("F1 macro")
     for arm, values in summary["metrics"]["macro_f1"].items():
@@ -100,84 +129,22 @@ def _analyze(args: argparse.Namespace) -> int:
     print("Acurácia")
     for arm, values in summary["metrics"]["accuracy"].items():
         print(f"  {arm}: média={values['mean']:.4f}, desvio-padrão={values['std']:.4f}")
+
+
+def _print_paired_f1_difference(summary: dict[str, Any]) -> None:
+    """Apresenta a diferença pareada de F1 e seu teste estatístico."""
+    difference = summary["paired_macro_f1_difference"]
+    differences = difference["values"]
     print("Diferenças pareadas de F1 macro")
-    differences = summary["differences"]["macro_f1"]
     print(
         f"  média={sum(differences) / len(differences):.4f}, "
         f"quantidade={len(differences)}"
     )
-    accuracy_differences = summary["differences"]["accuracy"]
-    print("Diferenças pareadas de acurácia")
+    test = difference["test"]
     print(
-        f"  média={sum(accuracy_differences) / len(accuracy_differences):.4f}, "
-        f"quantidade={len(accuracy_differences)}"
-    )
-    test = summary["paired_t_test"]
-    print(
-        "Teste t pareado: "
+        f"Teste {test['name']}: "
         f"estatística={test['statistic']:.4f}, valor-p={test['p_value']:.4g}"
     )
-    return 0
-
-
-def _v2_seeds(args: argparse.Namespace) -> tuple[int, ...] | None:
-    if args.seeds is None:
-        return None
-    if args.seeds == "all":
-        return None
-    try:
-        return tuple(int(value) for value in args.seeds.split(","))
-    except ValueError as error:
-        raise ValueError("V2 seeds must be comma-separated integers") from error
-
-
-def _v2_experiment(args: argparse.Namespace) -> int:
-    """Executa a V2 instrumentada e retomável."""
-    from experimento_feijao.v2 import run_v2_experiment
-
-    try:
-        if args.seeds == "all" and os.environ.get("V2_PILOT_APPROVED") != "1":
-            raise ValueError("full V2 run requires pilot approval")
-        run_v2_experiment(
-            args.config,
-            args.segmented_inputs,
-            args.output,
-            _v2_seeds(args),
-        )
-    except (OSError, json.JSONDecodeError, ValueError) as error:
-        print(f"Could not run V2 experiment: {error}", file=sys.stderr)
-        return 2
-    return 0
-
-
-def _v2_gradcam(args: argparse.Namespace) -> int:
-    """Gera os mapas Grad-CAM fixos da V2."""
-    from experimento_feijao.v2 import run_v2_gradcam
-
-    try:
-        run_v2_gradcam(
-            args.config,
-            args.segmented_inputs,
-            args.output,
-            _v2_seeds(args),
-        )
-    except (OSError, json.JSONDecodeError, ValueError) as error:
-        print(f"Could not run V2 Grad-CAM: {error}", file=sys.stderr)
-        return 2
-    return 0
-
-
-def _v2_analyze(args: argparse.Namespace) -> int:
-    """Consolida os pares V2 disponíveis sem treinar."""
-    from experimento_feijao.v2 import analyze_v2
-
-    try:
-        summary = analyze_v2(args.results, args.output)
-    except (OSError, json.JSONDecodeError, ValueError) as error:
-        print(f"Could not analyze V2 results: {error}", file=sys.stderr)
-        return 2
-    print(f"V2: {summary['pair_count']} pares completos")
-    return 0
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -188,65 +155,47 @@ def _parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="experimento-feijao",
-        description="Experimento simples de classificacao de folhas de feijao",
+        description="Experimento simples de classificação de folhas de feijão",
     )
     subparsers = parser.add_subparsers(dest="operation", required=True)
 
     prepare_parser = subparsers.add_parser(
-        "prepare", help="prepare the shared segmented inputs"
+        "prepare", help="prepara as entradas segmentadas compartilhadas"
     )
     prepare_parser.add_argument("--config", required=True, type=Path)
-    prepare_parser.add_argument("--dataset-manifest", type=Path)
-    prepare_parser.add_argument("--output", required=True, type=Path)
+    prepare_parser.add_argument(
+        "--output", type=Path, default=DEFAULT_SEGMENTED_OUTPUT
+    )
     prepare_parser.set_defaults(handler=_prepare)
 
     experiment_parser = subparsers.add_parser(
-        "experiment", help="execute all configured paired experiments"
+        "experiment", help="executa os pares experimentais configurados"
     )
     experiment_parser.add_argument("--config", required=True, type=Path)
     experiment_parser.add_argument("--segmented-inputs", required=True, type=Path)
     experiment_parser.add_argument("--output", required=True, type=Path)
+    experiment_parser.add_argument(
+        "--seed", type=int, help="executa somente o par experimental desta seed"
+    )
     experiment_parser.set_defaults(handler=_experiment)
 
     analyze_parser = subparsers.add_parser(
-        "analyze", help="analyze the paired experiment results"
+        "analyze", help="analisa os resultados dos pares experimentais"
     )
     analyze_parser.add_argument("--results", required=True, type=Path)
     analyze_parser.add_argument("--output", type=Path)
     analyze_parser.set_defaults(handler=_analyze)
 
-    v2_experiment_parser = subparsers.add_parser(
-        "v2-experiment", help="execute the instrumented V2 experiment"
+    gradcam_parser = subparsers.add_parser(
+        "gradcam", help="gera os mapas Grad-CAM dos exemplos fixos"
     )
-    v2_experiment_parser.add_argument("--config", required=True, type=Path)
-    v2_experiment_parser.add_argument("--segmented-inputs", required=True, type=Path)
-    v2_experiment_parser.add_argument("--output", required=True, type=Path)
-    v2_experiment_parser.add_argument(
-        "--seeds",
-        default="1002",
-        help="comma-separated subset, or all after pilot approval",
+    gradcam_parser.add_argument("--config", required=True, type=Path)
+    gradcam_parser.add_argument("--segmented-inputs", required=True, type=Path)
+    gradcam_parser.add_argument("--output", required=True, type=Path)
+    gradcam_parser.add_argument(
+        "--seed", type=int, help="gera Grad-CAM somente para esta seed"
     )
-    v2_experiment_parser.set_defaults(handler=_v2_experiment)
-
-    v2_gradcam_parser = subparsers.add_parser(
-        "v2-gradcam", help="generate fixed V2 Grad-CAM panels"
-    )
-    v2_gradcam_parser.add_argument("--config", required=True, type=Path)
-    v2_gradcam_parser.add_argument("--segmented-inputs", required=True, type=Path)
-    v2_gradcam_parser.add_argument("--output", required=True, type=Path)
-    v2_gradcam_parser.add_argument(
-        "--seeds",
-        default="1002",
-        help="optional comma-separated subset of fixed seeds",
-    )
-    v2_gradcam_parser.set_defaults(handler=_v2_gradcam)
-
-    v2_analyze_parser = subparsers.add_parser(
-        "v2-analyze", help="analyze completed V2 pairs"
-    )
-    v2_analyze_parser.add_argument("--results", required=True, type=Path)
-    v2_analyze_parser.add_argument("--output", required=True, type=Path)
-    v2_analyze_parser.set_defaults(handler=_v2_analyze)
+    gradcam_parser.set_defaults(handler=_gradcam)
 
     return parser
 

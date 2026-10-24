@@ -1,0 +1,101 @@
+from __future__ import annotations
+
+import json
+import subprocess
+from argparse import Namespace
+from pathlib import Path
+
+import pytest
+
+from experimento_feijao.cli import _analyze
+from experimento_feijao.experiment import BRANCHES, _reference_path, run_experiment
+from experimento_feijao import gradcam
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_make_all_runs_steps_in_order():
+    campaign = "artifacts/campaigns/test-campaign"
+    result = subprocess.run(
+        ["make", "-n", "all", f"CAMPAIGN={campaign}"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    commands = [
+        line
+        for line in result.stdout.splitlines()
+        if "experimento-feijao" in line
+    ]
+    assert [command.split()[3] for command in commands] == [
+        "prepare",
+        "experiment",
+        "gradcam",
+        "analyze",
+    ]
+    assert result.stdout.count(f"--output {campaign}\n") == 2
+    assert "--output artifacts/segmented" in result.stdout
+    assert result.stdout.count("--segmented-inputs artifacts/segmented") == 2
+    assert f"--results {campaign}" in result.stdout
+    assert f"--output {campaign}/summary.json" in result.stdout
+
+
+def test_reference_path_does_not_expose_machine_root():
+    assert _reference_path(Path("/tmp/private/protocol.json")) == "protocol.json"
+
+
+def test_run_experiment_rejects_non_empty_output(tmp_path):
+    output = tmp_path / "campaign"
+    output.mkdir()
+    (output / "marker.txt").write_text("existing", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="já existe"):
+        run_experiment(
+            tmp_path / "protocol.json",
+            tmp_path / "segmented",
+            output,
+        )
+
+
+def test_analyze_rejects_existing_summary(tmp_path, monkeypatch):
+    output = tmp_path / "summary.json"
+    output.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(
+        "experimento_feijao.analysis.analyze",
+        lambda _: {"unused": True},
+    )
+
+    assert _analyze(Namespace(results=tmp_path, output=output)) == 2
+
+
+@pytest.mark.parametrize("existing_name", ["diagnostic.json", "healthy.png"])
+def test_gradcam_rejects_existing_output(tmp_path, monkeypatch, existing_name):
+    output = tmp_path / "campaign"
+    seed = 1001
+    for branch in BRANCHES:
+        checkpoint = output / "checkpoints" / f"pair-{seed}" / f"{branch}.weights.h5"
+        checkpoint.parent.mkdir(parents=True, exist_ok=True)
+        checkpoint.write_bytes(b"weights")
+        result = output / "results" / f"pair-{seed}" / branch / "result.json"
+        result.parent.mkdir(parents=True, exist_ok=True)
+        result.write_text(
+            json.dumps({"seed": seed, "branch": branch}),
+            encoding="utf-8",
+        )
+        existing_path = output / "gradcam" / f"pair-{seed}" / branch / existing_name
+        existing_path.parent.mkdir(parents=True, exist_ok=True)
+        existing_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(gradcam, "_fixed_examples", lambda _: {})
+    monkeypatch.setattr(gradcam, "_read_configuration", lambda _: {})
+    monkeypatch.setattr(gradcam, "validate_checkpoint_reference", lambda *args: None)
+
+    with pytest.raises(ValueError, match="Grad-CAM já existe"):
+        gradcam.run_gradcam(
+            tmp_path / "protocol.json",
+            tmp_path / "segmented",
+            output,
+            seed,
+        )

@@ -2,100 +2,121 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import random
+import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 import cv2
 import keras  # type: ignore[import-untyped]
 import numpy as np
 import tensorflow as tf  # type: ignore[import-untyped]
 from numpy.typing import NDArray
-from sklearn.metrics import accuracy_score, f1_score  # type: ignore[import-untyped]
+from sklearn.metrics import (  # type: ignore[import-untyped]
+    classification_report,
+    confusion_matrix,
+)
 
+from experimento_feijao.artifacts import sha256, write_json
 from experimento_feijao.preparation import (
     BEANS_CLASSES,
-    DATASET_VERSION,
     SEEDS,
     SPLITS,
 )
 
-Branch = Literal["solucao_principal", "solucao_contrafactual"]
-BRANCHES: tuple[Branch, Branch] = (
+BRANCHES: tuple[str, str] = (
     "solucao_principal",
     "solucao_contrafactual",
 )
-COMPONENTS = ("base", "head", "data", "augmentation", "dropout")
 
-
-class ExperimentError(ValueError):
-    """Erro ao executar um par experimental."""
+# Cada componente recebe uma seed própria para manter os ramos comparáveis.
+COMPONENTS: tuple[str, ...] = (
+    "base",  # Inicialização da base MobileNetV2.
+    "head",  # Inicialização da cabeça classificadora.
+    "data",  # Ordem dos dados em cada época.
+    "augmentation",  # Espelhamento e variação de brilho.
+    "dropout",  # Sorteio do dropout.
+)
+RESULT_SCHEMA_VERSION = 2
+BATCH_NORMALIZATION_MOMENTUM = 0.9
 
 
 @dataclass(frozen=True)
 class SegmentedRecord:
+    """Representa uma entrada segmentada e seu rótulo numérico."""
+
     identity: str
     label: int
     path: Path
 
 
+def _reference_path(path: Path) -> str:
+    """Converte um caminho de entrada em uma referência sem dados da máquina."""
+    if path.is_absolute():
+        try:
+            path = path.relative_to(Path.cwd())
+        except ValueError:
+            path = Path(path.name)
+    return path.as_posix()
+
+
 def _derive_seed(pair_seed: int, component: str) -> int:
+    """Deriva uma seed estável para um componente do par experimental."""
     digest = hashlib.sha256(f"{pair_seed}:{component}".encode()).digest()
     return int.from_bytes(digest[:4], "big") & 0x7FFFFFFF
 
 
-def _read_configuration(
-    path: Path, pair_seed: int
-) -> dict[str, Any]:
+def _read_configuration(path: Path) -> dict[str, Any]:
     """Lê a configuração e devolve os parâmetros de treinamento.
 
     Args:
         path: Arquivo JSON da configuração fixa.
-        pair_seed: Seed do par que será executado.
-
     Returns:
-        Configuração de treinamento validada para o par.
+        Parâmetros de treinamento usados por todos os pares.
 
     Raises:
-        ExperimentError: Se faltarem dados essenciais ou a seed não for válida.
+        ValueError: Se o arquivo não puder ser lido ou não for um objeto JSON.
     """
     try:
         configuration = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
-        raise ExperimentError(str(error)) from error
+        raise ValueError(str(error)) from error
     if not isinstance(configuration, dict):
-        raise ExperimentError("configuration must be an object")
+        raise ValueError("a configuração deve ser um objeto")
 
-    dataset = configuration.get("dataset")
+    return _validate_training_configuration(configuration)
+
+
+def _validate_training_configuration(
+    configuration: dict[str, Any],
+) -> dict[str, Any]:
+    """Confirma as seções mínimas usadas pelo treinamento.
+
+    A validação verifica somente a estrutura necessária para executar o fluxo.
+    Valores e tipos detalhados continuam sendo definidos pelo protocolo fixo.
+    """
     training = configuration.get("training")
-    seeds = configuration.get("seeds")
-    if not isinstance(dataset, dict) or dataset.get("version") != DATASET_VERSION:
-        raise ExperimentError(f"dataset version must be {DATASET_VERSION}")
     if not isinstance(training, dict):
-        raise ExperimentError("training configuration is required")
-    required_training = (
-        "epochs",
-        "batch_size",
-        "learning_rate",
-        "l2",
-        "dropout",
-        "augmentation",
-    )
-    missing_training = [
-        name for name in required_training if name not in training
-    ]
-    if missing_training:
-        missing = ", ".join(missing_training)
-        raise ExperimentError(f"training fields are required: {missing}")
-    augmentation = training["augmentation"]
-    if not isinstance(augmentation, dict) or not {
-        "horizontal_flip",
-        "brightness_delta",
-    }.issubset(augmentation):
-        raise ExperimentError("training augmentation fields are required")
-    if seeds != list(SEEDS) or pair_seed not in SEEDS:
-        raise ExperimentError("configuration must contain the 30 fixed seeds")
+        raise ValueError("a configuração de treinamento é obrigatória")
+
+    augmentation = training.get("augmentation")
+    if not isinstance(augmentation, dict):
+        raise ValueError("a configuração de aumento é obrigatória")
+    try:
+        training["epochs"]
+        training["batch_size"]
+        training["learning_rate"]
+        training["l2"]
+        training["dropout"]
+        augmentation["horizontal_flip"]
+        augmentation["brightness_delta"]
+    except KeyError as error:
+        raise ValueError("a configuração de treinamento está incompleta") from error
+
+    if configuration.get("seeds") != list(SEEDS):
+        raise ValueError("a configuração deve conter as 30 seeds fixas")
     return training
 
 
@@ -108,16 +129,19 @@ def _load_segmented_inputs(root: Path) -> dict[str, list[SegmentedRecord]]:
             for path in sorted(directory.glob("*.png")):
                 records[split].append(SegmentedRecord(path.stem, class_index, path))
         if not records[split]:
-            raise ExperimentError(f"no segmented inputs found for {split}")
+            raise ValueError(f"não foram encontradas entradas segmentadas para {split}")
     return records
 
 
 def _images(records: list[SegmentedRecord]) -> NDArray[np.uint8]:
+    """Carrega registros segmentados como imagens RGB em memória."""
     images: list[NDArray[np.uint8]] = []
     for record in records:
         image = cv2.imread(str(record.path), cv2.IMREAD_COLOR)
         if image is None:
-            raise ExperimentError(f"could not read segmented input: {record.path}")
+            raise ValueError(
+                f"não foi possível ler a entrada segmentada: {record.path}"
+            )
         images.append(cast(NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_BGR2RGB)))
     return np.asarray(images, dtype=np.uint8)
 
@@ -145,29 +169,55 @@ def _epoch_training_data(
     Returns:
         Imagens aumentadas e seus rótulos na ordem do treinamento.
     """
+    # A ordem é sorteada uma vez por época e compartilhada pelos dois ramos.
     order = list(range(len(records)))
     random.Random(f"{data_seed}:{epoch}").shuffle(order)
     augmented: list[NDArray[np.float32]] = []
     labels: list[int] = []
     for index in order:
         record = records[index]
-        image = images[index].astype(np.float32)
-        local_seed = _derive_seed(augmentation_seed, f"{record.identity}:{epoch}")
-        generator = np.random.default_rng(local_seed)
-        if horizontal_flip and bool(generator.integers(0, 2)):
-            image = np.flip(image, axis=1)
-        delta = float(generator.uniform(-brightness_delta, brightness_delta)) * 255
-        augmented.append(np.clip(image + delta, 0, 255).astype(np.float32))
+        augmented.append(
+            _augment_image(
+                images[index],
+                record,
+                epoch,
+                augmentation_seed,
+                horizontal_flip,
+                brightness_delta,
+            )
+        )
         labels.append(record.label)
     return np.stack(augmented), np.asarray(labels, dtype=np.int64)
 
 
+def _augment_image(
+    image: NDArray[np.uint8],
+    record: SegmentedRecord,
+    epoch: int,
+    augmentation_seed: int,
+    horizontal_flip: bool,
+    brightness_delta: float,
+) -> NDArray[np.float32]:
+    """Aplica espelhamento e brilho determinísticos a uma única imagem."""
+    # O gerador local evita que uma imagem desloque a aleatoriedade das outras.
+    local_seed = _derive_seed(augmentation_seed, f"{record.identity}:{epoch}")
+    generator = np.random.default_rng(local_seed)
+    augmented = image.astype(np.float32)
+
+    # O espelhamento só é sorteado quando o protocolo permite esse aumento.
+    if horizontal_flip and bool(generator.integers(0, 2)):
+        augmented = np.flip(augmented, axis=1)
+
+    # A variação é aplicada igualmente a todos os pixels da imagem.
+    delta = float(generator.uniform(-brightness_delta, brightness_delta)) * 255
+
+    return np.clip(augmented + delta, 0, 255).astype(np.float32)
+
+
 def _build_model(
-    branch: Branch,
+    branch: str,
     seeds: dict[str, int],
     training: dict[str, Any],
-    *,
-    include_metrics: bool = False,
 ) -> keras.Model:
     """Constrói os dois ramos com a mesma topologia e cabeça.
 
@@ -179,77 +229,226 @@ def _build_model(
     Returns:
         Modelo MobileNetV2 treinável e compilado.
     """
-    if branch == "solucao_contrafactual":
+    # A solução principal usa ImageNet; o outro ramo usa pesos aleatórios.
+    use_imagenet = branch == "solucao_principal"
+    if not use_imagenet:
         keras.utils.set_random_seed(seeds["base"])
+
+    # A base é comum aos ramos; apenas sua inicialização muda.
     base = keras.applications.MobileNetV2(
         input_shape=(160, 160, 3),
         alpha=1.0,
         include_top=False,
-        weights="imagenet" if branch == "solucao_principal" else None,
+        weights="imagenet" if use_imagenet else None,
     )
+    for layer in base.layers:
+        if isinstance(layer, keras.layers.BatchNormalization):
+            layer.momentum = BATCH_NORMALIZATION_MOMENTUM
     base.trainable = True
+
+    # Cria a entrada e aplica a normalização esperada pela MobileNetV2.
     inputs = keras.Input(shape=(160, 160, 3), name="segmented_input")
     normalized = keras.layers.Lambda(
         keras.applications.mobilenet_v2.preprocess_input,
         name="mobilenet_v2_preprocessing",
     )(inputs)
+
+    # Extrai as características da base e reduz suas dimensões espaciais.
     features = base(normalized)
     pooled = keras.layers.GlobalAveragePooling2D()(features)
+
+    # Adiciona a cabeça classificadora comum aos dois ramos.
     dropped = keras.layers.Dropout(
         float(training["dropout"]), seed=seeds["dropout"]
     )(pooled)
-    outputs = keras.layers.Dense(
+    logits = keras.layers.Dense(
         len(BEANS_CLASSES),
-        activation="softmax",
+        activation=None,
+        name="classifier_logits",
         kernel_initializer=keras.initializers.GlorotUniform(seed=seeds["head"]),
         bias_initializer="zeros",
         kernel_regularizer=keras.regularizers.l2(float(training["l2"])),
     )(dropped)
+    outputs = keras.layers.Softmax(name="classifier_probabilities")(logits)
+
+    # Monta e compila o modelo que será treinado.
     model = keras.Model(inputs, outputs)
-    compile_options: dict[str, Any] = {
-        "optimizer": keras.optimizers.Adam(float(training["learning_rate"])),
-        "loss": keras.losses.SparseCategoricalCrossentropy(),
-    }
-    if include_metrics:
-        compile_options["metrics"] = [
-            keras.metrics.SparseCategoricalAccuracy(name="accuracy")
-        ]
-    model.compile(**compile_options)
+    model.compile(
+        optimizer=keras.optimizers.Adam(float(training["learning_rate"])),
+        loss=keras.losses.SparseCategoricalCrossentropy(),
+        metrics=["accuracy"],
+    )
+
     return model
 
 
-def _metrics(labels: list[int], predictions: list[int]) -> dict[str, float]:
-    """Calcula somente as métricas necessárias para o experimento."""
-    return {
-        "accuracy": float(accuracy_score(labels, predictions)),
-        "macro_f1": float(
-            f1_score(
-                labels,
-                predictions,
-                labels=list(range(len(BEANS_CLASSES))),
-                average="macro",
-                zero_division=0,
-            )
-        ),
+def _calibrate_batch_normalization(
+    model: keras.Model,
+    images: NDArray[np.uint8],
+    batch_size: int,
+) -> None:
+    """Atualiza as estatísticas móveis da base usando somente o treino."""
+    feature_extractor = next(
+        layer for layer in model.layers if isinstance(layer, keras.Model)
+    )
+    preprocessing_layer = model.get_layer("mobilenet_v2_preprocessing")
+    for start in range(0, len(images), batch_size):
+        batch = images[start : start + batch_size].astype(np.float32)
+        feature_extractor(preprocessing_layer(batch), training=True)
+
+
+def _fit_with_validation(
+    model: keras.Model,
+    train_records: list[SegmentedRecord],
+    train_images: NDArray[np.uint8],
+    validation_images: NDArray[np.float32],
+    validation_labels: NDArray[np.int64],
+    seeds: dict[str, int],
+    training: dict[str, Any],
+) -> tuple[int, float, list[dict[str, float]]]:
+    """Treina, registra o histórico e mantém o melhor estado em memória."""
+    augmentation = cast(dict[str, Any], training["augmentation"])
+    best_loss = float("inf")
+    best_epoch = 0
+    # Mantém em memória os pesos da época com melhor perda de validação.
+    best_weights = model.get_weights()
+    history_rows: list[dict[str, float]] = []
+    for epoch in range(int(training["epochs"])):
+        # Os dados são recriados por época, mas permanecem determinísticos.
+        epoch_images, epoch_labels = _epoch_training_data(
+            train_records,
+            train_images,
+            epoch,
+            seeds["data"],
+            seeds["augmentation"],
+            bool(augmentation["horizontal_flip"]),
+            float(augmentation["brightness_delta"]),
+        )
+        history = model.fit(
+            epoch_images,
+            epoch_labels,
+            batch_size=int(training["batch_size"]),
+            epochs=1,
+            shuffle=False,
+            verbose=0,
+        )
+        # A validação usa estatísticas móveis calibradas com o treino, como a
+        # inferência final, em vez das estatísticas do lote de treinamento.
+        _calibrate_batch_normalization(
+            model, train_images, int(training["batch_size"])
+        )
+        validation_metrics = model.evaluate(
+            validation_images,
+            validation_labels,
+            batch_size=int(training["batch_size"]),
+            verbose=0,
+            return_dict=True,
+        )
+        history_rows.append(
+            {
+                "epoch": float(epoch + 1),
+                **{
+                    name: _finite_float(values[0], f"histórico {name}")
+                    for name, values in history.history.items()
+                    if values
+                },
+                "val_loss": _finite_float(
+                    validation_metrics["loss"], "val_loss"
+                ),
+                "val_accuracy": _finite_float(
+                    validation_metrics["accuracy"], "val_accuracy"
+                ),
+            }
+        )
+        # A seleção dos pesos usa somente a perda de validação da época atual.
+        validation_loss = _finite_float(
+            validation_metrics["loss"], "val_loss"
+        )
+        if validation_loss < best_loss:
+            best_loss = validation_loss
+            best_epoch = epoch + 1
+            best_weights = model.get_weights()
+
+    model.set_weights(best_weights)
+    return best_epoch, best_loss, history_rows
+
+
+def _evaluation(
+    records: list[SegmentedRecord],
+    probabilities: NDArray[np.float32],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Calcula métricas detalhadas e previsões por imagem."""
+    if not np.isfinite(probabilities).all():
+        raise ValueError("as probabilidades do teste contêm valores não finitos")
+    labels = [record.label for record in records]
+    predictions = np.argmax(probabilities, axis=1).tolist()
+    # Gera as métricas globais, por classe e a matriz de confusão do conjunto.
+    report = classification_report(
+        labels,
+        predictions,
+        labels=list(range(len(BEANS_CLASSES))),
+        target_names=list(BEANS_CLASSES),
+        output_dict=True,
+        zero_division=0,
+    )
+    evaluation = {
+        "accuracy": float(report["accuracy"]),
+        "macro_f1": float(report["macro avg"]["f1-score"]),
+        "per_class": {
+            class_name: {
+                metric: float(report[class_name][metric])
+                for metric in ("precision", "recall", "f1-score", "support")
+            }
+            for class_name in BEANS_CLASSES
+        },
+        "confusion_matrix": confusion_matrix(
+            labels,
+            predictions,
+            labels=list(range(len(BEANS_CLASSES))),
+        ).tolist(),
     }
+    # Mantém cada previsão vinculada à identidade e às probabilidades da imagem.
+    prediction_rows = [
+        {
+            "identity": record.identity,
+            "true_class": BEANS_CLASSES[record.label],
+            "predicted_class": BEANS_CLASSES[prediction],
+            "probabilities": {
+                class_name: float(probability)
+                for class_name, probability in zip(
+                    BEANS_CLASSES, row, strict=True
+                )
+            },
+        }
+        for record, prediction, row in zip(
+            records, predictions, probabilities, strict=True
+        )
+    ]
+    return evaluation, prediction_rows
 
 
 def _run_branch(
-    branch: Branch,
+    branch: str,
+    pair_seed: int,
     seeds: dict[str, int],
     training: dict[str, Any],
     records: dict[str, list[SegmentedRecord]],
-) -> dict[str, float]:
-    """Treina um ramo e devolve seu F1 macro e sua acurácia.
+    checkpoint: Path,
+    result_path: Path,
+) -> dict[str, Any]:
+    """Treina um ramo e devolve a telemetria detalhada da campanha.
 
     Args:
         branch: Solução principal ou solução contrafactual.
+        pair_seed: Seed do par experimental.
         seeds: Seeds derivadas para os componentes comuns do par.
         training: Hiperparâmetros fixos do treinamento.
         records: Entradas segmentadas organizadas por divisão.
+        checkpoint: Caminho compatível do checkpoint do ramo.
+        result_path: Resultado do ramo para referências relativas.
 
     Returns:
-        F1 macro e acurácia calculados no conjunto de teste.
+        Resultado detalhado calculado no conjunto de teste.
     """
     model: keras.Model | None = None
     try:
@@ -261,85 +460,136 @@ def _run_branch(
         validation_labels = np.asarray(
             [record.label for record in validation_records], dtype=np.int64
         )
-        augmentation = training["augmentation"]
-        if not isinstance(augmentation, dict):
-            raise ExperimentError("training augmentation is required")
-
-        best_loss = float("inf")
-        best_weights = model.get_weights()
-        for epoch in range(int(training["epochs"])):
-            epoch_images, epoch_labels = _epoch_training_data(
-                train_records,
-                train_images,
-                epoch,
-                seeds["data"],
-                seeds["augmentation"],
-                bool(augmentation["horizontal_flip"]),
-                float(augmentation["brightness_delta"]),
-            )
-            history = model.fit(
-                epoch_images,
-                epoch_labels,
-                batch_size=int(training["batch_size"]),
-                epochs=1,
-                shuffle=False,
-                validation_data=(validation_images, validation_labels),
-                verbose=0,
-            )
-            validation_loss = float(history.history["val_loss"][0])
-            if validation_loss < best_loss:
-                best_loss = validation_loss
-                best_weights = model.get_weights()
-
-        model.set_weights(best_weights)
+        started = time.perf_counter()
+        best_epoch, best_loss, history = _fit_with_validation(
+            model,
+            train_records,
+            train_images,
+            validation_images,
+            validation_labels,
+            seeds,
+            training,
+        )
+        training_seconds = time.perf_counter() - started
+        # Persiste os melhores pesos antes de liberar o modelo ao final do ramo.
+        checkpoint.parent.mkdir(parents=True, exist_ok=True)
+        model.save_weights(checkpoint)
         test_records = records["test"]
-        probabilities = model.predict(_images(test_records), verbose=0)
-        predictions = np.argmax(probabilities, axis=1).tolist()
-        return _metrics([record.label for record in test_records], predictions)
+        # A avaliação final usa o conjunto de teste apenas após selecionar os pesos.
+        probabilities = np.asarray(model.predict(_images(test_records), verbose=0))
+        evaluation, prediction_rows = _evaluation(test_records, probabilities)
+        return {
+            "schema_version": RESULT_SCHEMA_VERSION,
+            "seed": pair_seed,
+            "branch": branch,
+            "best_epoch": best_epoch,
+            "best_validation_loss": best_loss,
+            "training_seconds": training_seconds,
+            "history": history,
+            "evaluation": evaluation,
+            "predictions": prediction_rows,
+            "checkpoint": Path(
+                os.path.relpath(checkpoint, result_path.parent)
+            ).as_posix(),
+            "checkpoint_sha256": sha256(checkpoint),
+        }
     finally:
         del model
         keras.backend.clear_session()
+
+
+def _run_pair(
+    pair_seed: int,
+    training: dict[str, Any],
+    records: dict[str, list[SegmentedRecord]],
+    output: Path,
+) -> dict[str, dict[str, Any]]:
+    """Executa os dois ramos usando as seeds derivadas do par."""
+    # As mesmas seeds derivadas são compartilhadas pelos dois ramos do par.
+    seeds = {
+        component: _derive_seed(pair_seed, component) for component in COMPONENTS
+    }
+    return {
+        branch: _run_branch(
+            branch,
+            pair_seed,
+            seeds,
+            training,
+            records,
+            output / "checkpoints" / f"pair-{pair_seed}" / f"{branch}.weights.h5",
+            output / "results" / f"pair-{pair_seed}" / branch / "result.json",
+        )
+        for branch in BRANCHES
+    }
+
+
+def _finite_float(value: Any, name: str) -> float:
+    """Converte um valor numérico e rejeita NaN/Inf antes da publicação."""
+    converted = float(value)
+    if not np.isfinite(converted):
+        raise ValueError(f"{name} contém valor não finito")
+    return converted
 
 
 def run_experiment(
     configuration_path: Path,
     segmented_root: Path,
     output: Path,
+    seed: int | None = None,
 ) -> None:
-    """Executa e salva os 30 pares experimentais definidos no protocolo.
+    """Executa e salva os pares detalhados definidos no protocolo.
 
     Args:
         configuration_path: Configuração fixa do experimento.
         segmented_root: Diretório compartilhado de entradas segmentadas.
-        output: Diretório dos resultados dos pares.
+        output: Diretório raiz que contém resultados e artefatos da campanha.
+        seed: Seed opcional para executar somente um par experimental.
 
     Raises:
-        ExperimentError: Se a configuração, as entradas ou o treinamento falharem.
+        ValueError: Se a configuração, as entradas ou o treinamento falharem.
     """
+    if seed is not None and seed not in SEEDS:
+        raise ValueError(f"seed inválida: {seed}")
+    selected_seeds = SEEDS if seed is None else (seed,)
+    if output.exists() and not output.is_dir():
+        raise ValueError(f"a saída não é um diretório: {output}")
+    if output.exists() and any(output.iterdir()):
+        raise ValueError(f"a saída da campanha já existe: {output}")
+    # A configuração e as entradas são carregadas antes de iniciar qualquer par.
+    training = _read_configuration(configuration_path)
     records = _load_segmented_inputs(segmented_root)
     tf.config.experimental.enable_op_determinism()
+    write_json(
+        output / "manifest.json",
+        {
+            "schema_version": RESULT_SCHEMA_VERSION,
+            "campaign_id": output.name,
+            "configuration": _reference_path(configuration_path),
+            "configuration_sha256": sha256(configuration_path),
+            "segmented_inputs": _reference_path(segmented_root),
+            "batch_normalization_momentum": BATCH_NORMALIZATION_MOMENTUM,
+            "batch_normalization_calibration": "train_only_before_validation",
+            "seeds": [int(value) for value in selected_seeds],
+            "branches": list(BRANCHES),
+        },
+    )
 
-    for pair_seed in SEEDS:
-        pair_output = output / f"pair-{pair_seed}"
+    for pair_seed in selected_seeds:
+        pair_output = output / "results" / f"pair-{pair_seed}"
         result_path = pair_output / "result.json"
-        if result_path.is_file():
-            continue
-        if pair_output.exists():
-            raise ExperimentError(f"output already exists: {pair_output}")
 
-        training = _read_configuration(configuration_path, pair_seed)
-        seeds = {
-            component: _derive_seed(pair_seed, component) for component in COMPONENTS
-        }
-        results = {
-            branch: _run_branch(branch, seeds, training, records)
-            for branch in BRANCHES
-        }
-        pair_output.mkdir(parents=True)
-        (pair_output / "result.json").write_text(
-            json.dumps(
-                {"seed": pair_seed, **results}, indent=2, sort_keys=True
-            )
-            + "\n",
-            encoding="utf-8",
+        results = _run_pair(pair_seed, training, records, output)
+        branch_paths: dict[str, str] = {}
+        # Salva cada ramo separadamente e registra seus caminhos no resultado do par.
+        for branch, result in results.items():
+            branch_path = pair_output / branch / "result.json"
+            write_json(branch_path, result)
+            branch_paths[branch] = str(branch_path.relative_to(output))
+        write_json(
+            result_path,
+            {
+                "schema_version": RESULT_SCHEMA_VERSION,
+                "seed": pair_seed,
+                "branches": branch_paths,
+            },
         )

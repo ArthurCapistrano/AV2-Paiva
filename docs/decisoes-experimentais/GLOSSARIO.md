@@ -47,6 +47,29 @@ Uma execução da solução principal e uma da solução contrafactual submetida
 mesmas condições pareadas.
 _Evitar_: duas execuções independentes
 
+**Campanha**:
+Execução completa de um protocolo, com preparação compartilhada, os 30 pares,
+checkpoints, resultados, Grad-CAM e análise estatística. Cada campanha possui
+uma pasta própria e não sobrescreve outra campanha.
+
+**Logit**:
+Pontuação bruta produzida pela cabeça classificadora antes da conversão para
+probabilidades pelo softmax. É o escore usado pelo Grad-CAM das novas campanhas
+para evitar saturação da probabilidade.
+
+**Probabilidade**:
+Saída normalizada pelo softmax a partir dos logits. As probabilidades das três
+classes somam um e são usadas para a previsão e para as métricas de teste.
+
+**Checkpoint**:
+Arquivo de pesos do melhor estado de um ramo, escolhido pela menor perda de
+validação. A identidade do arquivo é registrada pelo seu caminho e SHA-256.
+
+**Calibração da BatchNorm**:
+Atualização das estatísticas móveis das camadas BatchNorm usando somente as
+entradas de treino antes de medir a validação ou o teste. Não atualiza pesos por
+gradiente nem usa rótulos da validação ou do teste.
+
 **Inicialização ImageNet**:
 Estado inicial da base MobileNetV2 formado por pesos aprendidos previamente no
 ImageNet.
@@ -66,11 +89,42 @@ folha por limites globais de cor e brilho.
 Comportamento observado quando a solução contrafactual passa a prever uma única
 classe para as entradas avaliadas. No diagnóstico direto do `seed 1001`, todas
 as 128 previsões foram `angular_leaf_spot`.
-_Evitar_: afirmar que todos os 30 pares tiveram a mesma classe prevista sem
-previsões individuais
+Na V2, as previsões individuais mostram que todos os 30 pares colapsaram para
+uma única classe; 14 escolheram `angular_leaf_spot` e 16 escolheram `bean_rust`.
+_Evitar_: aplicar a conclusão da V2 retroativamente aos artefatos incompletos da
+V1.
 
 **Grad-CAM**:
 Mapa qualitativo das regiões da entrada segmentada associadas à classe predita,
 calculado a partir da última camada convolucional. Na V1, os mapas existem
-somente para o `seed 1001`; na V2, foram gerados para os 30 pares.
+somente para o `seed 1001`; na V2 e na V3, foram gerados para os 30 pares.
 _Evitar_: tratar o mapa como prova de causalidade ou como métrica de desempenho
+
+**V1**:
+Campanha experimental original, composta pela preparação das entradas, pelos 30
+pares experimentais e pela análise estatística de F1 macro e acurácia. É o
+baseline histórico preservado nos artefatos V1.
+
+**V2**:
+Campanha instrumentada histórica que reexecutou o protocolo da V1 e preservou
+evidências adicionais, como previsões, históricos, checkpoints e Grad-CAM. É a
+referência histórica anterior à V3 e não participa da metodologia atual.
+
+**V3**:
+Campanha oficial que fornece a metodologia, os resultados e as evidências do
+artigo e da entrega. Possui 30 pares experimentais, resultados detalhados,
+diagnósticos Grad-CAM e resumo estatístico publicados em `artifacts/v3/`.
+
+**Teste automatizado**:
+Verificação de comportamento do código por uma ferramenta de desenvolvimento.
+Não é uma etapa do treinamento nem o conjunto de imagens usado para avaliar os
+modelos.
+
+**Split de teste**:
+Parte do dataset usada depois do treinamento para calcular as métricas dos dois
+braços experimentais.
+
+**Resultado de teste**:
+Métrica calculada a partir das previsões feitas no split de teste. Os resultados
+da V1 e da V2 estão preservados nos artefatos históricos; os resultados oficiais
+do artigo estão nos artefatos da V3.
